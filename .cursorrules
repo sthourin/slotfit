@@ -1,0 +1,133 @@
+# SlotFit - Cursor AI Rules
+
+## Project Context
+
+SlotFit is a workout planning app with a novel "slot-based" approach. Users create routine templates with flexible slots targeting muscle groups, then select exercises on-the-fly during workouts.
+
+**Strategy**: Web-first development - build fully-featured web app before Android.
+
+## Key Documentation
+
+Always reference these files for context:
+- @.cursor/plans/slotfit_plan.md - Complete project plan
+- @.cursor/plans/slotfit_plan_analysis.md - Technical analysis
+- @TASKS.md - Implementation task checklist
+
+## Tech Stack
+
+**Backend**: Python 3.11+, FastAPI, PostgreSQL, SQLAlchemy, Alembic
+**Web**: React 18, TypeScript, Vite, Zustand, Tailwind CSS
+**AI**: Anthropic Claude API
+
+## Code Conventions
+
+### Python (Backend)
+- Use type hints on all functions
+- Async/await for database operations
+- Pydantic models for all API schemas
+- Follow existing patterns in `backend/app/models/`
+- Black formatter, isort for imports
+- Docstrings for public functions
+
+### TypeScript (Web)
+- Strict TypeScript - no `any` types
+- Functional components with hooks
+- Zustand for state management
+- Tailwind CSS for styling (no CSS modules)
+- ESLint + Prettier formatting
+
+### Database
+- Alembic for all migrations
+- JSONB for flexible array/object fields
+- Snake_case for column names
+- Always add indexes on foreign keys and frequently queried fields
+
+### API Design
+- All endpoints under `/api/v1/`
+- RESTful conventions
+- Pydantic schemas for request/response validation
+- Return appropriate HTTP status codes
+
+## File Structure Patterns
+
+### Adding a New Backend Feature
+1. Model: `backend/app/models/{feature}.py`
+2. Schema: `backend/app/schemas/{feature}.py`
+3. Endpoint: `backend/app/api/v1/endpoints/{feature}.py`
+4. Register in: `backend/app/api/v1/api.py`
+5. Migration: `alembic revision --autogenerate -m "add {feature}"`
+
+### Adding a New Web Feature
+1. Page: `web/src/pages/{Feature}.tsx`
+2. Components: `web/src/components/{feature}/`
+3. API service: `web/src/services/{feature}.ts`
+4. Store (if needed): `web/src/stores/{feature}Store.ts`
+
+## Current Implementation Status
+
+### ✅ Complete
+- Backend project structure
+- Core models: Exercise, MuscleGroup, Equipment, RoutineTemplate, RoutineSlot, WorkoutSession
+- Exercise database CSV import
+- Basic API endpoints
+
+### 🔄 In Progress
+- AI recommendation service
+- Web interface foundation
+
+### 📋 Next Priority (see @TASKS.md)
+1. Equipment Profiles (model + API)
+2. Enhanced Slot Types
+3. Slot Templates
+4. Web workout execution interface
+
+## Important Domain Concepts
+
+### Slot-Based System
+- **Routine Template**: Collection of slots defining a workout structure
+- **Slot**: A placeholder scoped to muscle group(s), filled with an exercise during workout
+- **Slot Types**: standard, warmup, finisher, active_recovery, wildcard
+- **1:1 Relationship**: One exercise per slot
+
+### Exercise Variants
+- Users can duplicate exercises to create variants (HIIT vs Strength)
+- Each variant tracks its own history and PRs
+- Linked via `base_exercise_id`
+
+### Equipment Profiles
+- Location-based equipment presets (Home Gym, Work Gym, etc.)
+- Applied at workout start to filter available exercises
+- Can override per-slot
+
+## Common Commands
+
+```bash
+# Backend
+cd backend
+uvicorn app.main:app --reload --port 8000
+alembic upgrade head
+alembic revision --autogenerate -m "description"
+pytest
+
+# Web
+cd web
+npm install
+npm run dev
+npm run build
+```
+
+## Do's and Don'ts
+
+### Do
+- Reference existing code patterns before creating new ones
+- Run migrations after model changes
+- Add type hints to all new code
+- Update TASKS.md when completing tasks
+- Test API changes at http://localhost:8000/docs
+
+### Don't
+- Modify the exercise CSV in `assets/`
+- Skip Alembic migrations for schema changes
+- Use `any` type in TypeScript
+- Create new CSS files (use Tailwind)
+- Add authentication yet (deferred for MVP)

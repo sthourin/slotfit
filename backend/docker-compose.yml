@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: slotfit-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: slotfit
+      POSTGRES_DB: slotfit
+    ports:
+      - "5432:5432"
+    volumes:
+      - slotfit_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d slotfit"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  slotfit_postgres_data:

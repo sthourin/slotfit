@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:systematic-debugging)",
+      "Bash(python test_exercises.py:*)",
+      "Bash(powershell -Command \"cd ''C:\\Projects\\slotfit\\backend''; python test_exercises.py\")",
+      "Bash(powershell:*)"
+    ]
+  }
+}
