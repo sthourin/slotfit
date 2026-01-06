@@ -32,6 +32,8 @@ class AIProvider(ABC):
         muscle_group_ids: List[int],
         available_equipment_ids: List[int],
         user_workout_history: Optional[Dict[str, Any]] = None,
+        weekly_volume: Optional[Dict[int, Dict[str, Any]]] = None,
+        movement_patterns: Optional[Dict[str, Dict[str, int]]] = None,
         limit: int = 5,
     ) -> RecommendationResponse:
         """
@@ -41,6 +43,8 @@ class AIProvider(ABC):
             muscle_group_ids: List of muscle group IDs for slot scope
             available_equipment_ids: List of available equipment IDs
             user_workout_history: Optional user workout history data
+            weekly_volume: Optional dict mapping muscle_group_id to volume data (total_sets, total_reps, total_volume)
+            movement_patterns: Optional dict with force_type, mechanics, and movement_patterns counts from current workout
             limit: Maximum number of recommendations to return
             
         Returns:

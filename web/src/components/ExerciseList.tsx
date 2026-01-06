@@ -3,7 +3,7 @@
  * Displays filtered exercises for a slot with sorting and filtering
  */
 import { useState, useMemo } from 'react'
-import { Exercise } from '../services/api'
+import { Exercise } from '../services/exercises'
 
 interface ExerciseListProps {
   exercises: Exercise[]

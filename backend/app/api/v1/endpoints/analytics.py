@@ -1,8 +1,8 @@
 """
 Analytics API endpoints
 """
-from datetime import date
-from typing import Dict, Any
+from datetime import date, timedelta
+from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,16 +12,29 @@ from app.services.analytics_service import AnalyticsService
 router = APIRouter()
 
 
+def get_current_week_monday() -> date:
+    """Get the Monday of the current week (ISO week start)"""
+    today = date.today()
+    # weekday() returns 0 for Monday, 6 for Sunday
+    days_since_monday = today.weekday()
+    return today - timedelta(days=days_since_monday)
+
+
 @router.get("/weekly-volume", response_model=Dict[str, Any])
 async def get_weekly_volume(
-    week_start: date = Query(..., description="Monday date of the week (ISO week start)"),
+    week_start: Optional[date] = Query(None, description="Monday date of the week (ISO week start). Defaults to current week's Monday."),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Get weekly volume data for all muscle groups for a given week
     
     Returns volume metrics (sets, reps, total volume) per muscle group.
+    If week_start is not provided, defaults to the current week's Monday.
     """
+    # Default to current week's Monday if not provided
+    if week_start is None:
+        week_start = get_current_week_monday()
+    
     # Validate that week_start is a Monday
     if week_start.weekday() != 0:
         raise HTTPException(

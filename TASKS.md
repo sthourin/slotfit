@@ -188,7 +188,34 @@ Track weekly training volume per muscle group.
 
 ## Phase 2: AI Service Enhancements
 
-### Task 2.1: Enhanced Recommendation Response
+### Task 2.1: Google Gemini API Integration
+**Status**: [x] Complete
+
+Add Google Gemini API as an alternative AI provider for exercise recommendations.
+
+**Files created/modified:**
+- `backend/app/services/ai/gemini_provider.py` - Gemini API provider implementation
+- `backend/app/services/ai/service.py` - Updated to include Gemini in provider fallback chain
+- `backend/app/core/config.py` - Added GEMINI_API_KEY configuration
+- `backend/requirements.txt` - Added `google-genai>=0.2.0` dependency
+- `backend/SETUP.md` - Added Gemini API key setup instructions
+
+**Implementation details:**
+- Uses new `google.genai` package (not deprecated `google-generativeai`)
+- Model priority: `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-2.0-flash-001`
+- Falls back gracefully if API key not configured or quota exceeded
+- Provider priority: Claude → Gemini → Rule-based fallback
+- Supports all enhanced features: weekly volume awareness, movement pattern balance
+
+**Configuration:**
+- Add `GEMINI_API_KEY=your_key_here` to `.env`
+- Get API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+
+**Test:** Verify Gemini provider works when GEMINI_API_KEY is set and Claude is unavailable
+
+---
+
+### Task 2.2: Enhanced Recommendation Response
 **Status**: [ ] Not Started  [ ] In Progress  [ ] Complete
 
 Add "not_recommended" array to AI response.
@@ -205,13 +232,17 @@ Add "not_recommended" array to AI response.
 
 ---
 
-### Task 2.2: Periodization Awareness
-**Status**: [ ] Not Started  [ ] In Progress  [ ] Complete
+### Task 2.3: Periodization Awareness
+**Status**: [x] Complete
 
 Factor weekly volume into recommendations.
 
 **Files to modify:**
-- `backend/app/services/ai/recommendation_service.py`
+- `backend/app/services/ai/service.py`
+- `backend/app/services/ai/base.py`
+- `backend/app/services/ai/claude_provider.py`
+- `backend/app/services/ai/gemini_provider.py`
+- `backend/app/services/ai/fallback_provider.py`
 
 **Logic:**
 1. Query WeeklyVolume for current week
@@ -221,27 +252,33 @@ Factor weekly volume into recommendations.
 
 ---
 
-### Task 2.3: Movement Pattern Balance
-**Status**: [ ] Not Started  [ ] In Progress  [ ] Complete
+### Task 2.4: Movement Pattern Balance
+**Status**: [x] Complete
 
 Balance push/pull, compound/isolation.
 
 **Data source:** Exercise CSV has Movement Pattern columns
 
-**Files to modify:**
-- `backend/app/services/ai/recommendation_service.py`
+**Files modified:**
+- `backend/app/services/ai/service.py` - Added `_get_workout_movement_patterns()` method and updated `get_recommendations()` to accept `workout_session_id`
+- `backend/app/services/ai/base.py` - Updated interface to accept `movement_patterns` parameter
+- `backend/app/services/ai/claude_provider.py` - Updated prompt to include movement pattern balance and boost underrepresented patterns
+- `backend/app/services/ai/gemini_provider.py` - Updated prompt to include movement pattern balance and boost underrepresented patterns
+- `backend/app/services/ai/fallback_provider.py` - Added logic to boost underrepresented movement patterns in rule-based recommendations
+- `backend/app/api/v1/endpoints/recommendations.py` - Added optional `workout_session_id` query parameter
 
-**Logic:**
-1. Calculate workout's current movement pattern counts
-2. Include in AI prompt
-3. Boost underrepresented patterns
+**Implementation:**
+1. ✅ Calculate workout's current movement pattern counts (force_type, mechanics, movement_patterns)
+2. ✅ Include in AI prompt with balance analysis
+3. ✅ Boost underrepresented patterns (Push/Pull, Compound/Isolation)
+4. ✅ Added `movement_balance` factor to recommendation response
 
 ---
 
 ## Phase 3: Web App Foundation
 
 ### Task 3.1: Tailwind CSS Setup
-**Status**: [ ] Not Started  [ ] In Progress  [ ] Complete
+**Status**: [x] Complete
 
 **Files to create/modify:**
 - `web/tailwind.config.js`
@@ -259,7 +296,7 @@ npx tailwindcss init -p
 ---
 
 ### Task 3.2: API Service Layer
-**Status**: [ ] Not Started  [ ] In Progress  [ ] Complete
+**Status**: [x] Complete
 
 TypeScript API client for backend.
 
@@ -278,7 +315,7 @@ TypeScript API client for backend.
 ---
 
 ### Task 3.3: Zustand Stores
-**Status**: [ ] Not Started  [ ] In Progress  [ ] Complete
+**Status**: [x] Complete
 
 State management setup.
 

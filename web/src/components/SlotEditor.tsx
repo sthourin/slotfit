@@ -4,7 +4,8 @@
  */
 import { useState, useEffect, useMemo } from 'react'
 import { useRoutineStore } from '../stores/routineStore'
-import { muscleGroupApi, MuscleGroup, exerciseApi, Exercise } from '../services/api'
+import { muscleGroupApi, MuscleGroup } from '../services/muscleGroups'
+import { exerciseApi, Exercise } from '../services/exercises'
 import MuscleGroupSelector from './MuscleGroupSelector'
 import ExerciseList from './ExerciseList'
 import CreateVariantDialog from './CreateVariantDialog'

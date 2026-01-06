@@ -2,7 +2,7 @@
  * Routine store using Zustand
  */
 import { create } from 'zustand'
-import { routineApi, RoutineTemplate as ApiRoutineTemplate } from '../services/api'
+import { routineApi } from '../services/routines'
 
 export interface RoutineSlot {
   id: string // Temporary ID for UI (or actual ID from backend)

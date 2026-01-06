@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import RoutineDesigner from './pages/RoutineDesigner'
 import ExerciseBrowser from './pages/ExerciseBrowser'
+import TestServices from './pages/TestServices'
 
 function App() {
   return (
@@ -25,6 +26,12 @@ function App() {
                 >
                   Exercise Browser
                 </Link>
+                <Link
+                  to="/test"
+                  className="text-amber-600 hover:text-amber-700 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  🧪 Test
+                </Link>
               </div>
             </div>
           </div>
@@ -33,6 +40,7 @@ function App() {
         <Routes>
           <Route path="/" element={<RoutineDesigner />} />
           <Route path="/exercises" element={<ExerciseBrowser />} />
+          <Route path="/test" element={<TestServices />} />
         </Routes>
       </div>
     </BrowserRouter>

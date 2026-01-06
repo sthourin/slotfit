@@ -3,7 +3,7 @@
  * Hierarchical selection of muscle groups
  */
 import { useState, useMemo } from 'react'
-import { MuscleGroup } from '../services/api'
+import { MuscleGroup } from '../services/muscleGroups'
 
 interface MuscleGroupSelectorProps {
   muscleGroups: MuscleGroup[]

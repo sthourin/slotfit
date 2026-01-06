@@ -16,6 +16,7 @@ router = APIRouter()
 async def get_recommendations(
     muscle_group_ids: List[int] = Query(..., description="List of muscle group IDs for slot scope"),
     available_equipment_ids: List[int] = Query(..., description="List of available equipment IDs"),
+    workout_session_id: Optional[int] = Query(None, description="Optional workout session ID to calculate movement pattern balance"),
     limit: int = Query(5, ge=1, le=20, description="Maximum number of recommendations"),
     use_cache: bool = Query(True, description="Use cached recommendations if available"),
     db: AsyncSession = Depends(get_db),
@@ -28,6 +29,7 @@ async def get_recommendations(
     - Equipment availability
     - User workout history (if available)
     - Workout variety
+    - Movement pattern balance (push/pull, compound/isolation)
     """
     if not muscle_group_ids:
         raise HTTPException(status_code=400, detail="muscle_group_ids cannot be empty")
@@ -43,6 +45,7 @@ async def get_recommendations(
             muscle_group_ids=muscle_group_ids,
             available_equipment_ids=available_equipment_ids,
             user_workout_history=user_workout_history,
+            workout_session_id=workout_session_id,
             limit=limit,
             use_cache=use_cache,
         )

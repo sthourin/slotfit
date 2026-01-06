@@ -3,7 +3,7 @@
  * Dialog for creating exercise variants for context-aware history tracking
  */
 import { useState } from 'react'
-import { exerciseApi, Exercise } from '../services/api'
+import { exerciseApi, Exercise } from '../services/exercises'
 
 interface CreateVariantDialogProps {
   exercise: Exercise

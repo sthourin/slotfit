@@ -3,7 +3,8 @@
  * Browse and search exercises
  */
 import { useState, useEffect } from 'react'
-import { exerciseApi, Exercise, equipmentApi, Equipment } from '../services/api'
+import { exerciseApi, Exercise } from '../services/exercises'
+import { equipmentApi, Equipment } from '../services/equipment'
 
 export default function ExerciseBrowser() {
   const [exercises, setExercises] = useState<Exercise[]>([])
