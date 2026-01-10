@@ -17,17 +17,16 @@ class WeeklyVolume(Base):
     total_sets = Column(Integer, default=0, nullable=False)
     total_reps = Column(Integer, default=0, nullable=False)
     total_volume = Column(Float, default=0.0, nullable=False)  # weight × reps
-    
-    # Note: user_id deferred to future phase (MVP is offline-only)
-    # user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
     # Unique constraint: one record per muscle group per week per user
     __table_args__ = (
-        UniqueConstraint('muscle_group_id', 'week_start', name='uq_weekly_volume_muscle_group_week'),
+        UniqueConstraint('muscle_group_id', 'week_start', 'user_id', name='uq_weekly_volume_muscle_group_week_user'),
     )
 
     # Relationships
     muscle_group = relationship("MuscleGroup", foreign_keys=[muscle_group_id])
+    user = relationship("User", backref="weekly_volumes")
 
     def __repr__(self):
         return f"<WeeklyVolume(id={self.id}, muscle_group_id={self.muscle_group_id}, week_start={self.week_start}, sets={self.total_sets}, volume={self.total_volume})>"

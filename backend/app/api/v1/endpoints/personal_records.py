@@ -8,8 +8,10 @@ from sqlalchemy import select, func, desc
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
+from app.core.deps import get_current_user
 from app.models import PersonalRecord, Exercise
 from app.models.personal_record import RecordType
+from app.models.user import User
 from app.schemas.personal_record import (
     PersonalRecordResponse,
     PersonalRecordListResponse,
@@ -24,10 +26,13 @@ async def list_personal_records(
     limit: int = Query(100, ge=1, le=1000),
     exercise_id: Optional[int] = Query(None, description="Filter by exercise ID"),
     record_type: Optional[RecordType] = Query(None, description="Filter by record type"),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all personal records, optionally filtered by exercise_id or record_type"""
-    query = select(PersonalRecord).options(
+    """List all personal records for the current user, optionally filtered by exercise_id or record_type"""
+    query = select(PersonalRecord).where(
+        PersonalRecord.user_id == current_user.id
+    ).options(
         selectinload(PersonalRecord.exercise)
     )
     
@@ -42,7 +47,9 @@ async def list_personal_records(
     query = query.order_by(desc(PersonalRecord.achieved_at))
     
     # Get total count before pagination
-    count_query = select(func.count(PersonalRecord.id))
+    count_query = select(func.count(PersonalRecord.id)).where(
+        PersonalRecord.user_id == current_user.id
+    )
     if exercise_id:
         count_query = count_query.where(PersonalRecord.exercise_id == exercise_id)
     if record_type:
@@ -67,9 +74,10 @@ async def list_personal_records(
 async def get_personal_records_for_exercise(
     exercise_id: int,
     record_type: Optional[RecordType] = Query(None, description="Filter by record type"),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get all personal records for a specific exercise"""
+    """Get all personal records for a specific exercise for the current user"""
     # Verify exercise exists
     exercise_query = select(Exercise).where(Exercise.id == exercise_id)
     exercise_result = await db.execute(exercise_query)
@@ -80,7 +88,8 @@ async def get_personal_records_for_exercise(
     
     # Query personal records
     query = select(PersonalRecord).where(
-        PersonalRecord.exercise_id == exercise_id
+        PersonalRecord.exercise_id == exercise_id,
+        PersonalRecord.user_id == current_user.id
     ).options(
         selectinload(PersonalRecord.exercise)
     )

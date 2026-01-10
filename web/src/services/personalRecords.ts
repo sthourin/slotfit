@@ -31,9 +31,9 @@ export interface PersonalRecordCreate {
 
 export const personalRecordApi = {
   /**
-   * List all personal records, optionally filtered by exercise_id
+   * List all personal records, optionally filtered by exercise_id or record_type
    */
-  list: async (params?: { exercise_id?: number }): Promise<PersonalRecordListResponse> => {
+  list: async (params?: { exercise_id?: number; record_type?: RecordType }): Promise<PersonalRecordListResponse> => {
     const response = await apiClient.get<PersonalRecordListResponse>('/personal-records/', {
       params,
     })

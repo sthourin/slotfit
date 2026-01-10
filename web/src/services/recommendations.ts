@@ -21,8 +21,15 @@ export interface ExerciseRecommendation {
   }
 }
 
+export interface NotRecommendedExercise {
+  exercise_id: number
+  exercise_name: string
+  reason: string // Human-readable explanation
+}
+
 export interface RecommendationResponse {
   recommendations: ExerciseRecommendation[]
+  not_recommended: NotRecommendedExercise[]
   total_candidates: number
   filtered_by_equipment: number
   provider?: string | null // "claude", "fallback", etc.

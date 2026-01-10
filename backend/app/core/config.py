@@ -2,11 +2,17 @@
 Application configuration
 """
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import List
 
 
 class Settings(BaseSettings):
     """Application settings"""
+    
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+    )
     
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/slotfit"
@@ -27,10 +33,6 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> List[str]:
         """Get CORS origins as a list"""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 
 settings = Settings()

@@ -3,7 +3,7 @@ Pydantic schemas for Workout API
 """
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.models.workout import WorkoutState, SlotState
 
@@ -28,11 +28,10 @@ class WorkoutSetUpdate(BaseModel):
 
 
 class WorkoutSetResponse(WorkoutSetBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     workout_exercise_id: int
-
-    class Config:
-        from_attributes = True
 
 
 class WorkoutExerciseBase(BaseModel):
@@ -54,12 +53,11 @@ class WorkoutExerciseUpdate(BaseModel):
 
 
 class WorkoutExerciseResponse(WorkoutExerciseBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     workout_session_id: int
     sets: List[WorkoutSetResponse] = []
-
-    class Config:
-        from_attributes = True
 
 
 class WorkoutSessionBase(BaseModel):
@@ -77,14 +75,13 @@ class WorkoutSessionUpdate(BaseModel):
 
 
 class WorkoutSessionResponse(WorkoutSessionBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     started_at: Optional[datetime] = None
     paused_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     exercises: List[WorkoutExerciseResponse] = []
-
-    class Config:
-        from_attributes = True
 
 
 class WorkoutSessionListResponse(BaseModel):

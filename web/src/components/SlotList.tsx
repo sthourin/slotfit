@@ -10,12 +10,13 @@ interface SlotListProps {
 }
 
 export default function SlotList({ selectedSlotId, onSelectSlot }: SlotListProps) {
-  const { currentRoutine, addSlot, removeSlot, reorderSlots } = useRoutineStore()
+  const { currentRoutine, addSlot, removeSlot } = useRoutineStore()
 
   if (!currentRoutine) return null
 
   const handleAddSlot = () => {
     addSlot({
+      name: null,
       order: currentRoutine.slots.length + 1,
       muscleGroupIds: [],
       supersetTag: null,

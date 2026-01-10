@@ -7,7 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.deps import get_current_user
 from app.services.analytics_service import AnalyticsService
+from app.models.user import User
 
 router = APIRouter()
 
@@ -23,6 +25,7 @@ def get_current_week_monday() -> date:
 @router.get("/weekly-volume", response_model=Dict[str, Any])
 async def get_weekly_volume(
     week_start: Optional[date] = Query(None, description="Monday date of the week (ISO week start). Defaults to current week's Monday."),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -44,7 +47,7 @@ async def get_weekly_volume(
     
     service = AnalyticsService(db)
     try:
-        result = await service.get_weekly_volume(week_start)
+        result = await service.get_weekly_volume(week_start, user_id=current_user.id)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get weekly volume: {str(e)}")
@@ -53,6 +56,7 @@ async def get_weekly_volume(
 @router.get("/slot-performance", response_model=Dict[str, Any])
 async def get_slot_performance(
     routine_id: int = Query(..., description="ID of the routine template"),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -62,7 +66,7 @@ async def get_slot_performance(
     """
     service = AnalyticsService(db)
     try:
-        result = await service.get_slot_performance(routine_id)
+        result = await service.get_slot_performance(routine_id, user_id=current_user.id)
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -73,6 +77,7 @@ async def get_slot_performance(
 @router.get("/exercise-progression/{exercise_id}", response_model=Dict[str, Any])
 async def get_exercise_progression(
     exercise_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -82,7 +87,7 @@ async def get_exercise_progression(
     """
     service = AnalyticsService(db)
     try:
-        result = await service.get_exercise_progression(exercise_id)
+        result = await service.get_exercise_progression(exercise_id, user_id=current_user.id)
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

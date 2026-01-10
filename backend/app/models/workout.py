@@ -54,11 +54,11 @@ class WorkoutSession(Base):
     paused_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     
-    # Note: user_id deferred to future phase
-    # user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
     # Relationships
     routine_template = relationship("RoutineTemplate")
+    user = relationship("User", backref="workout_sessions")
     exercises = relationship(
         "WorkoutExercise",
         back_populates="workout_session",

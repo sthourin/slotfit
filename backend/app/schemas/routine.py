@@ -2,7 +2,7 @@
 Pydantic schemas for Routine API
 """
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, ConfigDict
 
 from app.models.slot_template import SlotType
 
@@ -41,11 +41,10 @@ class RoutineSlotCreate(RoutineSlotBase):
 
 
 class RoutineSlotResponse(RoutineSlotBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     routine_template_id: int
-
-    class Config:
-        from_attributes = True
 
 
 class RoutineTemplateBase(BaseModel):
@@ -67,11 +66,10 @@ class RoutineTemplateUpdate(BaseModel):
 
 
 class RoutineTemplateResponse(RoutineTemplateBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     slots: List[RoutineSlotResponse] = []
-
-    class Config:
-        from_attributes = True
 
 
 class RoutineTemplateListResponse(BaseModel):

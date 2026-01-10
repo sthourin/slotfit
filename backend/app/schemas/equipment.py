@@ -1,7 +1,7 @@
 """
 Equipment schemas
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 
@@ -11,11 +11,10 @@ class EquipmentBase(BaseModel):
 
 
 class EquipmentResponse(EquipmentBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     exercise_count: int = 0  # Number of exercises using this equipment
-    
-    class Config:
-        from_attributes = True
 
 
 class EquipmentCreate(EquipmentBase):

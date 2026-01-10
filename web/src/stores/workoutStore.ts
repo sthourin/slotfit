@@ -14,6 +14,7 @@ export interface ActiveWorkoutSlot {
   slotId: number | null // From routine_slots.id
   exerciseId: number | null // Selected exercise
   exerciseName: string | null
+  muscleGroupIds: number[] // Muscle group IDs for this slot (from routine slot)
   slotState: SlotState
   sets: WorkoutSet[]
   startedAt: string | null // ISO date string
@@ -32,6 +33,7 @@ interface WorkoutStore {
   
   // Actions
   initializeWorkout: (routineId: number, equipmentProfileId?: number) => Promise<void>
+  initializeWorkoutWithSlots: (routineId: number, slots: Array<{ slotId: number; exerciseId: number | null; exerciseName: string | null }>, equipmentProfileId?: number) => Promise<void>
   loadWorkout: (workoutId: number) => Promise<void>
   startWorkout: () => Promise<void>
   pauseWorkout: () => Promise<void>
@@ -68,7 +70,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
       loading: false,
       saving: false,
 
-      initializeWorkout: async (routineId: number) => {
+      initializeWorkout: async (routineId: number, equipmentProfileId?: number) => {
         set({ loading: true })
         try {
           // Create a new workout session
@@ -77,16 +79,78 @@ export const useWorkoutStore = create<WorkoutStore>()(
             state: 'draft',
           })
           
-          // Initialize slots from routine (this would typically come from the routine)
-          // For now, we'll set empty slots array - they'll be populated when exercises are selected
+          // Load routine to get slots
+          const { routineApi } = await import('../services/routines')
+          const routine = await routineApi.get(routineId)
+          
+          // Initialize slots from routine
+          const activeSlots: ActiveWorkoutSlot[] = routine.slots.map((slot) => ({
+            slotId: slot.id,
+            exerciseId: slot.selected_exercise_id || null,
+            exerciseName: null, // Will be filled when exercise is selected
+            muscleGroupIds: slot.muscle_group_ids,
+            slotState: 'not_started',
+            sets: [],
+            startedAt: null,
+            stoppedAt: null,
+          }))
+          
           set({
             activeWorkout: workout,
-            activeSlots: [],
-            currentSlotIndex: null,
+            activeSlots,
+            currentSlotIndex: activeSlots.length > 0 ? 0 : null,
             loading: false,
           })
         } catch (error) {
           console.error('Failed to initialize workout:', error)
+          set({ loading: false })
+          throw error
+        }
+      },
+
+      initializeWorkoutWithSlots: async (
+        routineId: number,
+        slots: Array<{ slotId: number; exerciseId: number | null; exerciseName: string | null }>,
+        equipmentProfileId?: number
+      ) => {
+        set({ loading: true })
+        try {
+          // Create a new workout session
+          const workout = await workoutApi.create({
+            routine_template_id: routineId,
+            state: 'draft',
+          })
+          
+          // Load routine to get muscle_group_ids for slots
+          const { routineApi } = await import('../services/routines')
+          const routine = await routineApi.get(routineId)
+          
+          // Create a map of slotId to muscle_group_ids
+          const slotMuscleGroupsMap = new Map<number, number[]>()
+          routine.slots.forEach((slot) => {
+            slotMuscleGroupsMap.set(slot.id, slot.muscle_group_ids)
+          })
+          
+          // Initialize slots with pre-filled exercises
+          const activeSlots: ActiveWorkoutSlot[] = slots.map((slot) => ({
+            slotId: slot.slotId,
+            exerciseId: slot.exerciseId,
+            exerciseName: slot.exerciseName,
+            muscleGroupIds: slotMuscleGroupsMap.get(slot.slotId) || [],
+            slotState: 'not_started',
+            sets: [],
+            startedAt: null,
+            stoppedAt: null,
+          }))
+          
+          set({
+            activeWorkout: workout,
+            activeSlots,
+            currentSlotIndex: activeSlots.length > 0 ? 0 : null,
+            loading: false,
+          })
+        } catch (error) {
+          console.error('Failed to initialize workout with slots:', error)
           set({ loading: false })
           throw error
         }
@@ -97,11 +161,26 @@ export const useWorkoutStore = create<WorkoutStore>()(
         try {
           const workout = await workoutApi.get(workoutId)
           
+          // Load routine to get muscle_group_ids for slots
+          const slotMuscleGroupsMap = new Map<number, number[]>()
+          if (workout.routine_template_id) {
+            try {
+              const { routineApi } = await import('../services/routines')
+              const routine = await routineApi.get(workout.routine_template_id)
+              routine.slots.forEach((slot) => {
+                slotMuscleGroupsMap.set(slot.id, slot.muscle_group_ids)
+              })
+            } catch (error) {
+              console.error('Failed to load routine for muscle groups:', error)
+            }
+          }
+          
           // Convert workout exercises to active slots
           const activeSlots: ActiveWorkoutSlot[] = workout.exercises.map((exercise) => ({
             slotId: exercise.slot_id,
             exerciseId: exercise.exercise_id,
             exerciseName: null, // Would need to fetch exercise name separately
+            muscleGroupIds: slotMuscleGroupsMap.get(exercise.slot_id || 0) || [],
             slotState: exercise.slot_state,
             sets: exercise.sets,
             startedAt: exercise.started_at,
@@ -235,6 +314,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
               slotId: null,
               exerciseId,
               exerciseName,
+              muscleGroupIds: [], // Default empty, should be populated from routine slot
               slotState: 'not_started',
               sets: [],
               startedAt: null,

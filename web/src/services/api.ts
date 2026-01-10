@@ -2,8 +2,27 @@
  * Base API client configuration
  */
 import axios, { AxiosInstance, AxiosError } from 'axios'
+import { v4 as uuidv4 } from 'uuid'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+
+const DEVICE_ID_KEY = 'slotfit_device_id'
+
+/**
+ * Get or create a persistent device ID for this browser.
+ * This identifies the user for MVP (no auth required).
+ */
+function getDeviceId(): string {
+  let deviceId = localStorage.getItem(DEVICE_ID_KEY)
+  
+  if (!deviceId) {
+    deviceId = uuidv4()
+    localStorage.setItem(DEVICE_ID_KEY, deviceId)
+    console.log('Created new device ID:', deviceId)
+  }
+  
+  return deviceId
+}
 
 // Custom params serializer to handle arrays correctly for FastAPI
 const paramsSerializer = (params: any): string => {
@@ -37,6 +56,16 @@ export const apiClient: AxiosInstance = axios.create({
   },
 })
 
+// Add device ID to all requests
+apiClient.interceptors.request.use((config) => {
+  const deviceId = getDeviceId()
+  config.headers['X-Device-ID'] = deviceId
+  return config
+})
+
+// Export for use in stores if needed
+export { getDeviceId }
+
 // Add response interceptor for better error handling
 apiClient.interceptors.response.use(
   (response) => response,
@@ -46,7 +75,18 @@ apiClient.interceptors.response.use(
       error.message = 'Network Error: Cannot connect to server. Please ensure the backend is running at http://localhost:8000'
     } else if (error.response) {
       // Server responded with error status
-      const responseData = error.response.data as any
+      interface FastAPIErrorDetail {
+        loc?: (string | number)[]
+        msg?: string
+        type?: string
+      }
+      
+      interface FastAPIErrorResponse {
+        detail?: string | FastAPIErrorDetail[]
+        message?: string
+      }
+      
+      const responseData = error.response.data as FastAPIErrorResponse
       
       // FastAPI validation errors can be:
       // - String: { "detail": "Error message" }
@@ -54,9 +94,9 @@ apiClient.interceptors.response.use(
       if (responseData?.detail) {
         if (Array.isArray(responseData.detail)) {
           // Format validation errors nicely
-          const errors = responseData.detail.map((err: any) => {
+          const errors = responseData.detail.map((err: FastAPIErrorDetail) => {
             const field = err.loc?.join('.') || 'field'
-            return `${field}: ${err.msg}`
+            return `${field}: ${err.msg || 'validation error'}`
           }).join(', ')
           error.message = `Validation Error: ${errors}`
         } else {

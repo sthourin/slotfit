@@ -2,32 +2,32 @@
 Pydantic schemas for Exercise API
 """
 from typing import Optional, List
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, ConfigDict
 from datetime import datetime
 
 from app.models.exercise import DifficultyLevel
 
 
 class MuscleGroupBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     name: str
     level: int
     parent_id: Optional[int] = None
 
-    class Config:
-        from_attributes = True
-
 
 class EquipmentBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     name: str
     category: Optional[str] = None
 
-    class Config:
-        from_attributes = True
-
 
 class ExerciseBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     name: str
     description: Optional[str] = None
@@ -35,9 +35,6 @@ class ExerciseBase(BaseModel):
     exercise_classification: Optional[str] = None
     short_demo_url: Optional[str] = None
     in_depth_url: Optional[str] = None
-
-    class Config:
-        from_attributes = True
 
 
 class Exercise(ExerciseBase):
@@ -65,8 +62,7 @@ class Exercise(ExerciseBase):
     default_time_seconds: Optional[int] = None
     default_rest_seconds: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ExerciseCreate(BaseModel):

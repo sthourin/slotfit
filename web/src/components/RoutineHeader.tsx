@@ -11,7 +11,10 @@ export default function RoutineHeader() {
 
   if (!currentRoutine) return null
 
-  const updateField = (field: keyof typeof currentRoutine, value: any) => {
+  const updateField = <K extends keyof typeof currentRoutine>(
+    field: K, 
+    value: typeof currentRoutine[K]
+  ) => {
     setCurrentRoutine({
       ...currentRoutine,
       [field]: value,

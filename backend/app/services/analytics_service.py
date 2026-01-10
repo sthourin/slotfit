@@ -24,12 +24,13 @@ class AnalyticsService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_weekly_volume(self, week_start: date) -> Dict[str, Any]:
+    async def get_weekly_volume(self, week_start: date, user_id: int) -> Dict[str, Any]:
         """
         Get weekly volume data for all muscle groups for a given week
         
         Args:
             week_start: Monday date of the week (ISO week start)
+            user_id: ID of the user
             
         Returns:
             Dict with week_start and muscle_groups array
@@ -38,7 +39,12 @@ class AnalyticsService:
         query = (
             select(WeeklyVolume, MuscleGroup.name)
             .join(MuscleGroup, WeeklyVolume.muscle_group_id == MuscleGroup.id)
-            .where(WeeklyVolume.week_start == week_start)
+            .where(
+                and_(
+                    WeeklyVolume.week_start == week_start,
+                    WeeklyVolume.user_id == user_id
+                )
+            )
             .order_by(MuscleGroup.name)
         )
         
@@ -60,18 +66,24 @@ class AnalyticsService:
             "muscle_groups": muscle_groups,
         }
 
-    async def get_slot_performance(self, routine_id: int) -> Dict[str, Any]:
+    async def get_slot_performance(self, routine_id: int, user_id: int) -> Dict[str, Any]:
         """
         Get performance metrics for slots in a routine
         
         Args:
             routine_id: ID of the routine template
+            user_id: ID of the user
             
         Returns:
             Dict with routine info and slot performance metrics
         """
         # Get routine template
-        routine_query = select(RoutineTemplate).where(RoutineTemplate.id == routine_id)
+        routine_query = select(RoutineTemplate).where(
+            and_(
+                RoutineTemplate.id == routine_id,
+                RoutineTemplate.user_id == user_id
+            )
+        )
         routine_result = await self.db.execute(routine_query)
         routine = routine_result.scalar_one_or_none()
         
@@ -88,10 +100,18 @@ class AnalyticsService:
         
         slot_performance = []
         for slot in slots:
-            # Get workout exercises for this slot
-            exercises_query = select(WorkoutExercise).where(
-                WorkoutExercise.slot_id == slot.id
-            ).options(selectinload(WorkoutExercise.sets))
+            # Get workout exercises for this slot (only from user's workouts)
+            exercises_query = (
+                select(WorkoutExercise)
+                .join(WorkoutSession, WorkoutExercise.workout_session_id == WorkoutSession.id)
+                .where(
+                    and_(
+                        WorkoutExercise.slot_id == slot.id,
+                        WorkoutSession.user_id == user_id
+                    )
+                )
+                .options(selectinload(WorkoutExercise.sets))
+            )
             
             exercises_result = await self.db.execute(exercises_query)
             workout_exercises = exercises_result.scalars().all()
@@ -134,12 +154,13 @@ class AnalyticsService:
             "slots": slot_performance,
         }
 
-    async def get_exercise_progression(self, exercise_id: int) -> Dict[str, Any]:
+    async def get_exercise_progression(self, exercise_id: int, user_id: int) -> Dict[str, Any]:
         """
         Get progression data for a specific exercise
         
         Args:
             exercise_id: ID of the exercise
+            user_id: ID of the user
             
         Returns:
             Dict with exercise info and progression data
@@ -152,9 +173,12 @@ class AnalyticsService:
         if not exercise:
             raise ValueError(f"Exercise {exercise_id} not found")
         
-        # Get personal records for this exercise
+        # Get personal records for this exercise (only for this user)
         prs_query = select(PersonalRecord).where(
-            PersonalRecord.exercise_id == exercise_id
+            and_(
+                PersonalRecord.exercise_id == exercise_id,
+                PersonalRecord.user_id == user_id
+            )
         ).order_by(PersonalRecord.achieved_at)
         
         prs_result = await self.db.execute(prs_query)
@@ -171,14 +195,15 @@ class AnalyticsService:
                 "context": pr.context,
             })
         
-        # Get workout history (recent workouts with this exercise)
+        # Get workout history (recent workouts with this exercise, only for this user)
         workouts_query = (
             select(WorkoutExercise, WorkoutSession.completed_at)
             .join(WorkoutSession, WorkoutExercise.workout_session_id == WorkoutSession.id)
             .where(
                 and_(
                     WorkoutExercise.exercise_id == exercise_id,
-                    WorkoutSession.completed_at.isnot(None)
+                    WorkoutSession.completed_at.isnot(None),
+                    WorkoutSession.user_id == user_id
                 )
             )
             .order_by(desc(WorkoutSession.completed_at))

@@ -142,7 +142,7 @@ export default function SlotEditor({ slot }: SlotEditorProps) {
     try {
       // Get exercises filtered by all selected muscle groups
       // Also filter by routine type and workout style if set
-      const params: any = {
+      const params: Parameters<typeof exerciseApi.list>[0] = {
         limit: 200,  // Get more exercises for client-side filtering
         muscle_group_ids: slot.muscleGroupIds,
       }

@@ -7,7 +7,10 @@ from google import genai
 from google.genai import types
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
-from app.services.ai.base import AIProvider, RecommendationResponse, ExerciseRecommendation
+from app.core.logging import get_logger
+from app.services.ai.base import AIProvider, RecommendationResponse, ExerciseRecommendation, NotRecommendedExercise
+
+logger = get_logger(__name__)
 
 
 class GeminiProvider(AIProvider):
@@ -24,7 +27,7 @@ class GeminiProvider(AIProvider):
                 # Use gemini-2.5-flash (stable) or gemini-2.0-flash as fallback
                 self.model_name = "models/gemini-2.5-flash"
             except Exception as e:
-                print(f"Warning: Failed to create Gemini client: {e}")
+                logger.warning(f"Failed to create Gemini client: {e}")
                 self.client = None
         else:
             self.client = None
@@ -46,15 +49,16 @@ class GeminiProvider(AIProvider):
         user_workout_history: Optional[Dict[str, Any]] = None,
         weekly_volume: Optional[Dict[int, Dict[str, Any]]] = None,
         movement_patterns: Optional[Dict[str, Dict[str, int]]] = None,
+        injury_restrictions: Optional[List[Dict[str, Any]]] = None,
         limit: int = 5,
     ) -> RecommendationResponse:
         """
         Get exercise recommendations from Gemini API
         """
-        print(f"GeminiProvider.get_exercise_recommendations called with mg_ids={muscle_group_ids}, eq_ids={available_equipment_ids}")
+        logger.debug(f"GeminiProvider.get_exercise_recommendations called with mg_ids={muscle_group_ids}, eq_ids={available_equipment_ids}")
         
         if not await self.is_available():
-            print("Gemini API not available, raising exception for service layer to handle")
+            logger.debug("Gemini API not available, raising exception for service layer to handle")
             raise RuntimeError("Gemini API not available")
         
         # Build context for the prompt
@@ -64,6 +68,7 @@ class GeminiProvider(AIProvider):
             user_workout_history,
             weekly_volume,
             movement_patterns,
+            injury_restrictions,
         )
         
         # Create prompt
@@ -73,7 +78,7 @@ class GeminiProvider(AIProvider):
             if not self.client:
                 raise RuntimeError("Gemini client not initialized")
             
-            print("Calling Gemini API...")
+            logger.debug("Calling Gemini API...")
             # Call Gemini API using the new google.genai package
             # Try different model names if one fails (with models/ prefix)
             model_names = [
@@ -86,21 +91,21 @@ class GeminiProvider(AIProvider):
             
             for model in model_names:
                 try:
-                    print(f"Trying model: {model}")
+                    logger.debug(f"Trying model: {model}")
                     response = self.client.models.generate_content(
                         model=model,
                         contents=prompt,
                     )
-                    print(f"Success with model: {model}")
+                    logger.debug(f"Success with model: {model}")
                     break
                 except Exception as e:
                     last_error = e
                     error_msg = str(e)
                     # Don't retry on quota errors (429) - that's a billing issue
                     if "429" in error_msg or "quota" in error_msg.lower():
-                        print(f"Quota exceeded for {model}, stopping retries")
+                        logger.warning(f"Quota exceeded for {model}, stopping retries")
                         raise
-                    print(f"Model {model} failed: {error_msg[:100]}")
+                    logger.debug(f"Model {model} failed: {error_msg[:100]}")
                     continue
             
             if response is None:
@@ -108,16 +113,14 @@ class GeminiProvider(AIProvider):
             
             # Parse response - the new API returns text via response.text
             response_text = response.text
-            print(f"Gemini API response received, length: {len(response_text)}")
+            logger.debug(f"Gemini API response received, length: {len(response_text)}")
             result = await self._parse_response(response_text, limit, muscle_group_ids, available_equipment_ids)
-            print(f"Parsed response: total_candidates={result.total_candidates}, recommendations={len(result.recommendations)}")
+            logger.debug(f"Parsed response: total_candidates={result.total_candidates}, recommendations={len(result.recommendations)}")
             return result
         
         except Exception as e:
             # Log the error and re-raise so service layer can try rule-based fallback
-            print(f"Gemini API call failed: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.warning(f"Gemini API call failed: {e}", exc_info=True)
             raise  # Re-raise so service layer can handle fallback chain
     
     def _build_context(
@@ -127,6 +130,7 @@ class GeminiProvider(AIProvider):
         user_workout_history: Optional[Dict[str, Any]],
         weekly_volume: Optional[Dict[int, Dict[str, Any]]],
         movement_patterns: Optional[Dict[str, Dict[str, int]]],
+        injury_restrictions: Optional[List[Dict[str, Any]]],
     ) -> Dict[str, Any]:
         """Build context for AI prompt"""
         return {
@@ -135,6 +139,7 @@ class GeminiProvider(AIProvider):
             "user_history": user_workout_history or {},
             "weekly_volume": weekly_volume or {},
             "movement_patterns": movement_patterns or {},
+            "injury_restrictions": injury_restrictions or [],
         }
     
     def _create_prompt(self, context: Dict[str, Any], limit: int) -> str:
@@ -206,6 +211,25 @@ class GeminiProvider(AIProvider):
             if boost_suggestions:
                 boost_note = f"\n\nMOVEMENT BALANCE: The current workout has an imbalance. Consider boosting: {', '.join(boost_suggestions)} to achieve better balance."
         
+        # Build injury restrictions context
+        injury_note = ""
+        injury_restrictions = context.get('injury_restrictions', [])
+        if injury_restrictions:
+            injury_lines = []
+            for restriction in injury_restrictions:
+                injury_lines.append(
+                    f"  - {restriction['injury_name']} (severity: {restriction['severity']}): "
+                    f"Avoid {restriction['restriction_type']} = '{restriction['restriction_value']}'"
+                )
+            injury_note = f"""
+
+User Injuries:
+The user has the following active injuries. DO NOT recommend exercises that may aggravate these conditions:
+{chr(10).join(injury_lines)}
+
+For any exercise that could aggravate an injury, include it in the not_recommended array with reason "May aggravate [injury name]".
+IMPORTANT: This feature helps avoid potentially problematic exercises but is NOT medical advice. When in doubt, exclude the exercise (safety first)."""
+        
         return f"""You are an expert fitness coach helping to recommend exercises for a workout slot.
 
 Context:
@@ -215,7 +239,7 @@ Context:
 - Current week's training volume per muscle group:
 {weekly_volume_text}
 - Current workout's movement pattern balance:
-{movement_balance_text}
+{movement_balance_text}{injury_note}
 
 Task:
 Provide {limit} exercise recommendations prioritized based on:
@@ -244,9 +268,25 @@ Return your response as a JSON object with this exact structure:
             }}
         }}
     ],
+    "not_recommended": [
+        {{
+            "exercise_id": <integer>,
+            "exercise_name": "<string>",
+            "reason": "<string>"  # Human-readable explanation (e.g., "Equipment not available: Cable Machine", "Weekly volume exceeded for Chest (22 sets)", "Performed 1 day ago - insufficient recovery")
+        }}
+    ],
     "total_candidates": <integer>,
     "filtered_by_equipment": <integer>
 }}
+
+The "not_recommended" array should include exercises that were filtered out, with clear reasons:
+- Equipment not available: {{equipment_name}}
+- Weekly volume exceeded for {{muscle_group}} ({{X}} sets)
+- Performed {{X}} days ago - insufficient recovery
+- Does not target selected muscle groups
+- May aggravate {{injury_name}} (if exercise matches injury restrictions)
+
+Limit not_recommended to ~10 entries with diverse reason types.
 
 The weekly_volume_status factor should indicate the current week's volume for the primary muscle group(s) targeted by the exercise:
 - "low": <10 sets/week
@@ -286,8 +326,15 @@ Only return valid JSON, no additional text."""
                 ExerciseRecommendation(**rec) for rec in recommendations_data
             ]
             
+            # Parse not_recommended array (if present)
+            not_recommended_data = data.get("not_recommended", [])
+            not_recommended = [
+                NotRecommendedExercise(**entry) for entry in not_recommended_data
+            ]
+            
             response = RecommendationResponse(
                 recommendations=recommendations[:limit],
+                not_recommended=not_recommended[:10],  # Limit to 10 entries
                 total_candidates=data.get("total_candidates", len(recommendations)),
                 filtered_by_equipment=data.get("filtered_by_equipment", len(recommendations)),
                 provider="gemini",
@@ -295,15 +342,15 @@ Only return valid JSON, no additional text."""
             
             # If Gemini returns empty recommendations, raise exception for service layer
             if response.total_candidates == 0 or len(response.recommendations) == 0:
-                print(f"Gemini API returned empty recommendations, raising exception for service layer")
+                logger.warning("Gemini API returned empty recommendations, raising exception for service layer")
                 raise ValueError("Gemini API returned empty recommendations")
             
             return response
         
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             # If parsing fails, re-raise so service layer can try rule-based fallback
-            print(f"Gemini API response parsing failed: {e}")
-            print(f"Response text (first 500 chars): {response_text[:500]}")
+            logger.error(f"Gemini API response parsing failed: {e}")
+            logger.debug(f"Response text (first 500 chars): {response_text[:500]}")
             raise  # Re-raise so service layer can handle fallback chain
     
     async def _fallback_recommendations(
@@ -313,11 +360,11 @@ Only return valid JSON, no additional text."""
         limit: int,
     ) -> RecommendationResponse:
         """Fallback to rule-based recommendations when AI fails"""
-        print(f"_fallback_recommendations called with mg_ids={muscle_group_ids}, eq_ids={available_equipment_ids}")
-        print(f"Database session available: {self.db is not None}")
+        logger.debug(f"_fallback_recommendations called with mg_ids={muscle_group_ids}, eq_ids={available_equipment_ids}")
+        logger.debug(f"Database session available: {self.db is not None}")
         
         if not self.db:
-            print("ERROR: No database session available!")
+            logger.error("No database session available!")
             return RecommendationResponse(
                 recommendations=[],
                 total_candidates=0,
@@ -329,9 +376,9 @@ Only return valid JSON, no additional text."""
         from app.services.ai.fallback_provider import FallbackProvider
         
         # Use FallbackProvider to get database-backed recommendations
-        print("Creating FallbackProvider...")
+        logger.debug("Creating FallbackProvider...")
         fallback = FallbackProvider(self.db)
-        print("Calling FallbackProvider.get_exercise_recommendations...")
+        logger.debug("Calling FallbackProvider.get_exercise_recommendations...")
         result = await fallback.get_exercise_recommendations(
             muscle_group_ids=muscle_group_ids,
             available_equipment_ids=available_equipment_ids,
@@ -340,5 +387,5 @@ Only return valid JSON, no additional text."""
             movement_patterns=None,
             limit=limit,
         )
-        print(f"FallbackProvider returned: total_candidates={result.total_candidates}, recommendations={len(result.recommendations)}")
+        logger.debug(f"FallbackProvider returned: total_candidates={result.total_candidates}, recommendations={len(result.recommendations)}")
         return result

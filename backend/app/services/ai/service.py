@@ -8,12 +8,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.config import settings
+from app.core.logging import get_logger
 from app.services.ai.base import AIProvider, RecommendationResponse
 from app.services.ai.claude_provider import ClaudeProvider
 from app.services.ai.gemini_provider import GeminiProvider
 from app.services.ai.fallback_provider import FallbackProvider
 from app.models import WeeklyVolume, WorkoutSession, WorkoutExercise, Exercise
+from app.models.injury import UserInjury, InjuryType, MovementRestriction
 from sqlalchemy.orm import selectinload
+
+logger = get_logger(__name__)
 
 
 class AIRecommendationService:
@@ -60,16 +64,25 @@ class AIRecommendationService:
         days_since_monday = today.weekday()
         return today - timedelta(days=days_since_monday)
     
-    async def _get_weekly_volume(self) -> Dict[int, Dict[str, Any]]:
+    async def _get_weekly_volume(self, user_id: Optional[int] = None) -> Dict[int, Dict[str, Any]]:
         """
         Query weekly volume for the current week
+        
+        Args:
+            user_id: User ID to get volume for. If None, returns empty dict.
         
         Returns:
             Dict mapping muscle_group_id to volume data (total_sets, total_reps, total_volume)
         """
+        if not user_id:
+            return {}
+        
         week_start = self._get_current_week_start()
         
-        query = select(WeeklyVolume).where(WeeklyVolume.week_start == week_start)
+        query = select(WeeklyVolume).where(
+            WeeklyVolume.week_start == week_start,
+            WeeklyVolume.user_id == user_id
+        )
         result = await self.db.execute(query)
         volumes = result.scalars().all()
         
@@ -82,6 +95,56 @@ class AIRecommendationService:
             }
         
         return volume_dict
+    
+    async def _get_user_injury_restrictions(self, user_id: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        Get movement restrictions from user's active injuries.
+        
+        Args:
+            user_id: User ID to get injuries for. If None, returns empty list.
+        
+        Returns list of restrictions with injury context:
+        [
+            {
+                "injury_name": "Rotator Cuff Injury",
+                "severity": "moderate",
+                "restriction_type": "movement_pattern",
+                "restriction_value": "Overhead Press"
+            },
+            ...
+        ]
+        """
+        if not user_id:
+            return []
+        
+        query = select(UserInjury).where(
+            UserInjury.user_id == user_id,
+            UserInjury.is_active == True
+        ).options(
+            selectinload(UserInjury.injury_type).selectinload(InjuryType.restrictions)
+        )
+        result = await self.db.execute(query)
+        user_injuries = result.scalars().all()
+        
+        restrictions = []
+        severity_order = {"mild": 1, "moderate": 2, "severe": 3}
+        
+        for user_injury in user_injuries:
+            user_severity = severity_order.get(user_injury.severity, 2)
+            
+            for restriction in user_injury.injury_type.restrictions:
+                restriction_threshold = severity_order.get(restriction.severity_threshold, 1)
+                
+                # Only apply restriction if user's severity >= restriction threshold
+                if user_severity >= restriction_threshold:
+                    restrictions.append({
+                        "injury_name": user_injury.injury_type.name,
+                        "severity": user_injury.severity,
+                        "restriction_type": restriction.restriction_type,
+                        "restriction_value": restriction.restriction_value,
+                    })
+        
+        return restrictions
     
     async def _get_workout_movement_patterns(
         self,
@@ -162,6 +225,7 @@ class AIRecommendationService:
         workout_session_id: Optional[int] = None,
         limit: int = 5,
         use_cache: bool = True,
+        user_id: Optional[int] = None,
     ) -> RecommendationResponse:
         """
         Get exercise recommendations with caching
@@ -189,14 +253,17 @@ class AIRecommendationService:
                     del self._cache[cache_key]
         
         # Query weekly volume for current week
-        weekly_volume = await self._get_weekly_volume()
+        weekly_volume = await self._get_weekly_volume(user_id=user_id)
         
         # Calculate movement pattern balance from current workout
         movement_patterns = await self._get_workout_movement_patterns(workout_session_id)
         
+        # Get user injury restrictions
+        injury_restrictions = await self._get_user_injury_restrictions(user_id=user_id)
+        
         # Get provider (will return FallbackProvider if Claude not available)
         provider = await self._get_provider()
-        print(f"DEBUG: Using provider: {type(provider).__name__}")
+        logger.debug(f"Using AI provider: {type(provider).__name__}")
         
         response = None
         try:
@@ -206,6 +273,7 @@ class AIRecommendationService:
                 user_workout_history=user_workout_history,
                 weekly_volume=weekly_volume,
                 movement_patterns=movement_patterns,
+                injury_restrictions=injury_restrictions,
                 limit=limit,
             )
             
@@ -215,19 +283,20 @@ class AIRecommendationService:
                 if isinstance(provider, ClaudeProvider):
                     gemini_provider = GeminiProvider(db=self.db)
                     if await gemini_provider.is_available():
-                        print("Claude returned empty results, trying Gemini...")
+                        logger.info("Claude returned empty results, trying Gemini...")
                         response = await gemini_provider.get_exercise_recommendations(
                             muscle_group_ids=muscle_group_ids,
                             available_equipment_ids=available_equipment_ids,
                             user_workout_history=user_workout_history,
                             weekly_volume=weekly_volume,
                             movement_patterns=movement_patterns,
+                            injury_restrictions=injury_restrictions,
                             limit=limit,
                         )
                 
                 # If still empty, use rule-based fallback
                 if response.total_candidates == 0:
-                    print("AI providers returned empty results, using rule-based fallback...")
+                    logger.info("AI providers returned empty results, using rule-based fallback...")
                     fallback_provider = FallbackProvider(self.db)
                     response = await fallback_provider.get_exercise_recommendations(
                         muscle_group_ids=muscle_group_ids,
@@ -235,19 +304,25 @@ class AIRecommendationService:
                         user_workout_history=user_workout_history,
                         weekly_volume=weekly_volume,
                         movement_patterns=movement_patterns,
+                        injury_restrictions=injury_restrictions,
                         limit=limit,
                     )
         except Exception as e:
             # If provider fails, try next in chain
-            import traceback
-            print(f"ERROR: Provider failed: {e}")
-            traceback.print_exc()
+            logger.warning(
+                f"AI provider {provider.__class__.__name__} failed, trying fallback",
+                exc_info=True,
+                extra={
+                    "provider": provider.__class__.__name__,
+                    "muscle_group_ids": muscle_group_ids,
+                }
+            )
             
             # Try Gemini if Claude failed
             if isinstance(provider, ClaudeProvider):
                 gemini_provider = GeminiProvider(db=self.db)
                 if await gemini_provider.is_available():
-                    print("Claude failed, trying Gemini...")
+                    logger.info("Claude failed, trying Gemini as fallback")
                     try:
                         response = await gemini_provider.get_exercise_recommendations(
                             muscle_group_ids=muscle_group_ids,
@@ -255,21 +330,27 @@ class AIRecommendationService:
                             user_workout_history=user_workout_history,
                             weekly_volume=weekly_volume,
                             movement_patterns=movement_patterns,
+                            injury_restrictions=injury_restrictions,
                             limit=limit,
                         )
                     except Exception as gemini_error:
-                        print(f"Gemini also failed: {gemini_error}")
+                        logger.warning(
+                            f"Gemini provider also failed: {gemini_error}",
+                            exc_info=True
+                        )
                         response = None
             
             # If Gemini also failed or wasn't available, use rule-based fallback
             if response is None or response.total_candidates == 0:
-                print("Using rule-based fallback...")
+                logger.info("Using rule-based fallback provider")
                 fallback_provider = FallbackProvider(self.db)
                 response = await fallback_provider.get_exercise_recommendations(
                     muscle_group_ids=muscle_group_ids,
                     available_equipment_ids=available_equipment_ids,
                     user_workout_history=user_workout_history,
                     weekly_volume=weekly_volume,
+                    movement_patterns=movement_patterns,
+                    injury_restrictions=injury_restrictions,
                     limit=limit,
                 )
         

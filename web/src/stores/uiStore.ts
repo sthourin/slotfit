@@ -16,7 +16,7 @@ export type Theme = 'light' | 'dark' | 'system'
 
 interface ModalState {
   isOpen: boolean
-  data?: any
+  data?: unknown
 }
 
 interface UIStore {
@@ -34,7 +34,7 @@ interface UIStore {
     [key: string]: ModalState // Allow custom modals
   }
   
-  openModal: (modalName: string, data?: any) => void
+  openModal: (modalName: string, data?: unknown) => void
   closeModal: (modalName: string) => void
   closeAllModals: () => void
   
@@ -76,7 +76,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
     slotTemplateSelector: { isOpen: false },
   },
 
-  openModal: (modalName: string, data?: any) => {
+  openModal: (modalName: string, data?: unknown) => {
     set((state) => ({
       modals: {
         ...state.modals,

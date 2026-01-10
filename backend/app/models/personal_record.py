@@ -28,13 +28,12 @@ class PersonalRecord(Base):
     context = Column(JSONB, nullable=True)  # Additional context (e.g., {"reps": 8} for weight PR, {"weight": 135} for rep PR)
     achieved_at = Column(DateTime(timezone=True), nullable=False, index=True)
     workout_session_id = Column(Integer, ForeignKey("workout_sessions.id"), nullable=True)
-    
-    # Note: user_id deferred to future phase (MVP is offline-only)
-    # user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
     # Relationships
     exercise = relationship("Exercise", foreign_keys=[exercise_id])
     workout_session = relationship("WorkoutSession", foreign_keys=[workout_session_id])
+    user = relationship("User", backref="personal_records")
 
     def __repr__(self):
         return f"<PersonalRecord(id={self.id}, exercise_id={self.exercise_id}, record_type='{self.record_type}', value={self.value})>"

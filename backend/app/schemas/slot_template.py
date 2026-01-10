@@ -3,7 +3,7 @@ Pydantic schemas for Slot Template API
 """
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, field_validator, model_validator, ConfigDict
 
 from app.models.slot_template import SlotType
 
@@ -55,9 +55,8 @@ class SlotTemplateUpdate(BaseModel):
 
 
 class SlotTemplateResponse(SlotTemplateBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True

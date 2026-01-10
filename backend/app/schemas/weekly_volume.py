@@ -3,7 +3,7 @@ Pydantic schemas for Weekly Volume API
 """
 from typing import Optional
 from datetime import date
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 
 
 class WeeklyVolumeBase(BaseModel):
@@ -50,10 +50,9 @@ class WeeklyVolumeUpdate(BaseModel):
 
 
 class WeeklyVolumeResponse(WeeklyVolumeBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
-
-    class Config:
-        from_attributes = True
 
 
 class WeeklyVolumeListResponse(BaseModel):

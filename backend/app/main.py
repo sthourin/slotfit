@@ -6,8 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import engine
+from app.core.logging import setup_logging
+from app.middleware.error_handler import error_handler_middleware
 from app.models.base import Base
 from app.api.v1.api import api_router
+
+# Initialize logging first
+setup_logging()
 
 app = FastAPI(
     title="SlotFit API",
@@ -16,6 +21,9 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+# Add error handling middleware (must be added before other middleware)
+app.middleware("http")(error_handler_middleware)
 
 # CORS middleware for web interface
 # Allow Swagger UI to work by allowing the server's own origin

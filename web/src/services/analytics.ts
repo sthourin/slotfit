@@ -62,7 +62,7 @@ export const analyticsApi = {
    * week_start must be a Monday (ISO week start).
    */
   getWeeklyVolume: async (weekStart?: string): Promise<WeeklyVolumeResponse> => {
-    const params: any = {}
+    const params: { week_start?: string } = {}
     if (weekStart) {
       params.week_start = weekStart
     }

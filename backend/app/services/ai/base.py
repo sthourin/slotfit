@@ -6,6 +6,13 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 
 
+class NotRecommendedExercise(BaseModel):
+    """Exercise that was filtered out with reason"""
+    exercise_id: int
+    exercise_name: str
+    reason: str  # Human-readable explanation
+
+
 class ExerciseRecommendation(BaseModel):
     """Single exercise recommendation"""
     exercise_id: int
@@ -18,6 +25,7 @@ class ExerciseRecommendation(BaseModel):
 class RecommendationResponse(BaseModel):
     """AI recommendation response"""
     recommendations: List[ExerciseRecommendation]
+    not_recommended: List[NotRecommendedExercise] = []
     total_candidates: int
     filtered_by_equipment: int
     provider: Optional[str] = None  # "claude", "fallback", etc. - indicates which provider generated the recommendations
@@ -34,6 +42,7 @@ class AIProvider(ABC):
         user_workout_history: Optional[Dict[str, Any]] = None,
         weekly_volume: Optional[Dict[int, Dict[str, Any]]] = None,
         movement_patterns: Optional[Dict[str, Dict[str, int]]] = None,
+        injury_restrictions: Optional[List[Dict[str, Any]]] = None,
         limit: int = 5,
     ) -> RecommendationResponse:
         """
@@ -45,6 +54,7 @@ class AIProvider(ABC):
             user_workout_history: Optional user workout history data
             weekly_volume: Optional dict mapping muscle_group_id to volume data (total_sets, total_reps, total_volume)
             movement_patterns: Optional dict with force_type, mechanics, and movement_patterns counts from current workout
+            injury_restrictions: Optional list of injury restrictions with injury_name, severity, restriction_type, restriction_value
             limit: Maximum number of recommendations to return
             
         Returns:

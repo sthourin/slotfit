@@ -9,8 +9,10 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
+from app.core.deps import get_current_user
 from app.models import WorkoutSession, WorkoutExercise, WorkoutSet
 from app.models.workout import WorkoutState
+from app.models.user import User
 from app.schemas.workout import (
     WorkoutSessionCreate,
     WorkoutSessionUpdate,
@@ -25,10 +27,13 @@ router = APIRouter()
 async def list_workouts(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all workout sessions"""
-    query = select(WorkoutSession).options(
+    """List all workout sessions for the current user"""
+    query = select(WorkoutSession).where(
+        WorkoutSession.user_id == current_user.id
+    ).options(
         selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets)
     ).offset(skip).limit(limit).order_by(WorkoutSession.id.desc())
     
@@ -36,7 +41,9 @@ async def list_workouts(
     workouts = result.scalars().unique().all()
     
     # Get total count
-    count_query = select(func.count(WorkoutSession.id))
+    count_query = select(func.count(WorkoutSession.id)).where(
+        WorkoutSession.user_id == current_user.id
+    )
     count_result = await db.execute(count_query)
     total = count_result.scalar_one()
     
@@ -49,11 +56,13 @@ async def list_workouts(
 @router.get("/{workout_id}", response_model=WorkoutSessionResponse)
 async def get_workout(
     workout_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a single workout session by ID"""
+    """Get a single workout session by ID (must belong to current user)"""
     query = select(WorkoutSession).where(
-        WorkoutSession.id == workout_id
+        WorkoutSession.id == workout_id,
+        WorkoutSession.user_id == current_user.id
     ).options(
         selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets)
     )
@@ -70,12 +79,14 @@ async def get_workout(
 @router.post("/", response_model=WorkoutSessionResponse, status_code=201)
 async def create_workout(
     workout_data: WorkoutSessionCreate,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new workout session"""
+    """Create a new workout session for the current user"""
     workout = WorkoutSession(
         routine_template_id=workout_data.routine_template_id,
         state=workout_data.state,
+        user_id=current_user.id,
     )
     db.add(workout)
     await db.commit()
@@ -97,10 +108,14 @@ async def create_workout(
 async def update_workout(
     workout_id: int,
     workout_data: WorkoutSessionUpdate,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update an existing workout session"""
-    query = select(WorkoutSession).where(WorkoutSession.id == workout_id)
+    """Update an existing workout session (must belong to current user)"""
+    query = select(WorkoutSession).where(
+        WorkoutSession.id == workout_id,
+        WorkoutSession.user_id == current_user.id
+    )
     result = await db.execute(query)
     workout = result.scalar_one_or_none()
     
@@ -130,10 +145,14 @@ async def update_workout(
 @router.delete("/{workout_id}", status_code=204)
 async def delete_workout(
     workout_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete a workout session"""
-    query = select(WorkoutSession).where(WorkoutSession.id == workout_id)
+    """Delete a workout session (must belong to current user)"""
+    query = select(WorkoutSession).where(
+        WorkoutSession.id == workout_id,
+        WorkoutSession.user_id == current_user.id
+    )
     result = await db.execute(query)
     workout = result.scalar_one_or_none()
     
@@ -149,10 +168,14 @@ async def delete_workout(
 @router.post("/{workout_id}/start", response_model=WorkoutSessionResponse)
 async def start_workout(
     workout_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Start a workout session"""
-    query = select(WorkoutSession).where(WorkoutSession.id == workout_id)
+    """Start a workout session (must belong to current user)"""
+    query = select(WorkoutSession).where(
+        WorkoutSession.id == workout_id,
+        WorkoutSession.user_id == current_user.id
+    )
     result = await db.execute(query)
     workout = result.scalar_one_or_none()
     
@@ -187,10 +210,14 @@ async def start_workout(
 @router.post("/{workout_id}/pause", response_model=WorkoutSessionResponse)
 async def pause_workout(
     workout_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Pause a workout session"""
-    query = select(WorkoutSession).where(WorkoutSession.id == workout_id)
+    """Pause a workout session (must belong to current user)"""
+    query = select(WorkoutSession).where(
+        WorkoutSession.id == workout_id,
+        WorkoutSession.user_id == current_user.id
+    )
     result = await db.execute(query)
     workout = result.scalar_one_or_none()
     
@@ -224,10 +251,14 @@ async def pause_workout(
 @router.post("/{workout_id}/complete", response_model=WorkoutSessionResponse)
 async def complete_workout(
     workout_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Complete a workout session"""
-    query = select(WorkoutSession).where(WorkoutSession.id == workout_id)
+    """Complete a workout session (must belong to current user)"""
+    query = select(WorkoutSession).where(
+        WorkoutSession.id == workout_id,
+        WorkoutSession.user_id == current_user.id
+    )
     result = await db.execute(query)
     workout = result.scalar_one_or_none()
     
@@ -262,10 +293,14 @@ async def complete_workout(
 @router.post("/{workout_id}/abandon", response_model=WorkoutSessionResponse)
 async def abandon_workout(
     workout_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Abandon a workout session"""
-    query = select(WorkoutSession).where(WorkoutSession.id == workout_id)
+    """Abandon a workout session (must belong to current user)"""
+    query = select(WorkoutSession).where(
+        WorkoutSession.id == workout_id,
+        WorkoutSession.user_id == current_user.id
+    )
     result = await db.execute(query)
     workout = result.scalar_one_or_none()
     

@@ -23,7 +23,7 @@ export default function ExerciseBrowser() {
   const loadExercises = async () => {
     setLoading(true)
     try {
-      const params: any = {
+      const params: Parameters<typeof exerciseApi.list>[0] = {
         skip: (page - 1) * pageSize,
         limit: pageSize,
       }

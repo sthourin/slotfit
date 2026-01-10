@@ -9,10 +9,12 @@ from sqlalchemy.orm import selectinload
 from datetime import datetime
 
 from app.core.database import get_db
+from app.core.logging import get_logger
 from app.models import Exercise, MuscleGroup, Equipment, WorkoutExercise
 from app.schemas.exercise import Exercise as ExerciseSchema, ExerciseListResponse, ExerciseDuplicate
 from fastapi import HTTPException
-import traceback
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -308,20 +310,23 @@ async def list_exercises(
             page=skip // limit + 1 if limit > 0 else 1,
             page_size=limit,
         )
+    except HTTPException:
+        # Re-raise HTTP exceptions (they're already properly formatted)
+        raise
     except Exception as e:
-        # Log the error for debugging
-        error_msg = f"Error in list_exercises: {str(e)}\n{traceback.format_exc()}"
-        print(error_msg, flush=True)
-        import sys
-        import traceback
-        traceback.print_exc(file=sys.stderr)
-        # Also write to file for debugging
-        try:
-            with open('backend_error.log', 'a') as f:
-                f.write(f"\n{error_msg}\n")
-        except:
-            pass
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        # Log the error with full context
+        logger.error(
+            "Error in list_exercises endpoint",
+            exc_info=True,
+            extra={
+                "skip": skip,
+                "limit": limit,
+                "search": search,
+                "muscle_group_id": muscle_group_id,
+            }
+        )
+        # Let the error handler middleware handle the response
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # IMPORTANT: More specific routes must be defined before more general ones
@@ -403,7 +408,7 @@ async def get_exercise_variants(
     )
 
 
-@router.post("/{exercise_id}/duplicate", response_model=ExerciseSchema)
+@router.post("/{exercise_id}/duplicate", response_model=ExerciseSchema, status_code=201)
 async def duplicate_exercise(
     exercise_id: int,
     variant_data: ExerciseDuplicate,

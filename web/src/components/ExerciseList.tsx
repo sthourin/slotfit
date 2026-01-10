@@ -18,7 +18,7 @@ type SortOrder = 'asc' | 'desc'
 
 export default function ExerciseList({ 
   exercises, 
-  muscleGroupIds, 
+  muscleGroupIds: _muscleGroupIds, 
   selectedExerciseId,
   onSelectExercise,
   onCreateVariant
@@ -34,7 +34,7 @@ export default function ExerciseList({
   const uniqueDifficulties = useMemo(() => {
     const difficulties = exercises
       .map(e => e.difficulty)
-      .filter((d): d is string => d !== null)
+      .filter((d): d is NonNullable<typeof d> => d !== null)
     return Array.from(new Set(difficulties)).sort()
   }, [exercises])
 
@@ -90,13 +90,14 @@ export default function ExerciseList({
         case 'name':
           comparison = a.name.localeCompare(b.name)
           break
-        case 'difficulty':
+        case 'difficulty': {
           const difficultyOrder = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Expert']
           const aDiff = a.difficulty ? difficultyOrder.indexOf(a.difficulty) : -1
           const bDiff = b.difficulty ? difficultyOrder.indexOf(b.difficulty) : -1
           comparison = aDiff - bDiff
           break
-        case 'last_performed':
+        }
+        case 'last_performed': {
           const aDate = a.last_performed ? new Date(a.last_performed).getTime() : 0
           const bDate = b.last_performed ? new Date(b.last_performed).getTime() : 0
           comparison = aDate - bDate
@@ -104,13 +105,14 @@ export default function ExerciseList({
           if (!a.last_performed && b.last_performed) comparison = 1
           if (a.last_performed && !b.last_performed) comparison = -1
           break
-        case 'equipment':
+        }
+        case 'equipment': {
           const aEq = a.primary_equipment?.name || ''
           const bEq = b.primary_equipment?.name || ''
           comparison = aEq.localeCompare(bEq)
           break
+        }
       }
-
       return sortOrder === 'asc' ? comparison : -comparison
     })
 

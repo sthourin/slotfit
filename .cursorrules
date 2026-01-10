@@ -99,12 +99,43 @@ Always reference these files for context:
 - Applied at workout start to filter available exercises
 - Can override per-slot
 
+## FastAPI Server Management (CRITICAL)
+
+**Stale server processes cause new endpoints to not appear in OpenAPI/Swagger.**
+
+### Before ANY Backend Testing
+Use the restart script (preferred) or manual commands:
+
+```bash
+# PREFERRED: Run from project root
+.\restart-server.bat
+
+# OR manual commands:
+taskkill /F /IM python.exe 2>$null; taskkill /F /IM uvicorn.exe 2>$null
+cd backend
+uvicorn app.main:app --reload --port 8000
+```
+
+### Symptoms of Stale Server (STOP and restart if you see these)
+- New endpoints missing from http://localhost:8000/docs
+- OpenAPI schema doesn't reflect code changes
+- API returns 404 for newly added endpoints
+- Changes to Pydantic schemas not reflected
+
+### Required Workflow for Backend Changes
+1. Make code changes
+2. **Kill ALL Python processes** (taskkill command above)
+3. Start server fresh
+4. Verify in Swagger UI before proceeding
+5. Do NOT assume --reload caught the changes
+
+**Never skip the kill step when debugging "missing endpoint" issues.**
+
 ## Common Commands
 
 ```bash
-# Backend
-cd backend
-uvicorn app.main:app --reload --port 8000
+# Backend - Use restart script (kills stale processes automatically)
+.\restart-server.bat
 alembic upgrade head
 alembic revision --autogenerate -m "description"
 pytest

@@ -6,7 +6,10 @@ from typing import List, Dict, Any, Optional
 from anthropic import Anthropic
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
-from app.services.ai.base import AIProvider, RecommendationResponse, ExerciseRecommendation
+from app.core.logging import get_logger
+from app.services.ai.base import AIProvider, RecommendationResponse, ExerciseRecommendation, NotRecommendedExercise
+
+logger = get_logger(__name__)
 
 
 class ClaudeProvider(AIProvider):
@@ -19,7 +22,7 @@ class ClaudeProvider(AIProvider):
             try:
                 self.client = Anthropic(api_key=api_key)
             except Exception as e:
-                print(f"Warning: Failed to create Anthropic client: {e}")
+                logger.warning(f"Failed to create Anthropic client: {e}")
                 self.client = None
         else:
             self.client = None
@@ -42,15 +45,16 @@ class ClaudeProvider(AIProvider):
         user_workout_history: Optional[Dict[str, Any]] = None,
         weekly_volume: Optional[Dict[int, Dict[str, Any]]] = None,
         movement_patterns: Optional[Dict[str, Dict[str, int]]] = None,
+        injury_restrictions: Optional[List[Dict[str, Any]]] = None,
         limit: int = 5,
     ) -> RecommendationResponse:
         """
         Get exercise recommendations from Claude API
         """
-        print(f"ClaudeProvider.get_exercise_recommendations called with mg_ids={muscle_group_ids}, eq_ids={available_equipment_ids}")
+        logger.debug(f"ClaudeProvider.get_exercise_recommendations called with mg_ids={muscle_group_ids}, eq_ids={available_equipment_ids}")
         
         if not await self.is_available():
-            print("Claude API not available, raising exception for service layer to handle")
+            logger.debug("Claude API not available, raising exception for service layer to handle")
             raise RuntimeError("Claude API not available")
         
         # Build context for the prompt
@@ -60,6 +64,7 @@ class ClaudeProvider(AIProvider):
             user_workout_history,
             weekly_volume,
             movement_patterns,
+            injury_restrictions,
         )
         
         # Create prompt
@@ -69,7 +74,7 @@ class ClaudeProvider(AIProvider):
             if not self.client:
                 raise RuntimeError("Anthropic client not initialized")
             
-            print("Calling Claude API...")
+            logger.debug("Calling Claude API...")
             # Call Claude API
             message = self.client.messages.create(
                 model=self.model,
@@ -84,16 +89,14 @@ class ClaudeProvider(AIProvider):
             
             # Parse response
             response_text = message.content[0].text
-            print(f"Claude API response received, length: {len(response_text)}")
+            logger.debug(f"Claude API response received, length: {len(response_text)}")
             result = await self._parse_response(response_text, limit, muscle_group_ids, available_equipment_ids)
-            print(f"Parsed response: total_candidates={result.total_candidates}, recommendations={len(result.recommendations)}")
+            logger.debug(f"Parsed response: total_candidates={result.total_candidates}, recommendations={len(result.recommendations)}")
             return result
         
         except Exception as e:
             # Log the error and re-raise so service layer can try Gemini
-            print(f"Claude API call failed: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.warning(f"Claude API call failed: {e}", exc_info=True)
             raise  # Re-raise so service layer can handle fallback chain
     
     def _build_context(
@@ -103,6 +106,7 @@ class ClaudeProvider(AIProvider):
         user_workout_history: Optional[Dict[str, Any]],
         weekly_volume: Optional[Dict[int, Dict[str, Any]]],
         movement_patterns: Optional[Dict[str, Dict[str, int]]],
+        injury_restrictions: Optional[List[Dict[str, Any]]],
     ) -> Dict[str, Any]:
         """Build context for AI prompt"""
         return {
@@ -111,6 +115,7 @@ class ClaudeProvider(AIProvider):
             "user_history": user_workout_history or {},
             "weekly_volume": weekly_volume or {},
             "movement_patterns": movement_patterns or {},
+            "injury_restrictions": injury_restrictions or [],
         }
     
     def _create_prompt(self, context: Dict[str, Any], limit: int) -> str:
@@ -182,6 +187,25 @@ class ClaudeProvider(AIProvider):
             if boost_suggestions:
                 boost_note = f"\n\nMOVEMENT BALANCE: The current workout has an imbalance. Consider boosting: {', '.join(boost_suggestions)} to achieve better balance."
         
+        # Build injury restrictions context
+        injury_note = ""
+        injury_restrictions = context.get('injury_restrictions', [])
+        if injury_restrictions:
+            injury_lines = []
+            for restriction in injury_restrictions:
+                injury_lines.append(
+                    f"  - {restriction['injury_name']} (severity: {restriction['severity']}): "
+                    f"Avoid {restriction['restriction_type']} = '{restriction['restriction_value']}'"
+                )
+            injury_note = f"""
+
+User Injuries:
+The user has the following active injuries. DO NOT recommend exercises that may aggravate these conditions:
+{chr(10).join(injury_lines)}
+
+For any exercise that could aggravate an injury, include it in the not_recommended array with reason "May aggravate [injury name]".
+IMPORTANT: This feature helps avoid potentially problematic exercises but is NOT medical advice. When in doubt, exclude the exercise (safety first)."""
+        
         return f"""You are an expert fitness coach helping to recommend exercises for a workout slot.
 
 Context:
@@ -191,7 +215,7 @@ Context:
 - Current week's training volume per muscle group:
 {weekly_volume_text}
 - Current workout's movement pattern balance:
-{movement_balance_text}
+{movement_balance_text}{injury_note}
 
 Task:
 Provide {limit} exercise recommendations prioritized based on:
@@ -220,9 +244,25 @@ Return your response as a JSON object with this exact structure:
             }}
         }}
     ],
+    "not_recommended": [
+        {{
+            "exercise_id": <integer>,
+            "exercise_name": "<string>",
+            "reason": "<string>"  # Human-readable explanation (e.g., "Equipment not available: Cable Machine", "Weekly volume exceeded for Chest (22 sets)", "Performed 1 day ago - insufficient recovery")
+        }}
+    ],
     "total_candidates": <integer>,
     "filtered_by_equipment": <integer>
 }}
+
+The "not_recommended" array should include exercises that were filtered out, with clear reasons:
+- Equipment not available: {{equipment_name}}
+- Weekly volume exceeded for {{muscle_group}} ({{X}} sets)
+- Performed {{X}} days ago - insufficient recovery
+- Does not target selected muscle groups
+- May aggravate {{injury_name}} (if exercise matches injury restrictions)
+
+Limit not_recommended to ~10 entries with diverse reason types.
 
 The weekly_volume_status factor should indicate the current week's volume for the primary muscle group(s) targeted by the exercise:
 - "low": <10 sets/week
@@ -262,8 +302,15 @@ Only return valid JSON, no additional text."""
                 ExerciseRecommendation(**rec) for rec in recommendations_data
             ]
             
+            # Parse not_recommended array (if present)
+            not_recommended_data = data.get("not_recommended", [])
+            not_recommended = [
+                NotRecommendedExercise(**entry) for entry in not_recommended_data
+            ]
+            
             response = RecommendationResponse(
                 recommendations=recommendations[:limit],
+                not_recommended=not_recommended[:10],  # Limit to 10 entries
                 total_candidates=data.get("total_candidates", len(recommendations)),
                 filtered_by_equipment=data.get("filtered_by_equipment", len(recommendations)),
                 provider="claude",
@@ -271,15 +318,15 @@ Only return valid JSON, no additional text."""
             
             # If Claude returns empty recommendations, raise exception for service layer
             if response.total_candidates == 0 or len(response.recommendations) == 0:
-                print(f"Claude API returned empty recommendations, raising exception for service layer")
+                logger.warning("Claude API returned empty recommendations, raising exception for service layer")
                 raise ValueError("Claude API returned empty recommendations")
             
             return response
         
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             # If parsing fails, re-raise so service layer can try Gemini
-            print(f"Claude API response parsing failed: {e}")
-            print(f"Response text (first 500 chars): {response_text[:500]}")
+            logger.error(f"Claude API response parsing failed: {e}")
+            logger.debug(f"Response text (first 500 chars): {response_text[:500]}")
             raise  # Re-raise so service layer can handle fallback chain
     
     async def _fallback_recommendations(
@@ -289,11 +336,11 @@ Only return valid JSON, no additional text."""
         limit: int,
     ) -> RecommendationResponse:
         """Fallback to rule-based recommendations when AI fails"""
-        print(f"_fallback_recommendations called with mg_ids={muscle_group_ids}, eq_ids={available_equipment_ids}")
-        print(f"Database session available: {self.db is not None}")
+        logger.debug(f"_fallback_recommendations called with mg_ids={muscle_group_ids}, eq_ids={available_equipment_ids}")
+        logger.debug(f"Database session available: {self.db is not None}")
         
         if not self.db:
-            print("ERROR: No database session available!")
+            logger.error("No database session available!")
             return RecommendationResponse(
                 recommendations=[],
                 total_candidates=0,
@@ -305,9 +352,9 @@ Only return valid JSON, no additional text."""
         from app.services.ai.fallback_provider import FallbackProvider
         
         # Use FallbackProvider to get database-backed recommendations
-        print("Creating FallbackProvider...")
+        logger.debug("Creating FallbackProvider...")
         fallback = FallbackProvider(self.db)
-        print("Calling FallbackProvider.get_exercise_recommendations...")
+        logger.debug("Calling FallbackProvider.get_exercise_recommendations...")
         result = await fallback.get_exercise_recommendations(
             muscle_group_ids=muscle_group_ids,
             available_equipment_ids=available_equipment_ids,
@@ -316,5 +363,5 @@ Only return valid JSON, no additional text."""
             movement_patterns=None,
             limit=limit,
         )
-        print(f"FallbackProvider returned: total_candidates={result.total_candidates}, recommendations={len(result.recommendations)}")
+        logger.debug(f"FallbackProvider returned: total_candidates={result.total_candidates}, recommendations={len(result.recommendations)}")
         return result

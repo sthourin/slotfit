@@ -17,9 +17,7 @@ class RoutineTemplate(Base):
     routine_type = Column(String, nullable=True)  # "anterior", "posterior", "full_body", "custom"
     workout_style = Column(String, nullable=True)  # "5x5", "HIIT", "volume", "strength", "custom"
     description = Column(Text, nullable=True)
-    
-    # Note: user_id deferred to future phase (MVP is offline-only)
-    # user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
     # Relationships
     slots = relationship(
@@ -28,6 +26,7 @@ class RoutineTemplate(Base):
         order_by="RoutineSlot.order",
         cascade="all, delete-orphan",
     )
+    user = relationship("User", backref="routine_templates")
 
     def __repr__(self):
         return f"<RoutineTemplate(id={self.id}, name='{self.name}')>"
