@@ -155,7 +155,7 @@ async def test_update_slot_template(client_with_data, device_id: str):
     # Update template
     update_data = {
         "name": "Updated Name",
-        "description": "Updated description"
+        "notes": "Updated description"
     }
     
     response = await client.put(
@@ -167,9 +167,7 @@ async def test_update_slot_template(client_with_data, device_id: str):
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Updated Name"
-    # Description field may not be in schema, check notes instead
-    if "notes" in data:
-        assert data.get("notes") == "Updated description"
+    assert data["notes"] == "Updated description"
 
 
 @pytest.mark.asyncio

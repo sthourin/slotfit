@@ -1,7 +1,9 @@
-# Test Fix Plan - 8 Remaining Failures
+# Test Fix Plan - 6 Remaining Failures
 
-**Status**: 36 passing, 7 skipped, 8 failing  
-**Goal**: Fix all 8 remaining test failures
+**Status**: 38 passing, 7 skipped, 6 failing  
+**Goal**: Fix all 6 remaining test failures
+
+**Progress**: Phase 1 Complete ✅ (2 fixes)
 
 ## Overview
 
@@ -129,9 +131,9 @@ After fixing 23 of 32 initial failures, we have 8 remaining test failures to add
 
 ## Implementation Order
 
-### Phase 1: Quick Wins (30 min)
-1. **Failure 4** - Delete endpoint status code (simple fix)
-2. **Failure 8** - Slot template notes update (likely schema/update logic)
+### Phase 1: Quick Wins (30 min) ✅ COMPLETE
+1. ✅ **Failure 4** - Delete endpoint status code (fixed: added status_code=204, return None)
+2. ✅ **Failure 8** - Slot template notes update (fixed: test now uses 'notes' instead of 'description')
 
 ### Phase 2: Data/Seed Issues (45 min)
 3. **Failure 1** - Exercise filtering (check seed data associations)
@@ -155,9 +157,14 @@ After each fix:
 
 ## Success Criteria
 
-- All 8 tests pass
+- All 6 remaining tests pass
 - Full test suite: 44+ passing, 7 skipped, 0 failing
 - No regressions in previously passing tests
+
+## Progress Log
+
+- ✅ Phase 1 Complete: Fixed 2 failures (delete user injury, update slot template)
+- 🔄 Phase 2 Next: Fix data/seed issues (exercise filtering, user injuries list)
 
 ---
 

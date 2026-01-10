@@ -130,7 +130,7 @@ async def update_user_injury(
     return user_injury
 
 
-@router.delete("/user-injuries/{injury_id}")
+@router.delete("/user-injuries/{injury_id}", status_code=204)
 async def delete_user_injury(
     injury_id: int,
     current_user: User = Depends(get_current_user),
@@ -149,4 +149,4 @@ async def delete_user_injury(
     
     await db.delete(user_injury)
     await db.commit()
-    return {"message": "Injury removed from profile"}
+    return None
