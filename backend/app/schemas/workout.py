@@ -3,7 +3,7 @@ Pydantic schemas for Workout API
 """
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from app.models.workout import WorkoutState, SlotState
 
@@ -58,6 +58,14 @@ class WorkoutExerciseResponse(WorkoutExerciseBase):
     id: int
     workout_session_id: int
     sets: List[WorkoutSetResponse] = []
+    routine_slot_id: Optional[int] = None  # Alias for slot_id for API clarity
+    
+    @model_validator(mode='after')
+    def set_routine_slot_id(self):
+        """Set routine_slot_id from slot_id if not already set"""
+        if self.routine_slot_id is None:
+            self.routine_slot_id = self.slot_id
+        return self
 
 
 class WorkoutSessionBase(BaseModel):
@@ -87,3 +95,9 @@ class WorkoutSessionResponse(WorkoutSessionBase):
 class WorkoutSessionListResponse(BaseModel):
     workouts: List[WorkoutSessionResponse]
     total: int
+
+
+class AddExerciseToWorkoutRequest(BaseModel):
+    """Request schema for adding an exercise to a workout slot"""
+    routine_slot_id: int  # The routine slot ID (maps to slot_id in WorkoutExercise)
+    exercise_id: int

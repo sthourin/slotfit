@@ -283,7 +283,6 @@ async def test_complete_workout_session(client_with_data, device_id: str):
     assert data["completed_at"] is not None
 
 
-@pytest.mark.skip(reason="Endpoint not yet implemented")
 @pytest.mark.asyncio
 async def test_add_exercise_to_workout(client_with_data, device_id: str):
     client, seed_data = client_with_data

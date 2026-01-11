@@ -10,14 +10,16 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import WorkoutSession, WorkoutExercise, WorkoutSet
-from app.models.workout import WorkoutState
+from app.models import WorkoutSession, WorkoutExercise, WorkoutSet, Exercise, RoutineSlot
+from app.models.workout import WorkoutState, SlotState
 from app.models.user import User
 from app.schemas.workout import (
     WorkoutSessionCreate,
     WorkoutSessionUpdate,
     WorkoutSessionResponse,
     WorkoutSessionListResponse,
+    AddExerciseToWorkoutRequest,
+    WorkoutExerciseResponse,
 )
 
 router = APIRouter()
@@ -323,3 +325,76 @@ async def abandon_workout(
     workout = result.scalar_one()
     
     return WorkoutSessionResponse.model_validate(workout)
+
+
+@router.post("/{workout_id}/exercises", response_model=WorkoutExerciseResponse, status_code=201)
+async def add_exercise_to_workout(
+    workout_id: int,
+    exercise_data: AddExerciseToWorkoutRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Add an exercise to a workout slot (must belong to current user)"""
+    # Verify workout exists and belongs to user
+    query = select(WorkoutSession).where(
+        WorkoutSession.id == workout_id,
+        WorkoutSession.user_id == current_user.id
+    )
+    result = await db.execute(query)
+    workout = result.scalar_one_or_none()
+    
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    
+    # Verify exercise exists
+    exercise = await db.get(Exercise, exercise_data.exercise_id)
+    if not exercise:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+    
+    # Verify routine slot exists and belongs to the workout's routine
+    slot = await db.get(RoutineSlot, exercise_data.routine_slot_id)
+    if not slot:
+        raise HTTPException(status_code=404, detail="Routine slot not found")
+    
+    # Verify slot belongs to the workout's routine
+    if workout.routine_template_id and slot.routine_template_id != workout.routine_template_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Routine slot does not belong to the workout's routine"
+        )
+    
+    # Check if exercise already exists for this slot in this workout
+    existing_query = select(WorkoutExercise).where(
+        WorkoutExercise.workout_session_id == workout_id,
+        WorkoutExercise.slot_id == exercise_data.routine_slot_id
+    )
+    existing_result = await db.execute(existing_query)
+    existing = existing_result.scalar_one_or_none()
+    
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Exercise already added to this slot in this workout"
+        )
+    
+    # Create workout exercise
+    workout_exercise = WorkoutExercise(
+        workout_session_id=workout_id,
+        slot_id=exercise_data.routine_slot_id,
+        exercise_id=exercise_data.exercise_id,
+        slot_state=SlotState.NOT_STARTED
+    )
+    db.add(workout_exercise)
+    await db.commit()
+    await db.refresh(workout_exercise)
+    
+    # Reload with relationships
+    query = select(WorkoutExercise).where(
+        WorkoutExercise.id == workout_exercise.id
+    ).options(
+        selectinload(WorkoutExercise.sets)
+    )
+    result = await db.execute(query)
+    workout_exercise = result.scalar_one()
+    
+    return WorkoutExerciseResponse.model_validate(workout_exercise)

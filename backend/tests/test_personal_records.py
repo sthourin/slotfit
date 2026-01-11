@@ -6,14 +6,15 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_create_personal_record(client: AsyncClient, device_id: str):
+async def test_create_personal_record(client_with_data, device_id: str):
     """Test creating a personal record"""
+    client, seed_data = client_with_data
     headers = {"X-Device-ID": device_id}
     
     # Get or create user
     await client.get("/api/v1/users/me", headers=headers)
     
-    # Get an exercise
+    # Get an exercise from seed data
     exercises_response = await client.get("/api/v1/exercises/?limit=1")
     exercises = exercises_response.json()["exercises"]
     
@@ -24,11 +25,10 @@ async def test_create_personal_record(client: AsyncClient, device_id: str):
     
     record_data = {
         "exercise_id": exercise_id,
-        "record_type": "max_weight",
+        "record_type": "weight",
         "value": 100.5,
-        "unit": "kg",
-        "achieved_at": "2024-01-15T10:00:00Z",
-        "notes": "Test PR"
+        "context": {"notes": "Test PR", "unit": "kg"},
+        "achieved_at": "2024-01-15T10:00:00Z"
     }
     
     response = await client.post(
@@ -40,19 +40,20 @@ async def test_create_personal_record(client: AsyncClient, device_id: str):
     assert response.status_code == 201
     data = response.json()
     assert data["exercise_id"] == exercise_id
-    assert data["record_type"] == "max_weight"
+    assert data["record_type"] == "weight"
     assert data["value"] == 100.5
     assert "id" in data
 
 
 @pytest.mark.asyncio
-async def test_list_personal_records(client: AsyncClient, device_id: str):
+async def test_list_personal_records(client_with_data, device_id: str):
     """Test listing personal records"""
+    client, seed_data = client_with_data
     headers = {"X-Device-ID": device_id}
     
     await client.get("/api/v1/users/me", headers=headers)
     
-    # Get an exercise
+    # Get an exercise from seed data
     exercises_response = await client.get("/api/v1/exercises/?limit=1")
     exercises = exercises_response.json()["exercises"]
     
@@ -64,9 +65,8 @@ async def test_list_personal_records(client: AsyncClient, device_id: str):
     # Create a record
     record_data = {
         "exercise_id": exercise_id,
-        "record_type": "max_reps",
+        "record_type": "reps",
         "value": 20,
-        "unit": "reps",
         "achieved_at": "2024-01-15T10:00:00Z"
     }
     await client.post(
@@ -80,18 +80,21 @@ async def test_list_personal_records(client: AsyncClient, device_id: str):
     
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list)
-    assert len(data) >= 1
+    assert "records" in data
+    assert "total" in data
+    assert isinstance(data["records"], list)
+    assert len(data["records"]) >= 1
 
 
 @pytest.mark.asyncio
-async def test_get_personal_record(client: AsyncClient, device_id: str):
+async def test_get_personal_record(client_with_data, device_id: str):
     """Test getting a single personal record"""
+    client, seed_data = client_with_data
     headers = {"X-Device-ID": device_id}
     
     await client.get("/api/v1/users/me", headers=headers)
     
-    # Get an exercise
+    # Get an exercise from seed data
     exercises_response = await client.get("/api/v1/exercises/?limit=1")
     exercises = exercises_response.json()["exercises"]
     
@@ -103,9 +106,8 @@ async def test_get_personal_record(client: AsyncClient, device_id: str):
     # Create record
     record_data = {
         "exercise_id": exercise_id,
-        "record_type": "max_weight",
+        "record_type": "weight",
         "value": 150.0,
-        "unit": "kg",
         "achieved_at": "2024-01-15T10:00:00Z"
     }
     create_response = await client.post(
@@ -128,13 +130,14 @@ async def test_get_personal_record(client: AsyncClient, device_id: str):
 
 
 @pytest.mark.asyncio
-async def test_update_personal_record(client: AsyncClient, device_id: str):
+async def test_update_personal_record(client_with_data, device_id: str):
     """Test updating a personal record"""
+    client, seed_data = client_with_data
     headers = {"X-Device-ID": device_id}
     
     await client.get("/api/v1/users/me", headers=headers)
     
-    # Get an exercise
+    # Get an exercise from seed data
     exercises_response = await client.get("/api/v1/exercises/?limit=1")
     exercises = exercises_response.json()["exercises"]
     
@@ -146,9 +149,8 @@ async def test_update_personal_record(client: AsyncClient, device_id: str):
     # Create record
     record_data = {
         "exercise_id": exercise_id,
-        "record_type": "max_weight",
+        "record_type": "weight",
         "value": 100.0,
-        "unit": "kg",
         "achieved_at": "2024-01-15T10:00:00Z"
     }
     create_response = await client.post(
@@ -161,7 +163,7 @@ async def test_update_personal_record(client: AsyncClient, device_id: str):
     # Update record
     update_data = {
         "value": 110.0,
-        "notes": "Updated PR"
+        "context": {"notes": "Updated PR"}
     }
     
     response = await client.put(
@@ -173,17 +175,19 @@ async def test_update_personal_record(client: AsyncClient, device_id: str):
     assert response.status_code == 200
     data = response.json()
     assert data["value"] == 110.0
-    assert data["notes"] == "Updated PR"
+    assert data["context"] is not None
+    assert data["context"].get("notes") == "Updated PR"
 
 
 @pytest.mark.asyncio
-async def test_delete_personal_record(client: AsyncClient, device_id: str):
+async def test_delete_personal_record(client_with_data, device_id: str):
     """Test deleting a personal record"""
+    client, seed_data = client_with_data
     headers = {"X-Device-ID": device_id}
     
     await client.get("/api/v1/users/me", headers=headers)
     
-    # Get an exercise
+    # Get an exercise from seed data
     exercises_response = await client.get("/api/v1/exercises/?limit=1")
     exercises = exercises_response.json()["exercises"]
     
@@ -195,9 +199,8 @@ async def test_delete_personal_record(client: AsyncClient, device_id: str):
     # Create record
     record_data = {
         "exercise_id": exercise_id,
-        "record_type": "max_weight",
+        "record_type": "weight",
         "value": 100.0,
-        "unit": "kg",
         "achieved_at": "2024-01-15T10:00:00Z"
     }
     create_response = await client.post(
@@ -224,13 +227,14 @@ async def test_delete_personal_record(client: AsyncClient, device_id: str):
 
 
 @pytest.mark.asyncio
-async def test_list_records_by_exercise(client: AsyncClient, device_id: str):
+async def test_list_records_by_exercise(client_with_data, device_id: str):
     """Test listing personal records filtered by exercise"""
+    client, seed_data = client_with_data
     headers = {"X-Device-ID": device_id}
     
     await client.get("/api/v1/users/me", headers=headers)
     
-    # Get an exercise
+    # Get an exercise from seed data
     exercises_response = await client.get("/api/v1/exercises/?limit=1")
     exercises = exercises_response.json()["exercises"]
     
@@ -242,9 +246,8 @@ async def test_list_records_by_exercise(client: AsyncClient, device_id: str):
     # Create a record
     record_data = {
         "exercise_id": exercise_id,
-        "record_type": "max_weight",
+        "record_type": "weight",
         "value": 100.0,
-        "unit": "kg",
         "achieved_at": "2024-01-15T10:00:00Z"
     }
     await client.post(
@@ -261,7 +264,8 @@ async def test_list_records_by_exercise(client: AsyncClient, device_id: str):
     
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list)
+    assert "records" in data
+    assert "total" in data
     # All records should be for this exercise
-    for record in data:
+    for record in data["records"]:
         assert record["exercise_id"] == exercise_id

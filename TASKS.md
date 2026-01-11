@@ -161,12 +161,18 @@ Track weekly training volume per muscle group.
 
 **Reference**: @.cursor/context/api.md (Personal Records section)
 
-**Files to create:**
+**Files created:**
 - `backend/app/api/v1/endpoints/personal_records.py`
 
 **Endpoints:**
-- GET /personal-records (list all, optional exercise_id filter)
-- GET /personal-records/exercise/{exercise_id}
+- ✅ GET /personal-records (list all, optional exercise_id filter)
+- ✅ GET /personal-records/exercise/{exercise_id}
+- ✅ POST /personal-records (create record)
+- ✅ GET /personal-records/{id} (get single record)
+- ✅ PUT /personal-records/{id} (update record)
+- ✅ DELETE /personal-records/{id} (delete record)
+
+**Note:** All tests passing. Tests were updated to match actual schema (using `weight`/`reps` instead of `max_weight`/`max_reps`, and `context` JSONB field instead of `unit`/`notes`).
 
 ---
 
@@ -1819,6 +1825,10 @@ Add Injury Modal
 - `web/src/components/workout/RestTimer.tsx`
 - `web/src/components/workout/WorkoutControls.tsx`
 
+**Backend Prerequisites:**
+- ✅ `POST /workouts/{id}/exercises` endpoint implemented
+- This endpoint allows adding exercises to workout slots during active workout
+
 **Features:**
 - Slot progress bar (clickable)
 - Current exercise with video link
@@ -1914,6 +1924,46 @@ Add Injury Modal
 
 ---
 
+## Test Suite Status
+
+**Status**: ✅ Comprehensive test suite complete
+
+**Coverage:**
+- ✅ 51 tests passing
+- ⏭️ 0 tests skipped
+- ✅ All major API endpoints tested
+- ✅ Seed data fixtures for isolated testing
+
+**All Endpoints Implemented:**
+- ✅ `POST /workouts/{id}/exercises` - Add exercise to workout
+- ✅ All personal records CRUD endpoints (POST, GET by ID, PUT, DELETE)
+
+**Test Files:**
+- `backend/tests/test_exercises.py` - Exercise listing, filtering, duplication
+- `backend/tests/test_equipment_profiles.py` - Equipment profile CRUD
+- `backend/tests/test_routines.py` - Routine template and slot management
+- `backend/tests/test_workouts.py` - Workout session lifecycle
+- `backend/tests/test_injuries.py` - Injury types and user injuries
+- `backend/tests/test_recommendations.py` - AI recommendation endpoints
+- `backend/tests/test_personal_records.py` - Personal records CRUD (all endpoints)
+- `backend/tests/test_slot_templates.py` - Slot template management
+
+**Test Infrastructure:**
+- `backend/tests/conftest.py` - Shared fixtures with seed data support
+- `backend/tests/seed_data.py` - Centralized seed data for muscle groups, equipment, exercises, injuries
+- In-memory SQLite database for isolated testing
+- Optional production database testing via `USE_PROD_DB=true` environment variable
+
+**Running Tests:**
+```bash
+cd backend
+python -m pytest tests/ -v              # Run all tests
+python -m pytest tests/ -v --tb=short   # Short traceback
+python -m pytest tests/test_exercises.py # Run specific test file
+```
+
+---
+
 ## Verification Commands
 
 After each task, verify with:
@@ -1922,7 +1972,7 @@ After each task, verify with:
 # Backend changes
 cd backend
 alembic upgrade head      # Apply migrations
-pytest                    # Run tests
+python -m pytest          # Run tests
 uvicorn app.main:app --reload  # Start server
 # Check http://localhost:8000/docs
 

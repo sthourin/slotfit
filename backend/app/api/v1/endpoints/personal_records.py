@@ -15,6 +15,8 @@ from app.models.user import User
 from app.schemas.personal_record import (
     PersonalRecordResponse,
     PersonalRecordListResponse,
+    PersonalRecordCreate,
+    PersonalRecordUpdate,
 )
 
 router = APIRouter()
@@ -107,3 +109,154 @@ async def get_personal_records_for_exercise(
         records=[PersonalRecordResponse.model_validate(r) for r in records],
         total=len(records)
     )
+
+
+@router.post("/", response_model=PersonalRecordResponse, status_code=201)
+async def create_personal_record(
+    record_data: PersonalRecordCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new personal record for the current user"""
+    # Verify exercise exists
+    exercise = await db.get(Exercise, record_data.exercise_id)
+    if not exercise:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+    
+    # Verify workout_session exists if provided
+    if record_data.workout_session_id:
+        from app.models import WorkoutSession
+        workout = await db.get(WorkoutSession, record_data.workout_session_id)
+        if not workout:
+            raise HTTPException(status_code=404, detail="Workout session not found")
+        # Verify workout belongs to user
+        if workout.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Workout session does not belong to user")
+    
+    # Create personal record
+    personal_record = PersonalRecord(
+        exercise_id=record_data.exercise_id,
+        record_type=record_data.record_type,
+        value=record_data.value,
+        context=record_data.context,
+        achieved_at=record_data.achieved_at,
+        workout_session_id=record_data.workout_session_id,
+        user_id=current_user.id,
+    )
+    db.add(personal_record)
+    await db.commit()
+    await db.refresh(personal_record)
+    
+    # Reload with relationships
+    query = select(PersonalRecord).where(
+        PersonalRecord.id == personal_record.id
+    ).options(
+        selectinload(PersonalRecord.exercise)
+    )
+    result = await db.execute(query)
+    personal_record = result.scalar_one()
+    
+    return PersonalRecordResponse.model_validate(personal_record)
+
+
+@router.get("/{record_id}", response_model=PersonalRecordResponse)
+async def get_personal_record(
+    record_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a single personal record by ID (must belong to current user)"""
+    query = select(PersonalRecord).where(
+        PersonalRecord.id == record_id,
+        PersonalRecord.user_id == current_user.id
+    ).options(
+        selectinload(PersonalRecord.exercise)
+    )
+    
+    result = await db.execute(query)
+    record = result.scalar_one_or_none()
+    
+    if not record:
+        raise HTTPException(status_code=404, detail="Personal record not found")
+    
+    return PersonalRecordResponse.model_validate(record)
+
+
+@router.put("/{record_id}", response_model=PersonalRecordResponse)
+async def update_personal_record(
+    record_id: int,
+    updates: PersonalRecordUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a personal record (must belong to current user)"""
+    query = select(PersonalRecord).where(
+        PersonalRecord.id == record_id,
+        PersonalRecord.user_id == current_user.id
+    )
+    result = await db.execute(query)
+    record = result.scalar_one_or_none()
+    
+    if not record:
+        raise HTTPException(status_code=404, detail="Personal record not found")
+    
+    # Validate exercise if being updated
+    if updates.exercise_id is not None:
+        exercise = await db.get(Exercise, updates.exercise_id)
+        if not exercise:
+            raise HTTPException(status_code=404, detail="Exercise not found")
+    
+    # Validate workout_session if being updated
+    if updates.workout_session_id is not None:
+        from app.models import WorkoutSession
+        workout = await db.get(WorkoutSession, updates.workout_session_id)
+        if not workout:
+            raise HTTPException(status_code=404, detail="Workout session not found")
+        if workout.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Workout session does not belong to user")
+    
+    # Validate value if being updated
+    if updates.value is not None and updates.value <= 0:
+        raise HTTPException(status_code=400, detail="value must be greater than 0")
+    
+    # Update fields
+    update_data = updates.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(record, field, value)
+    
+    await db.commit()
+    await db.refresh(record)
+    
+    # Reload with relationships
+    query = select(PersonalRecord).where(
+        PersonalRecord.id == record_id
+    ).options(
+        selectinload(PersonalRecord.exercise)
+    )
+    result = await db.execute(query)
+    record = result.scalar_one()
+    
+    return PersonalRecordResponse.model_validate(record)
+
+
+@router.delete("/{record_id}", status_code=204)
+async def delete_personal_record(
+    record_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a personal record (must belong to current user)"""
+    query = select(PersonalRecord).where(
+        PersonalRecord.id == record_id,
+        PersonalRecord.user_id == current_user.id
+    )
+    result = await db.execute(query)
+    record = result.scalar_one_or_none()
+    
+    if not record:
+        raise HTTPException(status_code=404, detail="Personal record not found")
+    
+    await db.delete(record)
+    await db.commit()
+    
+    return None
