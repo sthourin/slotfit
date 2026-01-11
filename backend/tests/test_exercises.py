@@ -48,14 +48,20 @@ async def test_filter_exercises_by_muscle_group(client_with_data):
     """Test filtering exercises by muscle group"""
     client, seed_data = client_with_data
     
-    # Get a muscle group ID from seeded data
+    # Get a muscle group ID from seeded data that has exercises
+    # Based on seed data: Chest (id=1) has Push-up, Back (id=2) has Pull-up, etc.
     muscle_groups_response = await client.get("/api/v1/muscle-groups/")
     assert muscle_groups_response.status_code == 200
     muscle_groups_data = muscle_groups_response.json()
     muscle_groups = muscle_groups_data.get("muscle_groups", [])
     assert len(muscle_groups) > 0
     
-    muscle_group_id = muscle_groups[0]["id"]
+    # Find a muscle group that has exercises (Chest, Back, Shoulders, Biceps, Quadriceps, or Core)
+    # These are the ones with exercises in seed data
+    target_names = ["Chest", "Back", "Shoulders", "Biceps", "Quadriceps", "Core"]
+    target_mg = next((mg for mg in muscle_groups if mg["name"] in target_names), None)
+    assert target_mg is not None, f"Could not find a muscle group with exercises. Available: {[mg['name'] for mg in muscle_groups]}"
+    muscle_group_id = target_mg["id"]
     
     response = await client.get(
         f"/api/v1/exercises/?muscle_group_id={muscle_group_id}"
@@ -67,7 +73,7 @@ async def test_filter_exercises_by_muscle_group(client_with_data):
     # Verify all exercises target this muscle group
     for exercise in data["exercises"]:
         muscle_group_ids = [
-            mg["id"] for mg in exercise.get("target_muscle_groups", [])
+            mg["id"] for mg in exercise.get("muscle_groups", [])
         ]
         assert muscle_group_id in muscle_group_ids
 

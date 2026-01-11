@@ -102,7 +102,7 @@ async def test_list_user_injuries(client_with_data, device_id: str):
         "severity": "mild"
     }
     await client.post(
-        "/api/v1/injuries/user-injuries",
+        "/api/v1/user-injuries",
         json=injury_data,
         headers=headers
     )
