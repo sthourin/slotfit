@@ -75,7 +75,7 @@ async def get_user_workout_history(
 @router.get("/", response_model=RecommendationResponse)
 async def get_recommendations(
     muscle_group_ids: List[int] = Query(..., description="List of muscle group IDs for slot scope"),
-    available_equipment_ids: List[int] = Query(..., description="List of available equipment IDs"),
+    available_equipment_ids: List[int] = Query(default=[], description="List of available equipment IDs"),
     workout_session_id: Optional[int] = Query(None, description="Optional workout session ID to calculate movement pattern balance"),
     limit: int = Query(5, ge=1, le=20, description="Maximum number of recommendations"),
     use_cache: bool = Query(True, description="Use cached recommendations if available"),

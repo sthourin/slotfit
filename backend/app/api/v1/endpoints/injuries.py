@@ -112,10 +112,12 @@ async def update_user_injury(
     db: AsyncSession = Depends(get_db)
 ):
     """Update user injury (severity, notes, or mark as healed)"""
+    from sqlalchemy.orm import selectinload
+    
     query = select(UserInjury).where(
         UserInjury.id == injury_id,
         UserInjury.user_id == current_user.id
-    )
+    ).options(selectinload(UserInjury.injury_type))
     result = await db.execute(query)
     user_injury = result.scalar_one_or_none()
     
@@ -126,7 +128,7 @@ async def update_user_injury(
         setattr(user_injury, field, value)
     
     await db.commit()
-    await db.refresh(user_injury, ["injury_type"])
+    await db.refresh(user_injury)
     return user_injury
 
 
