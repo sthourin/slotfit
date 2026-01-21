@@ -8,7 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
 
-from app.services.ai.base import AIProvider, RecommendationResponse, ExerciseRecommendation, NotRecommendedExercise
+from app.services.ai.base import (
+    AIProvider,
+    RecommendationResponse,
+    ExerciseRecommendation,
+    NotRecommendedExercise,
+    WorkoutSuggestion,
+)
 from app.models import Exercise, MuscleGroup
 from app.models.exercise import exercise_muscle_groups
 
@@ -44,14 +50,25 @@ class FallbackProvider(AIProvider):
             selectinload(Exercise.muscle_groups),
         )
         
-        # Filter by muscle groups only
+        # Filter by muscle groups only - exercises must target ALL specified muscle groups (AND logic)
         if muscle_group_ids:
+            # Use a subquery to find exercises that have ALL the specified muscle groups
+            # Group by exercise_id and count distinct muscle_group_ids
+            # Only include exercises where the count equals the number of requested muscle groups
+            subquery = (
+                select(
+                    exercise_muscle_groups.c.exercise_id,
+                    func.count(func.distinct(exercise_muscle_groups.c.muscle_group_id)).label('mg_count')
+                )
+                .where(exercise_muscle_groups.c.muscle_group_id.in_(muscle_group_ids))
+                .group_by(exercise_muscle_groups.c.exercise_id)
+                .having(func.count(func.distinct(exercise_muscle_groups.c.muscle_group_id)) == len(muscle_group_ids))
+                .subquery()
+            )
             query_all = query_all.join(
-                exercise_muscle_groups,
-                Exercise.id == exercise_muscle_groups.c.exercise_id
-            ).where(
-                exercise_muscle_groups.c.muscle_group_id.in_(muscle_group_ids)
-            ).distinct()
+                subquery,
+                Exercise.id == subquery.c.exercise_id
+            )
         
         # Execute query to get all muscle-group-matching exercises
         result_all = await self.db.execute(query_all)
@@ -371,5 +388,59 @@ class FallbackProvider(AIProvider):
             not_recommended=not_recommended,
             total_candidates=total_candidates,
             filtered_by_equipment=filtered_by_equipment,
+            provider="fallback",
+        )
+
+    async def get_next_workout_suggestion(
+        self,
+        workout_history: Dict[str, Any],
+        routine_options: List[Dict[str, Any]],
+    ) -> WorkoutSuggestion:
+        """Rule-based next workout suggestion"""
+        if not routine_options:
+            return WorkoutSuggestion(
+                suggested_routine_id=None,
+                suggested_routine_name=None,
+                focus="Full body balance",
+                rationale="No routines available yet. Create a routine to get suggestions.",
+                suggested_exercises=[],
+                provider="fallback",
+            )
+
+        last_completed_by_routine = workout_history.get("last_completed_by_routine", {})
+        routine_last_times = {}
+        for routine in routine_options:
+            routine_id = routine.get("id")
+            completed_at = last_completed_by_routine.get(str(routine_id)) or last_completed_by_routine.get(routine_id)
+            routine_last_times[routine_id] = completed_at
+
+        # Pick routine not done in the longest time; if none have history, pick first
+        oldest_routine_id = None
+        oldest_time = None
+        for routine in routine_options:
+            routine_id = routine.get("id")
+            completed_at = routine_last_times.get(routine_id)
+            if completed_at is None:
+                oldest_routine_id = routine_id
+                oldest_time = None
+                break
+            try:
+                parsed = datetime.fromisoformat(completed_at) if isinstance(completed_at, str) else completed_at
+            except Exception:
+                parsed = None
+            if oldest_time is None or (parsed and parsed < oldest_time):
+                oldest_time = parsed
+                oldest_routine_id = routine_id
+
+        suggested_routine = next((r for r in routine_options if r.get("id") == oldest_routine_id), routine_options[0])
+        focus = suggested_routine.get("routine_type") or "balanced session"
+        rationale = "Suggested to balance your recent training and avoid repeating the same routine too soon."
+
+        return WorkoutSuggestion(
+            suggested_routine_id=suggested_routine.get("id"),
+            suggested_routine_name=suggested_routine.get("name"),
+            focus=focus,
+            rationale=rationale,
+            suggested_exercises=[],
             provider="fallback",
         )

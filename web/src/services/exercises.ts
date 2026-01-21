@@ -8,7 +8,7 @@ export interface Exercise {
   id: number
   name: string
   description: string | null
-  difficulty: 'Beginner' | 'Novice' | 'Intermediate' | 'Advanced' | 'Expert' | null
+  difficulty: 'Easy' | 'Intermediate' | 'Advanced' | null
   exercise_classification: string | null
   short_demo_url: string | null
   in_depth_url: string | null
@@ -35,6 +35,7 @@ export interface Exercise {
   default_weight: number | null
   default_time_seconds: number | null
   default_rest_seconds: number | null
+  tags: Array<{ id: number; name: string; category: string | null }>
 }
 
 export interface ExerciseListResponse {
@@ -47,7 +48,7 @@ export interface ExerciseListResponse {
 export interface ExerciseCreate {
   name: string
   description?: string | null
-  difficulty?: 'Beginner' | 'Novice' | 'Intermediate' | 'Advanced' | 'Expert' | null
+  difficulty?: 'Easy' | 'Intermediate' | 'Advanced' | null
   exercise_classification?: string | null
   short_demo_url?: string | null
   in_depth_url?: string | null
@@ -75,7 +76,7 @@ export interface ExerciseCreate {
 export interface ExerciseUpdate {
   name?: string
   description?: string | null
-  difficulty?: 'Beginner' | 'Novice' | 'Intermediate' | 'Advanced' | 'Expert' | null
+  difficulty?: 'Easy' | 'Intermediate' | 'Advanced' | null
   exercise_classification?: string | null
   short_demo_url?: string | null
   in_depth_url?: string | null
@@ -119,24 +120,37 @@ export const exerciseApi = {
     limit?: number
     search?: string
     muscle_group_id?: number
-    muscle_group_ids?: number[] // Multiple muscle group IDs
+    muscle_group_ids?: number[] // Multiple muscle group IDs (for target role)
+    secondary_muscle_group_ids?: number[] // Multiple muscle group IDs (for secondary role)
+    tertiary_muscle_group_ids?: number[] // Multiple muscle group IDs (for tertiary role)
     equipment_id?: number
     difficulty?: string
     body_region?: string
     mechanics?: string
     routine_type?: 'anterior' | 'posterior' | 'full_body' | 'custom'
     workout_style?: '5x5' | 'HIIT' | 'volume' | 'strength' | 'custom'
+    tag_ids?: number[] // Multiple tag IDs (AND logic - exercise must have all tags)
     variant_type?: string // Filter by variant type: "HIIT", "Strength", etc.
     base_exercise_id?: number // Get all variants of a base exercise
     include_variants?: boolean // Include exercise variants in results
+    combination_only?: boolean // Filter to only combination exercises (multiple target muscle groups)
     sort_by?: 'name' | 'difficulty' | 'last_performed' | 'equipment'
     sort_order?: 'asc' | 'desc'
   }): Promise<ExerciseListResponse> => {
-    // Convert muscle_group_ids array to comma-separated string
+    // Convert muscle_group_ids, secondary_muscle_group_ids, tertiary_muscle_group_ids, and tag_ids arrays to comma-separated strings
     const apiParams: any = { ...params }
     if (apiParams.muscle_group_ids && Array.isArray(apiParams.muscle_group_ids)) {
       apiParams.muscle_group_ids = apiParams.muscle_group_ids.join(',')
       delete apiParams.muscle_group_id // Don't send both
+    }
+    if (apiParams.secondary_muscle_group_ids && Array.isArray(apiParams.secondary_muscle_group_ids)) {
+      apiParams.secondary_muscle_group_ids = apiParams.secondary_muscle_group_ids.join(',')
+    }
+    if (apiParams.tertiary_muscle_group_ids && Array.isArray(apiParams.tertiary_muscle_group_ids)) {
+      apiParams.tertiary_muscle_group_ids = apiParams.tertiary_muscle_group_ids.join(',')
+    }
+    if (apiParams.tag_ids && Array.isArray(apiParams.tag_ids)) {
+      apiParams.tag_ids = apiParams.tag_ids.join(',')
     }
     const response = await apiClient.get<ExerciseListResponse>('/exercises/', { params: apiParams })
     return response.data

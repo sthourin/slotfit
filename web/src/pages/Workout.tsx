@@ -69,6 +69,15 @@ export default function Workout() {
     }
   }, [activeWorkout, loading, navigate])
 
+  const handleCompleteWorkout = async () => {
+    try {
+      await completeWorkout()
+      navigate('/')
+    } catch (error) {
+      console.error('Failed to complete workout:', error)
+    }
+  }
+
   // Workout navigation
   const navigation = useWorkoutNavigation({
     activeSlots,
@@ -223,12 +232,13 @@ export default function Workout() {
               workoutState={activeWorkout.state}
               onPause={pauseWorkout}
               onResume={resumeWorkout}
-              onComplete={completeWorkout}
+              onComplete={handleCompleteWorkout}
               onAbandon={abandonWorkout}
             />
           </div>
         </div>
       </div>
+
     </div>
   )
 }

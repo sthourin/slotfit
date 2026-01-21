@@ -18,11 +18,9 @@ from app.models.base import Base
 
 
 class DifficultyLevel(str, enum.Enum):
-    BEGINNER = "Beginner"
-    NOVICE = "Novice"
+    EASY = "Easy"
     INTERMEDIATE = "Intermediate"
     ADVANCED = "Advanced"
-    EXPERT = "Expert"
 
 
 # Association table for many-to-many relationship between exercises and muscle groups
@@ -49,7 +47,9 @@ class Exercise(Base):
     secondary_equipment_count = Column(Integer, default=0)
     
     # Difficulty and classification
-    difficulty = Column(SQLEnum(DifficultyLevel), nullable=True)
+    # Use values_callable to ensure SQLAlchemy uses enum values ('Easy', 'Intermediate', 'Advanced')
+    # instead of member names (EASY, INTERMEDIATE, ADVANCED) to match PostgreSQL enum
+    difficulty = Column(SQLEnum(DifficultyLevel, values_callable=lambda x: [e.value for e in x]), nullable=True)
     exercise_classification = Column(String, nullable=True)  # e.g., "Bodybuilding", "Calisthenics"
     
     # Movement details
@@ -64,6 +64,8 @@ class Exercise(Base):
     force_type = Column(String, nullable=True)  # e.g., "Push", "Pull", "Other"
     mechanics = Column(String, nullable=True)  # "Compound" or "Isolation"
     laterality = Column(String, nullable=True)  # e.g., "Bilateral", "Unilateral"
+    is_combination = Column(String, nullable=True)  # "True" or "False" - indicates if exercise targets multiple muscle groups
+    # Note: Using String for SQLite compatibility, similar to is_custom
     
     # Media URLs
     short_demo_url = Column(String, nullable=True)
@@ -93,6 +95,11 @@ class Exercise(Base):
         back_populates="exercises",
     )
     base_exercise = relationship("Exercise", remote_side=[id], backref="variants")  # Self-referential for variants
+    tags = relationship(
+        "Tag",
+        secondary="exercise_tags",
+        back_populates="exercises",
+    )
 
     def __repr__(self):
         return f"<Exercise(id={self.id}, name='{self.name}')>"

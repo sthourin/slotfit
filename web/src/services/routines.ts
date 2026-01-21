@@ -28,6 +28,7 @@ export interface RoutineTemplate {
   workout_style: string | null
   description: string | null
   slots: RoutineSlot[]
+  tags: Array<{ id: number; name: string; category: string | null }>
 }
 
 export interface RoutineTemplateListResponse {
@@ -137,5 +138,19 @@ export const routineApi = {
       `/routines/${routineId}/slots/${slotId}`
     )
     return response.data
+  },
+
+  /**
+   * Add a tag to a routine
+   */
+  addTag: async (routineId: number, tagName: string): Promise<void> => {
+    await apiClient.post(`/tags/routines/${routineId}/tags?tag_name=${encodeURIComponent(tagName)}`)
+  },
+
+  /**
+   * Remove a tag from a routine
+   */
+  removeTag: async (routineId: number, tagId: number): Promise<void> => {
+    await apiClient.delete(`/tags/routines/${routineId}/tags/${tagId}`)
   },
 }

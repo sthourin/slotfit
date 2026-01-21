@@ -14,6 +14,7 @@ export interface ActiveWorkoutSlot {
   slotId: number | null // From routine_slots.id
   exerciseId: number | null // Selected exercise
   exerciseName: string | null
+  workoutExerciseId: number | null // Backend workout_exercise.id (for syncing sets)
   muscleGroupIds: number[] // Muscle group IDs for this slot (from routine slot)
   slotState: SlotState
   sets: WorkoutSet[]
@@ -42,18 +43,20 @@ interface WorkoutStore {
   abandonWorkout: () => Promise<void>
   
   // Slot management
-  selectExerciseForSlot: (slotIndex: number, exerciseId: number, exerciseName: string) => void
-  startSlot: (slotIndex: number) => void
-  completeSlot: (slotIndex: number) => void
+  selectExerciseForSlot: (slotIndex: number, exerciseId: number, exerciseName: string) => Promise<void>
+  startSlot: (slotIndex: number) => Promise<void>
+  completeSlot: (slotIndex: number) => Promise<void>
   skipSlot: (slotIndex: number) => void
   setCurrentSlot: (slotIndex: number | null) => void
   nextSlot: () => void
   previousSlot: () => void
   
   // Set management
-      addSet: (slotIndex: number, setData: Omit<WorkoutSet, 'id' | 'workout_exercise_id'>) => void
-  updateSet: (slotIndex: number, setIndex: number, updates: Partial<WorkoutSet>) => void
-  removeSet: (slotIndex: number, setIndex: number) => void
+  addSet: (slotIndex: number, setData: Omit<WorkoutSet, 'id' | 'workout_exercise_id'>) => Promise<void>
+  updateSet: (slotIndex: number, setIndex: number, updates: Partial<WorkoutSet>) => Promise<void>
+  removeSet: (slotIndex: number, setIndex: number) => Promise<void>
+  reorderSets: (slotIndex: number, orderedSetIds: number[]) => Promise<void>
+  syncSlotSets: (slotIndex: number) => Promise<void>
   
   // Clear active workout (for cleanup)
   clearActiveWorkout: () => void
@@ -88,6 +91,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
             slotId: slot.id,
             exerciseId: slot.selected_exercise_id || null,
             exerciseName: null, // Will be filled when exercise is selected
+            workoutExerciseId: null, // Will be set when exercise is added to workout
             muscleGroupIds: slot.muscle_group_ids,
             slotState: 'not_started',
             sets: [],
@@ -136,12 +140,30 @@ export const useWorkoutStore = create<WorkoutStore>()(
             slotId: slot.slotId,
             exerciseId: slot.exerciseId,
             exerciseName: slot.exerciseName,
+            workoutExerciseId: null, // Will be set when exercise is added to workout
             muscleGroupIds: slotMuscleGroupsMap.get(slot.slotId) || [],
             slotState: 'not_started',
             sets: [],
             startedAt: null,
             stoppedAt: null,
           }))
+          
+          // Add exercises to workout if they're pre-filled
+          for (let i = 0; i < slots.length; i++) {
+            const slot = slots[i]
+            if (slot.exerciseId && slot.slotId) {
+              try {
+                const workoutExercise = await workoutApi.addExercise(workout.id, {
+                  routine_slot_id: slot.slotId,
+                  exercise_id: slot.exerciseId,
+                })
+                // Update slot with workout exercise ID
+                activeSlots[i].workoutExerciseId = workoutExercise.id
+              } catch (error) {
+                console.error(`Failed to add exercise ${slot.exerciseId} to workout:`, error)
+              }
+            }
+          }
           
           set({
             activeWorkout: workout,
@@ -180,6 +202,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
             slotId: exercise.slot_id,
             exerciseId: exercise.exercise_id,
             exerciseName: null, // Would need to fetch exercise name separately
+            workoutExerciseId: exercise.id, // Backend workout_exercise.id
             muscleGroupIds: slotMuscleGroupsMap.get(exercise.slot_id || 0) || [],
             slotState: exercise.slot_state,
             sets: exercise.sets,
@@ -262,11 +285,29 @@ export const useWorkoutStore = create<WorkoutStore>()(
       },
 
       completeWorkout: async () => {
-        const { activeWorkout } = get()
+        const { activeWorkout, activeSlots } = get()
         if (!activeWorkout) return
 
         set({ saving: true })
         try {
+          // Sync all sets and exercise states before completing
+          for (let i = 0; i < activeSlots.length; i++) {
+            const slot = activeSlots[i]
+            if (slot?.workoutExerciseId) {
+              // Sync exercise state
+              if (slot.slotState !== 'not_started') {
+                await workoutApi.updateExercise(activeWorkout.id, slot.workoutExerciseId, {
+                  slot_state: slot.slotState,
+                  started_at: slot.startedAt,
+                  stopped_at: slot.stoppedAt,
+                })
+              }
+              // Sync all sets
+              await get().syncSlotSets(i)
+            }
+          }
+          
+          // Now complete the workout
           const updated = await workoutApi.complete(activeWorkout.id)
           set({
             activeWorkout: updated,
@@ -305,7 +346,11 @@ export const useWorkoutStore = create<WorkoutStore>()(
         }
       },
 
-      selectExerciseForSlot: (slotIndex: number, exerciseId: number, exerciseName: string) => {
+      selectExerciseForSlot: async (slotIndex: number, exerciseId: number, exerciseName: string) => {
+        const { activeWorkout, activeSlots } = get()
+        if (!activeWorkout) return
+
+        // Update local state immediately
         set((state) => {
           const newSlots = [...state.activeSlots]
           if (!newSlots[slotIndex]) {
@@ -329,9 +374,38 @@ export const useWorkoutStore = create<WorkoutStore>()(
           }
           return { activeSlots: newSlots }
         })
+
+        // Sync to backend if we have a slotId and workout is started
+        const slot = activeSlots[slotIndex]
+        if (slot?.slotId && (activeWorkout.state === 'active' || activeWorkout.state === 'draft')) {
+          try {
+            const workoutExercise = await workoutApi.addExercise(activeWorkout.id, {
+              routine_slot_id: slot.slotId,
+              exercise_id: exerciseId,
+            })
+            // Update slot with workout exercise ID
+            set((state) => {
+              const newSlots = [...state.activeSlots]
+              if (newSlots[slotIndex]) {
+                newSlots[slotIndex] = {
+                  ...newSlots[slotIndex],
+                  workoutExerciseId: workoutExercise.id,
+                }
+              }
+              return { activeSlots: newSlots }
+            })
+          } catch (error) {
+            console.error('Failed to sync exercise to backend:', error)
+            // Don't throw - local state is already updated
+          }
+        }
       },
 
-      startSlot: (slotIndex: number) => {
+      startSlot: async (slotIndex: number) => {
+        const { activeWorkout, activeSlots } = get()
+        const slot = activeSlots[slotIndex]
+        
+        // Update local state
         set((state) => {
           const newSlots = [...state.activeSlots]
           if (newSlots[slotIndex]) {
@@ -346,9 +420,25 @@ export const useWorkoutStore = create<WorkoutStore>()(
             currentSlotIndex: slotIndex,
           }
         })
+        
+        // Sync to backend if workout exercise exists
+        if (activeWorkout && slot?.workoutExerciseId) {
+          try {
+            await workoutApi.updateExercise(activeWorkout.id, slot.workoutExerciseId, {
+              slot_state: 'in_progress',
+              started_at: new Date().toISOString(),
+            })
+          } catch (error) {
+            console.error('Failed to sync slot start to backend:', error)
+          }
+        }
       },
 
-      completeSlot: (slotIndex: number) => {
+      completeSlot: async (slotIndex: number) => {
+        const { activeWorkout, activeSlots } = get()
+        const slot = activeSlots[slotIndex]
+        
+        // Update local state
         set((state) => {
           const newSlots = [...state.activeSlots]
           if (newSlots[slotIndex]) {
@@ -365,6 +455,20 @@ export const useWorkoutStore = create<WorkoutStore>()(
             currentSlotIndex: nextIndex,
           }
         })
+        
+        // Sync to backend if workout exercise exists
+        if (activeWorkout && slot?.workoutExerciseId) {
+          try {
+            await workoutApi.updateExercise(activeWorkout.id, slot.workoutExerciseId, {
+              slot_state: 'completed',
+              stopped_at: new Date().toISOString(),
+            })
+            // Sync all sets for this slot
+            await get().syncSlotSets(slotIndex)
+          } catch (error) {
+            console.error('Failed to sync slot completion to backend:', error)
+          }
+        }
       },
 
       skipSlot: (slotIndex: number) => {
@@ -408,7 +512,11 @@ export const useWorkoutStore = create<WorkoutStore>()(
         }
       },
 
-      addSet: (slotIndex: number, setData: Omit<WorkoutSet, 'id' | 'workout_exercise_id'>) => {
+      addSet: async (slotIndex: number, setData: Omit<WorkoutSet, 'id' | 'workout_exercise_id'>) => {
+        const { activeWorkout, activeSlots } = get()
+        const slot = activeSlots[slotIndex]
+        
+        // Update local state immediately
         set((state) => {
           const newSlots = [...state.activeSlots]
           if (newSlots[slotIndex]) {
@@ -416,7 +524,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
             const newSet: WorkoutSet = {
               ...setData,
               id: Date.now(), // Temporary ID until saved to backend
-              workout_exercise_id: 0, // Will be set when saved
+              workout_exercise_id: slot?.workoutExerciseId || 0,
               set_number: setData.set_number || setNumber,
             }
             newSlots[slotIndex] = {
@@ -426,35 +534,287 @@ export const useWorkoutStore = create<WorkoutStore>()(
           }
           return { activeSlots: newSlots }
         })
+        
+        // Sync to backend if workout exercise exists
+        if (activeWorkout && slot?.workoutExerciseId) {
+          try {
+            const savedSet = await workoutApi.createSet(activeWorkout.id, slot.workoutExerciseId, {
+              set_number: setData.set_number || slot.sets.length + 1,
+              reps: setData.reps,
+              weight: setData.weight,
+              rest_seconds: setData.rest_seconds,
+              rpe: setData.rpe,
+              notes: setData.notes,
+            })
+            // Update local set with backend ID
+            set((state) => {
+              const newSlots = [...state.activeSlots]
+              if (newSlots[slotIndex]) {
+                const newSets = [...newSlots[slotIndex].sets]
+                const lastIndex = newSets.length - 1
+                if (lastIndex >= 0) {
+                  newSets[lastIndex] = savedSet
+                }
+                newSlots[slotIndex] = {
+                  ...newSlots[slotIndex],
+                  sets: newSets,
+                }
+              }
+              return { activeSlots: newSlots }
+            })
+          } catch (error) {
+            console.error('Failed to sync set to backend:', error)
+            // Don't throw - local state is already updated
+          }
+        }
       },
 
-      updateSet: (slotIndex: number, setIndex: number, updates: Partial<WorkoutSet>) => {
+      updateSet: async (slotIndex: number, setIndex: number, updates: Partial<WorkoutSet>) => {
+        const { activeWorkout, activeSlots } = get()
+        const slot = activeSlots[slotIndex]
+        const setToUpdate = slot?.sets[setIndex]
+        const shouldRenumber = typeof updates.set_number === 'number'
+        const updatedSets = slot
+          ? slot.sets.map((workoutSet, idx) =>
+              idx === setIndex ? { ...workoutSet, ...updates } : workoutSet
+            )
+          : []
+        const nextSets = shouldRenumber
+          ? [...updatedSets]
+              .sort((a, b) => a.set_number - b.set_number)
+              .map((workoutSet, idx) => ({
+                ...workoutSet,
+                set_number: idx + 1,
+              }))
+          : updatedSets
+        const updatedSetForSync =
+          setToUpdate ? nextSets.find((workoutSet) => workoutSet.id === setToUpdate.id) : undefined
+        
+        // Update local state immediately
         set((state) => {
           const newSlots = [...state.activeSlots]
           if (newSlots[slotIndex] && newSlots[slotIndex].sets[setIndex]) {
-            const newSets = [...newSlots[slotIndex].sets]
-            newSets[setIndex] = { ...newSets[setIndex], ...updates }
             newSlots[slotIndex] = {
               ...newSlots[slotIndex],
-              sets: newSets,
+              sets: nextSets,
             }
           }
           return { activeSlots: newSlots }
         })
+        
+        // Sync to backend if set has backend ID (real IDs are typically < 1000000, temporary IDs from Date.now() are > 1000000)
+        if (activeWorkout && slot?.workoutExerciseId && setToUpdate?.id) {
+          // Check if it's a real backend ID (typically small integers) vs temporary (Date.now() which is large)
+          const isRealId = setToUpdate.id < 1000000
+          if (isRealId) {
+            try {
+              await workoutApi.updateSet(activeWorkout.id, slot.workoutExerciseId, setToUpdate.id, {
+                set_number: shouldRenumber ? updatedSetForSync?.set_number : undefined,
+                reps: updates.reps,
+                weight: updates.weight,
+                rest_seconds: updates.rest_seconds,
+                rpe: updates.rpe,
+                notes: updates.notes,
+              })
+            } catch (error) {
+              console.error('Failed to sync set update to backend:', error)
+              // Don't throw - local state is already updated
+            }
+          } else {
+            // Temporary ID - create new set in backend
+            try {
+              const finalSetNumber = updatedSetForSync?.set_number ?? setToUpdate.set_number
+              const savedSet = await workoutApi.createSet(activeWorkout.id, slot.workoutExerciseId, {
+                set_number: finalSetNumber,
+                reps: updates.reps ?? setToUpdate.reps,
+                weight: updates.weight ?? setToUpdate.weight,
+                rest_seconds: updates.rest_seconds ?? setToUpdate.rest_seconds,
+                rpe: updates.rpe ?? setToUpdate.rpe,
+                notes: updates.notes ?? setToUpdate.notes,
+              })
+              // Update local set with backend ID
+              set((state) => {
+                const newSlots = [...state.activeSlots]
+                if (newSlots[slotIndex] && newSlots[slotIndex].sets[setIndex]) {
+                  const newSets = [...newSlots[slotIndex].sets]
+                  newSets[setIndex] = savedSet
+                  newSlots[slotIndex] = {
+                    ...newSlots[slotIndex],
+                    sets: newSets,
+                  }
+                }
+                return { activeSlots: newSlots }
+              })
+            } catch (error) {
+              console.error('Failed to sync set creation to backend:', error)
+            }
+          }
+        }
+
+        // Sync renumbered sets to backend when manual ordering changes
+        if (shouldRenumber && activeWorkout && slot?.workoutExerciseId) {
+          for (const workoutSet of nextSets) {
+            if (workoutSet.id < 1000000) {
+              try {
+                await workoutApi.updateSet(
+                  activeWorkout.id,
+                  slot.workoutExerciseId,
+                  workoutSet.id,
+                  { set_number: workoutSet.set_number }
+                )
+              } catch (error) {
+                console.error('Failed to sync set renumber to backend:', error)
+              }
+            }
+          }
+        }
       },
 
-      removeSet: (slotIndex: number, setIndex: number) => {
+      removeSet: async (slotIndex: number, setIndex: number) => {
+        const { activeWorkout, activeSlots } = get()
+        const slot = activeSlots[slotIndex]
+        const setToRemove = slot?.sets[setIndex]
+        
+        // Update local state immediately
+        const renumberedSets = slot
+          ? slot.sets
+              .filter((_, idx) => idx !== setIndex)
+              .map((workoutSet, idx) => ({
+                ...workoutSet,
+                set_number: idx + 1,
+              }))
+          : []
+
         set((state) => {
           const newSlots = [...state.activeSlots]
           if (newSlots[slotIndex]) {
-            const newSets = newSlots[slotIndex].sets.filter((_, idx) => idx !== setIndex)
             newSlots[slotIndex] = {
               ...newSlots[slotIndex],
-              sets: newSets,
+              sets: renumberedSets,
             }
           }
           return { activeSlots: newSlots }
         })
+        
+        // Sync to backend if set has backend ID (real IDs are typically < 1000000)
+        if (activeWorkout && slot?.workoutExerciseId && setToRemove?.id && setToRemove.id < 1000000) {
+          try {
+            await workoutApi.deleteSet(activeWorkout.id, slot.workoutExerciseId, setToRemove.id)
+          } catch (error) {
+            console.error('Failed to sync set deletion to backend:', error)
+            // Don't throw - local state is already updated
+          }
+        }
+
+        // Sync renumbered sets to backend (real IDs only)
+        if (activeWorkout && slot?.workoutExerciseId) {
+          for (const workoutSet of renumberedSets) {
+            if (workoutSet.id < 1000000 && workoutSet.set_number) {
+              try {
+                await workoutApi.updateSet(
+                  activeWorkout.id,
+                  slot.workoutExerciseId,
+                  workoutSet.id,
+                  { set_number: workoutSet.set_number }
+                )
+              } catch (error) {
+                console.error('Failed to sync set renumber to backend:', error)
+              }
+            }
+          }
+        }
+      },
+
+      reorderSets: async (slotIndex: number, orderedSetIds: number[]) => {
+        const { activeWorkout, activeSlots } = get()
+        const slot = activeSlots[slotIndex]
+        if (!slot || orderedSetIds.length <= 1) return
+
+        const setMap = new Map(slot.sets.map((workoutSet) => [workoutSet.id, workoutSet]))
+        const orderedIdSet = new Set(orderedSetIds)
+        const orderedSets = orderedSetIds
+          .map((setId) => setMap.get(setId))
+          .filter((workoutSet): workoutSet is WorkoutSet => Boolean(workoutSet))
+        const missingSets = slot.sets.filter((workoutSet) => !orderedIdSet.has(workoutSet.id))
+        const renumberedSets = [...orderedSets, ...missingSets].map((workoutSet, idx) => ({
+          ...workoutSet,
+          set_number: idx + 1,
+        }))
+
+        set((state) => {
+          const newSlots = [...state.activeSlots]
+          if (newSlots[slotIndex]) {
+            newSlots[slotIndex] = {
+              ...newSlots[slotIndex],
+              sets: renumberedSets,
+            }
+          }
+          return { activeSlots: newSlots }
+        })
+
+        if (activeWorkout && slot.workoutExerciseId) {
+          for (const workoutSet of renumberedSets) {
+            if (workoutSet.id < 1000000) {
+              try {
+                await workoutApi.updateSet(
+                  activeWorkout.id,
+                  slot.workoutExerciseId,
+                  workoutSet.id,
+                  { set_number: workoutSet.set_number }
+                )
+              } catch (error) {
+                console.error('Failed to sync set reorder to backend:', error)
+              }
+            }
+          }
+        }
+      },
+      
+      // Sync all sets for a slot to backend
+      syncSlotSets: async (slotIndex: number) => {
+        const { activeWorkout, activeSlots } = get()
+        const slot = activeSlots[slotIndex]
+        
+        if (!activeWorkout || !slot?.workoutExerciseId) return
+        
+        try {
+          // Get all sets that need syncing (temporary IDs from Date.now() are > 1000000)
+          const setsToSync = slot.sets.filter((s) => !s.id || s.id >= 1000000)
+          
+          for (const setToSync of setsToSync) {
+            try {
+              const savedSet = await workoutApi.createSet(activeWorkout.id, slot.workoutExerciseId, {
+                set_number: setToSync.set_number,
+                reps: setToSync.reps,
+                weight: setToSync.weight,
+                rest_seconds: setToSync.rest_seconds,
+                rpe: setToSync.rpe,
+                notes: setToSync.notes,
+              })
+              
+              // Update local set with backend ID
+              set((state) => {
+                const newSlots = [...state.activeSlots]
+                if (newSlots[slotIndex]) {
+                  const setIndex = newSlots[slotIndex].sets.findIndex((s) => s.id === setToSync.id)
+                  if (setIndex >= 0) {
+                    const newSets = [...newSlots[slotIndex].sets]
+                    newSets[setIndex] = savedSet
+                    newSlots[slotIndex] = {
+                      ...newSlots[slotIndex],
+                      sets: newSets,
+                    }
+                  }
+                }
+                return { activeSlots: newSlots }
+              })
+            } catch (error) {
+              console.error(`Failed to sync set ${setToSync.set_number} to backend:`, error)
+            }
+          }
+        } catch (error) {
+          console.error('Failed to sync slot sets to backend:', error)
+        }
       },
 
       clearActiveWorkout: () => {

@@ -3,6 +3,7 @@ Logging configuration for SlotFit backend
 """
 import logging
 import sys
+import os
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
 
@@ -22,16 +23,19 @@ def setup_logging() -> None:
     logs_dir = Path("logs")
     logs_dir.mkdir(exist_ok=True)
     
+    is_pytest = os.getenv("PYTEST_CURRENT_TEST") is not None or os.getenv("PYTEST_RUNNING") == "1"
+    effective_debug = settings.DEBUG and not is_pytest
+
     # Root logger configuration
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG if settings.DEBUG else logging.INFO)
+    root_logger.setLevel(logging.DEBUG if effective_debug else logging.INFO)
     
     # Clear existing handlers
     root_logger.handlers.clear()
     
-    # Console handler - INFO level for production, DEBUG for development
+    # Console handler - INFO level for production/tests, DEBUG for development
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.DEBUG if settings.DEBUG else logging.INFO)
+    console_handler.setLevel(logging.DEBUG if effective_debug else logging.INFO)
     console_formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
@@ -57,6 +61,8 @@ def setup_logging() -> None:
     # Suppress noisy third-party loggers
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    logging.getLogger("aiosqlite").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     
     root_logger.info("Logging configured successfully")
 

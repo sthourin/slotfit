@@ -5,6 +5,9 @@
 import { useState, useEffect } from 'react'
 import { exerciseApi, Exercise } from '../services/exercises'
 import { equipmentApi, Equipment } from '../services/equipment'
+import { tagsService, type Tag } from '../services/tags'
+import { TagInput } from '../components/TagInput'
+import { TagDisplay } from '../components/TagDisplay'
 
 export default function ExerciseBrowser() {
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -12,13 +15,14 @@ export default function ExerciseBrowser() {
   const [search, setSearch] = useState('')
   const [selectedEquipment, setSelectedEquipment] = useState<number[]>([])
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([])
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([])
   const [page, setPage] = useState(1)
   const pageSize = 20
 
   useEffect(() => {
     loadExercises()
     loadEquipment()
-  }, [search, selectedEquipment, page])
+  }, [search, selectedEquipment, selectedTags, page])
 
   const loadExercises = async () => {
     setLoading(true)
@@ -31,6 +35,9 @@ export default function ExerciseBrowser() {
       if (selectedEquipment.length > 0) {
         // Use first equipment for now (backend supports single equipment_id)
         params.equipment_id = selectedEquipment[0]
+      }
+      if (selectedTags.length > 0) {
+        params.tag_ids = selectedTags.map((tag) => tag.id)
       }
       const response = await exerciseApi.list(params)
       setExercises(response.exercises)
@@ -98,6 +105,20 @@ export default function ExerciseBrowser() {
               ))}
             </div>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Filter by Tags
+            </label>
+            <TagInput
+              selectedTags={selectedTags}
+              onTagsChange={(tags) => {
+                setSelectedTags(tags)
+                setPage(1)
+              }}
+              placeholder="Add tag filters..."
+            />
+          </div>
         </div>
       </div>
 
@@ -114,11 +135,16 @@ export default function ExerciseBrowser() {
               className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
             >
               <h3 className="font-semibold text-lg mb-2">{exercise.name}</h3>
-              {exercise.difficulty && (
-                <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded mb-2">
-                  {exercise.difficulty}
-                </span>
-              )}
+              <div className="flex flex-wrap gap-2 mb-2">
+                {exercise.difficulty && (
+                  <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                    {exercise.difficulty}
+                  </span>
+                )}
+                {exercise.tags && exercise.tags.length > 0 && (
+                  <TagDisplay tags={exercise.tags} size="sm" />
+                )}
+              </div>
               <div className="text-sm text-gray-600 space-y-1">
                 {exercise.primary_equipment && (
                   <div>

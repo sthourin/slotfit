@@ -9,8 +9,10 @@ from app.services.ai.base import (
     ExerciseRecommendation,
     NotRecommendedExercise,
     RecommendationResponse,
+    WorkoutSuggestion,
 )
 
 # API-specific schemas (aliases for clarity)
 NotRecommendedExerciseResponse = NotRecommendedExercise
 RecommendationResponseSchema = RecommendationResponse
+NextWorkoutSuggestionResponse = WorkoutSuggestion

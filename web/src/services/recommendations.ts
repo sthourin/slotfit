@@ -35,6 +35,15 @@ export interface RecommendationResponse {
   provider?: string | null // "claude", "fallback", etc.
 }
 
+export interface NextWorkoutSuggestion {
+  suggested_routine_id: number | null
+  suggested_routine_name: string | null
+  focus: string | null
+  rationale: string
+  suggested_exercises: string[]
+  provider?: string | null
+}
+
 export interface RecommendationParams {
   muscle_group_ids: number[]
   available_equipment_ids: number[]
@@ -69,6 +78,14 @@ export const recommendationApi = {
     const response = await apiClient.get<RecommendationResponse>('/recommendations/', {
       params: queryParams,
     })
+    return response.data
+  },
+
+  /**
+   * Get AI-powered next workout suggestion
+   */
+  getNextWorkoutSuggestion: async (): Promise<NextWorkoutSuggestion> => {
+    const response = await apiClient.post<NextWorkoutSuggestion>('/recommendations/next-workout')
     return response.data
   },
 }

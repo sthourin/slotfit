@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { useEffect } from 'react'
+import Dashboard from './pages/Dashboard'
 import RoutineDesigner from './pages/RoutineDesigner'
 import ExerciseBrowser from './pages/ExerciseBrowser'
 import Settings from './pages/Settings'
@@ -19,17 +20,28 @@ function App() {
   }, [fetchCurrentUser])
 
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <div className="min-h-screen bg-gray-50">
         <nav className="bg-white shadow-sm border-b">
           <div className="container mx-auto px-6 py-4">
             <div className="flex justify-between items-center">
-              <Link to="/" className="text-2xl font-bold text-blue-600 hover:text-blue-700">
+                <Link to="/" className="text-2xl font-bold text-blue-600 hover:text-blue-700">
                 SlotFit
               </Link>
               <div className="space-x-4">
                 <Link
                   to="/"
+                  className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/routines"
                   className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
                 >
                   Routine Designer
@@ -76,7 +88,8 @@ function App() {
         </nav>
 
         <Routes>
-          <Route path="/" element={<RoutineDesigner />} />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/routines" element={<RoutineDesigner />} />
           <Route path="/workout/start" element={<WorkoutStart />} />
           <Route path="/workout" element={<Workout />} />
           <Route path="/exercises" element={<ExerciseBrowser />} />

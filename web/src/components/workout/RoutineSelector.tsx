@@ -4,6 +4,7 @@
  */
 import { useState, useEffect } from 'react'
 import { routineApi, type RoutineTemplateListResponse } from '../../services/routines'
+import { TagDisplay } from '../TagDisplay'
 
 interface RoutineSelectorProps {
   selectedRoutineId: number | null
@@ -111,6 +112,11 @@ export default function RoutineSelector({
                   {routine.slots.length} slot{routine.slots.length !== 1 ? 's' : ''}
                 </span>
               </div>
+              {routine.tags && routine.tags.length > 0 && (
+                <div className="mt-2">
+                  <TagDisplay tags={routine.tags} size="sm" />
+                </div>
+              )}
             </div>
             {selectedRoutineId === routine.id && (
               <div className="ml-4 text-blue-600">

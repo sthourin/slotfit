@@ -7,7 +7,13 @@ from anthropic import Anthropic
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.services.ai.base import AIProvider, RecommendationResponse, ExerciseRecommendation, NotRecommendedExercise
+from app.services.ai.base import (
+    AIProvider,
+    RecommendationResponse,
+    ExerciseRecommendation,
+    NotRecommendedExercise,
+    WorkoutSuggestion,
+)
 
 logger = get_logger(__name__)
 
@@ -98,6 +104,39 @@ class ClaudeProvider(AIProvider):
             # Log the error and re-raise so service layer can try Gemini
             logger.warning(f"Claude API call failed: {e}", exc_info=True)
             raise  # Re-raise so service layer can handle fallback chain
+
+    async def get_next_workout_suggestion(
+        self,
+        workout_history: Dict[str, Any],
+        routine_options: List[Dict[str, Any]],
+    ) -> WorkoutSuggestion:
+        """Get next workout suggestion from Claude API"""
+        if not await self.is_available():
+            logger.debug("Claude API not available, raising exception for service layer to handle")
+            raise RuntimeError("Claude API not available")
+
+        prompt = self._create_next_workout_prompt(workout_history, routine_options)
+
+        try:
+            if not self.client:
+                raise RuntimeError("Anthropic client not initialized")
+
+            message = self.client.messages.create(
+                model=self.model,
+                max_tokens=1200,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+            )
+
+            response_text = message.content[0].text
+            return self._parse_next_workout_response(response_text, routine_options)
+        except Exception as e:
+            logger.warning(f"Claude API call failed: {e}", exc_info=True)
+            raise
     
     def _build_context(
         self,
@@ -117,6 +156,72 @@ class ClaudeProvider(AIProvider):
             "movement_patterns": movement_patterns or {},
             "injury_restrictions": injury_restrictions or [],
         }
+
+    def _create_next_workout_prompt(
+        self,
+        workout_history: Dict[str, Any],
+        routine_options: List[Dict[str, Any]],
+    ) -> str:
+        """Create prompt for next workout suggestion"""
+        return (
+            "You are a workout coach. Use the user's history and available routines to suggest the next workout.\n"
+            "Prefer balance across muscle groups and movement patterns. Output ONLY valid JSON.\n\n"
+            "Workout history (recent sessions, exercise frequency, last performed):\n"
+            f"{json.dumps(workout_history, default=str)}\n\n"
+            "Available routines:\n"
+            f"{json.dumps(routine_options, default=str)}\n\n"
+            "Return JSON with fields:\n"
+            "{\n"
+            '  "suggested_routine_id": number | null,\n'
+            '  "suggested_routine_name": string | null,\n'
+            '  "focus": string | null,\n'
+            '  "rationale": string,\n'
+            '  "suggested_exercises": [string]\n'
+            "}\n"
+        )
+
+    def _parse_next_workout_response(
+        self,
+        response_text: str,
+        routine_options: List[Dict[str, Any]],
+    ) -> WorkoutSuggestion:
+        """Parse the next workout suggestion response"""
+        try:
+            data = json.loads(response_text)
+        except json.JSONDecodeError:
+            # Try to extract JSON block if response has extra text
+            try:
+                start = response_text.index("{")
+                end = response_text.rindex("}") + 1
+                data = json.loads(response_text[start:end])
+            except Exception:
+                logger.warning("Failed to parse Claude next workout response as JSON")
+                data = {}
+
+        routine_id_set = {r.get("id") for r in routine_options}
+        suggested_routine_id = data.get("suggested_routine_id")
+        suggested_routine_name = data.get("suggested_routine_name")
+
+        if suggested_routine_id not in routine_id_set:
+            matched = None
+            if suggested_routine_name:
+                matched = next(
+                    (r for r in routine_options if r.get("name", "").lower() == suggested_routine_name.lower()),
+                    None,
+                )
+            if matched:
+                suggested_routine_id = matched.get("id")
+                suggested_routine_name = matched.get("name")
+            else:
+                suggested_routine_id = None
+
+        return WorkoutSuggestion(
+            suggested_routine_id=suggested_routine_id,
+            suggested_routine_name=suggested_routine_name,
+            focus=data.get("focus"),
+            rationale=data.get("rationale") or "Suggested based on your recent workout history.",
+            suggested_exercises=data.get("suggested_exercises") or [],
+        )
     
     def _create_prompt(self, context: Dict[str, Any], limit: int) -> str:
         """Create prompt for Claude API"""
@@ -209,7 +314,7 @@ IMPORTANT: This feature helps avoid potentially problematic exercises but is NOT
         return f"""You are an expert fitness coach helping to recommend exercises for a workout slot.
 
 Context:
-- Target muscle groups: {context['muscle_group_ids']}
+- Target muscle groups: {context['muscle_group_ids']} (exercises MUST target ALL of these groups, not just one)
 - Available equipment: {context['available_equipment_ids']}
 - User workout history: {json.dumps(context['user_history'], indent=2) if context['user_history'] else 'None'}
 - Current week's training volume per muscle group:
@@ -219,7 +324,7 @@ Context:
 
 Task:
 Provide {limit} exercise recommendations prioritized based on:
-1. Muscle group targeting accuracy
+1. Muscle group targeting accuracy (exercises must target ALL specified muscle groups, not just one)
 2. Equipment availability match
 3. User's past performance and progression opportunities
 4. Workout variety (avoid recent exercises for variety)

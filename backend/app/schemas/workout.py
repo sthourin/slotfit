@@ -6,6 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from app.models.workout import WorkoutState, SlotState
+from app.schemas.tag import Tag
 
 
 class WorkoutSetBase(BaseModel):
@@ -13,6 +14,7 @@ class WorkoutSetBase(BaseModel):
     reps: Optional[int] = None
     weight: Optional[float] = None
     rest_seconds: Optional[int] = None
+    rpe: Optional[float] = None  # Rate of Perceived Exertion (1-10 scale)
     notes: Optional[str] = None
 
 
@@ -21,9 +23,11 @@ class WorkoutSetCreate(WorkoutSetBase):
 
 
 class WorkoutSetUpdate(BaseModel):
+    set_number: Optional[int] = None
     reps: Optional[int] = None
     weight: Optional[float] = None
     rest_seconds: Optional[int] = None
+    rpe: Optional[float] = None  # Rate of Perceived Exertion (1-10 scale)
     notes: Optional[str] = None
 
 
@@ -90,6 +94,7 @@ class WorkoutSessionResponse(WorkoutSessionBase):
     paused_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     exercises: List[WorkoutExerciseResponse] = []
+    tags: List[Tag] = []
 
 
 class WorkoutSessionListResponse(BaseModel):

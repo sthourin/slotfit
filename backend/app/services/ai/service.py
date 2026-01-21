@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.services.ai.base import AIProvider, RecommendationResponse
+from app.services.ai.base import AIProvider, RecommendationResponse, WorkoutSuggestion
 from app.services.ai.claude_provider import ClaudeProvider
 from app.services.ai.gemini_provider import GeminiProvider
 from app.services.ai.fallback_provider import FallbackProvider
@@ -360,3 +360,55 @@ class AIRecommendationService:
             self._cache[cache_key] = (response, datetime.now())
         
         return response
+
+    async def get_next_workout_suggestion(
+        self,
+        workout_history: Dict[str, Any],
+        routine_options: List[Dict[str, Any]],
+    ) -> WorkoutSuggestion:
+        """Get next workout suggestion using AI provider chain"""
+        provider = await self._get_provider()
+        provider_name = None
+        logger.debug(f"Using AI provider for next workout: {type(provider).__name__}")
+
+        suggestion: Optional[WorkoutSuggestion] = None
+        try:
+            suggestion = await provider.get_next_workout_suggestion(
+                workout_history=workout_history,
+                routine_options=routine_options,
+            )
+            provider_name = provider.__class__.__name__.replace("Provider", "").lower()
+        except Exception:
+            logger.warning(
+                f"AI provider {provider.__class__.__name__} failed for next workout, trying fallback",
+                exc_info=True,
+            )
+
+            # Try Gemini if Claude failed
+            if isinstance(provider, ClaudeProvider):
+                gemini_provider = GeminiProvider(db=self.db)
+                if await gemini_provider.is_available():
+                    try:
+                        suggestion = await gemini_provider.get_next_workout_suggestion(
+                            workout_history=workout_history,
+                            routine_options=routine_options,
+                        )
+                        provider_name = "gemini"
+                    except Exception as gemini_error:
+                        logger.warning(
+                            f"Gemini provider also failed: {gemini_error}",
+                            exc_info=True,
+                        )
+
+            if suggestion is None:
+                fallback_provider = FallbackProvider(self.db)
+                suggestion = await fallback_provider.get_next_workout_suggestion(
+                    workout_history=workout_history,
+                    routine_options=routine_options,
+                )
+                provider_name = "fallback"
+
+        if suggestion.provider is None:
+            suggestion.provider = provider_name
+
+        return suggestion

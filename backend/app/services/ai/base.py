@@ -31,6 +31,16 @@ class RecommendationResponse(BaseModel):
     provider: Optional[str] = None  # "claude", "fallback", etc. - indicates which provider generated the recommendations
 
 
+class WorkoutSuggestion(BaseModel):
+    """Next workout suggestion response"""
+    suggested_routine_id: Optional[int] = None
+    suggested_routine_name: Optional[str] = None
+    focus: Optional[str] = None
+    rationale: str
+    suggested_exercises: List[str] = []
+    provider: Optional[str] = None
+
+
 class AIProvider(ABC):
     """Abstract base class for AI providers"""
     
@@ -60,6 +70,15 @@ class AIProvider(ABC):
         Returns:
             RecommendationResponse with prioritized exercises
         """
+        pass
+
+    @abstractmethod
+    async def get_next_workout_suggestion(
+        self,
+        workout_history: Dict[str, Any],
+        routine_options: List[Dict[str, Any]],
+    ) -> WorkoutSuggestion:
+        """Get a next workout suggestion based on history and available routines"""
         pass
     
     @abstractmethod

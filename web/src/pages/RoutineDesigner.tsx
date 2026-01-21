@@ -7,6 +7,7 @@ import { useRoutineStore } from '../stores/routineStore'
 import SlotEditor from '../components/SlotEditor'
 import SlotList from '../components/SlotList'
 import RoutineHeader from '../components/RoutineHeader'
+import RoutineLibrary from '../components/RoutineLibrary'
 
 export default function RoutineDesigner() {
   const { currentRoutine, setCurrentRoutine } = useRoutineStore()
@@ -18,6 +19,7 @@ export default function RoutineDesigner() {
       routineType: 'custom',
       workoutStyle: 'custom',
       description: '',
+      tags: [],
       slots: [],
     })
   }
@@ -43,6 +45,7 @@ export default function RoutineDesigner() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left: Routine Header and Slot List */}
             <div className="lg:col-span-1 space-y-4">
+              <RoutineLibrary />
               <RoutineHeader />
               <SlotList
                 selectedSlotId={selectedSlotId}

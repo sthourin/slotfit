@@ -21,5 +21,13 @@ echo      Press Ctrl+C to stop
 echo ========================================
 echo.
 
-call .venv\Scripts\activate.bat
+if exist "venv\Scripts\activate.bat" (
+    call venv\Scripts\activate.bat
+) else if exist ".venv\Scripts\activate.bat" (
+    call .venv\Scripts\activate.bat
+) else (
+    echo ERROR: Virtual environment not found. Expected venv or .venv in backend directory.
+    pause
+    exit /b 1
+)
 uvicorn app.main:app --reload --port 8000

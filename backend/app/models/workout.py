@@ -70,6 +70,11 @@ class WorkoutSession(Base):
         back_populates="workout_session",
         cascade="all, delete-orphan",
     )
+    tags = relationship(
+        "Tag",
+        secondary="workout_session_tags",
+        back_populates="workout_sessions",
+    )
 
     def __repr__(self):
         return f"<WorkoutSession(id={self.id}, state='{self.state}')>"
@@ -124,6 +129,7 @@ class WorkoutSet(Base):
     reps = Column(Integer, nullable=True)
     weight = Column(Float, nullable=True)  # In user's preferred units
     rest_seconds = Column(Integer, nullable=True)
+    rpe = Column(Float, nullable=True)  # Rate of Perceived Exertion (1-10 scale)
     notes = Column(Text, nullable=True)
 
     # Relationships

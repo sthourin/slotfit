@@ -12,9 +12,11 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.logging import get_logger
 from app.models.user import User
-from app.models.workout import WorkoutSession, WorkoutExercise
+from app.models.workout import WorkoutSession, WorkoutExercise, WorkoutState
+from app.models.routine import RoutineTemplate, RoutineSlot
 from app.services.ai.service import AIRecommendationService
 from app.services.ai.base import RecommendationResponse
+from app.schemas.recommendation import NextWorkoutSuggestionResponse
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -70,6 +72,55 @@ async def get_user_workout_history(
         "last_performed": last_performed,
         "total_sessions": len(sessions),
     }
+
+
+async def get_recent_completed_workouts(
+    db: AsyncSession,
+    user_id: int,
+    limit: int = 10,
+) -> List[WorkoutSession]:
+    """Get recent completed workouts for a user"""
+    query = select(WorkoutSession).where(
+        WorkoutSession.user_id == user_id,
+        WorkoutSession.state == WorkoutState.COMPLETED,
+    ).order_by(WorkoutSession.completed_at.desc()).limit(limit).options(
+        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.exercise),
+    )
+    result = await db.execute(query)
+    return result.scalars().unique().all()
+
+
+async def get_routine_options(
+    db: AsyncSession,
+    user_id: int,
+) -> List[Dict[str, Any]]:
+    """Get routine options for AI suggestion context"""
+    query = select(RoutineTemplate).where(
+        RoutineTemplate.user_id == user_id
+    ).options(
+        selectinload(RoutineTemplate.slots),
+        selectinload(RoutineTemplate.tags),
+    )
+    result = await db.execute(query)
+    routines = result.scalars().unique().all()
+
+    routine_options = []
+    for routine in routines:
+        muscle_group_ids: List[int] = []
+        for slot in routine.slots:
+            if slot.muscle_group_ids:
+                muscle_group_ids.extend(slot.muscle_group_ids)
+        routine_options.append({
+            "id": routine.id,
+            "name": routine.name,
+            "routine_type": routine.routine_type,
+            "workout_style": routine.workout_style,
+            "description": routine.description,
+            "tag_names": [tag.name for tag in routine.tags],
+            "slot_count": len(routine.slots),
+            "muscle_group_ids": list(sorted(set(muscle_group_ids))),
+        })
+    return routine_options
 
 
 @router.get("/", response_model=RecommendationResponse)
@@ -129,3 +180,49 @@ async def get_recommendations(
             }
         )
         raise HTTPException(status_code=500, detail="Failed to get recommendations")
+
+
+@router.post("/next-workout", response_model=NextWorkoutSuggestionResponse)
+async def get_next_workout_suggestion(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get AI-powered next workout suggestion based on user history"""
+    service = AIRecommendationService(db)
+
+    user_workout_history = await get_user_workout_history(db, current_user.id)
+    recent_workouts = await get_recent_completed_workouts(db, current_user.id, limit=10)
+    routine_options = await get_routine_options(db, current_user.id)
+
+    # Build summary for AI prompt
+    routine_usage: Dict[int, int] = {}
+    last_completed_by_routine: Dict[int, Any] = {}
+    recent_sessions: List[Dict[str, Any]] = []
+
+    for session in recent_workouts:
+        if session.routine_template_id:
+            routine_usage[session.routine_template_id] = routine_usage.get(session.routine_template_id, 0) + 1
+            if session.routine_template_id not in last_completed_by_routine:
+                last_completed_by_routine[session.routine_template_id] = session.completed_at
+        recent_sessions.append({
+            "id": session.id,
+            "routine_template_id": session.routine_template_id,
+            "completed_at": session.completed_at,
+        })
+
+    workout_history = {
+        "recent_sessions": recent_sessions,
+        "routine_usage": routine_usage,
+        "last_completed_by_routine": last_completed_by_routine,
+        "exercise_history": user_workout_history or {},
+    }
+
+    try:
+        suggestion = await service.get_next_workout_suggestion(
+            workout_history=workout_history,
+            routine_options=routine_options,
+        )
+        return suggestion
+    except Exception:
+        logger.error("Error getting next workout suggestion", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to get next workout suggestion")
