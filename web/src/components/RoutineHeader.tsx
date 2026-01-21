@@ -2,12 +2,27 @@
  * Routine Header Component
  * Displays and edits routine metadata
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRoutineStore } from '../stores/routineStore'
+import { routineApi } from '../services/routines'
+import { tagsService, type Tag } from '../services/tags'
+import { TagInput } from './TagInput'
+import { TagDisplay } from './TagDisplay'
 
 export default function RoutineHeader() {
-  const { currentRoutine, setCurrentRoutine, saveRoutine, saving } = useRoutineStore()
+  const { currentRoutine, setCurrentRoutine, saveRoutine, saving, updateRoutineTags } = useRoutineStore()
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [routineTags, setRoutineTags] = useState<Tag[]>([])
+  const [savingTags, setSavingTags] = useState(false)
+
+  // Sync tags from store
+  useEffect(() => {
+    if (currentRoutine?.tags) {
+      setRoutineTags(currentRoutine.tags)
+    } else {
+      setRoutineTags([])
+    }
+  }, [currentRoutine?.tags])
 
   if (!currentRoutine) return null
 
@@ -32,6 +47,46 @@ export default function RoutineHeader() {
       setSaveMessage(errorMsg)
       console.error('Save error:', error)
       setTimeout(() => setSaveMessage(null), 5000)
+    }
+  }
+
+  const handleTagsChange = async (newTags: Tag[]) => {
+    if (!currentRoutine?.id) {
+      // For new routines, just update local state
+      updateRoutineTags(newTags)
+      setRoutineTags(newTags)
+      return
+    }
+
+    setSavingTags(true)
+    try {
+      const currentTagIds = new Set(routineTags.map((t) => t.id))
+      const newTagIds = new Set(newTags.map((t) => t.id))
+
+      // Find tags to add
+      const tagsToAdd = newTags.filter((tag) => !currentTagIds.has(tag.id))
+      // Find tags to remove
+      const tagsToRemove = routineTags.filter((tag) => !newTagIds.has(tag.id))
+
+      // Add new tags
+      for (const tag of tagsToAdd) {
+        await routineApi.addTag(currentRoutine.id, tag.name)
+      }
+
+      // Remove old tags
+      for (const tag of tagsToRemove) {
+        await routineApi.removeTag(currentRoutine.id, tag.id)
+      }
+
+      // Reload routine to get updated tags
+      const updated = await routineApi.get(currentRoutine.id)
+      updateRoutineTags(updated.tags)
+      setRoutineTags(updated.tags)
+    } catch (error) {
+      console.error('Failed to update tags:', error)
+      alert('Failed to update tags. Please try again.')
+    } finally {
+      setSavingTags(false)
     }
   }
 
@@ -99,6 +154,28 @@ export default function RoutineHeader() {
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Optional description"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tags
+          </label>
+          {currentRoutine.id ? (
+            <TagInput
+              selectedTags={routineTags}
+              onTagsChange={handleTagsChange}
+              placeholder="Add tags to organize this routine..."
+            />
+          ) : (
+            <div className="text-sm text-gray-500 italic">
+              Save the routine first to add tags
+            </div>
+          )}
+          {routineTags.length > 0 && (
+            <div className="mt-2">
+              <TagDisplay tags={routineTags} size="sm" />
+            </div>
+          )}
         </div>
 
         {/* Save Button */}

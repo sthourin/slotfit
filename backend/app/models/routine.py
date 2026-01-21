@@ -27,6 +27,11 @@ class RoutineTemplate(Base):
         cascade="all, delete-orphan",
     )
     user = relationship("User", backref="routine_templates")
+    tags = relationship(
+        "Tag",
+        secondary="routine_template_tags",
+        back_populates="routine_templates",
+    )
 
     def __repr__(self):
         return f"<RoutineTemplate(id={self.id}, name='{self.name}')>"

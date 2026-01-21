@@ -104,19 +104,24 @@ async def get_or_create_equipment(session: AsyncSession, name: str) -> Optional[
 
 
 def parse_difficulty(difficulty_str: str) -> Optional[DifficultyLevel]:
-    """Parse difficulty string to enum"""
+    """Parse difficulty string to enum, consolidating into Easy, Intermediate, Advanced"""
     if not difficulty_str:
         return None
     
-    difficulty_map = {
-        "Beginner": DifficultyLevel.BEGINNER,
-        "Novice": DifficultyLevel.NOVICE,
-        "Intermediate": DifficultyLevel.INTERMEDIATE,
-        "Advanced": DifficultyLevel.ADVANCED,
-        "Expert": DifficultyLevel.EXPERT,
-    }
+    difficulty_str = difficulty_str.strip()
     
-    return difficulty_map.get(difficulty_str.strip(), None)
+    # Map old difficulty levels to new consolidated levels
+    # Easy: Beginner, Novice
+    if difficulty_str in ("Beginner", "Novice"):
+        return DifficultyLevel.EASY
+    # Intermediate: Intermediate
+    elif difficulty_str == "Intermediate":
+        return DifficultyLevel.INTERMEDIATE
+    # Advanced: Advanced, Expert, Master, Grand Master, Legendary
+    elif difficulty_str in ("Advanced", "Expert", "Master", "Grand Master", "Legendary"):
+        return DifficultyLevel.ADVANCED
+    
+    return None
 
 
 async def import_exercises_from_csv(csv_path: str):
@@ -217,6 +222,18 @@ async def import_exercises_from_csv(csv_path: str):
                     if total_rows <= 3:
                         print(f"  Row {total_rows}: Creating exercise: {exercise_name}")
                     
+                    # Parse combination exercise field (handle various formats)
+                    # Column name is "Combination Exercises" (plural)
+                    # Values are: "Single Exercise" or "Combo Exercise"
+                    combination_value = row.get("Combination Exercises", "").strip()
+                    is_combination = None
+                    if combination_value:
+                        # Handle "Combo Exercise" vs "Single Exercise" values
+                        if combination_value.lower() in ("combo exercise", "combination exercise", "combination", "true", "1", "yes"):
+                            is_combination = "True"
+                        elif combination_value.lower() in ("single exercise", "single", "false", "0", "no", ""):
+                            is_combination = "False"
+                    
                     # Create exercise
                     exercise = Exercise(
                         name=exercise_name,
@@ -239,6 +256,7 @@ async def import_exercises_from_csv(csv_path: str):
                         mechanics=row.get("Mechanics"),
                         laterality=row.get("Laterality"),
                         exercise_classification=row.get("Primary Exercise Classification"),
+                        is_combination=is_combination,
                     )
                     
                     session.add(exercise)

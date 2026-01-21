@@ -65,13 +65,14 @@ export default function ExerciseSelector({ slotIndex, muscleGroupIds, slotId }: 
   const handleSelectExercise = async (exerciseId: number, exerciseName: string) => {
     setLoadingExercise(true)
     try {
-      // Update workout store
-      selectExerciseForSlot(slotIndex, exerciseId, exerciseName)
+      // Update workout store (now async)
+      await selectExerciseForSlot(slotIndex, exerciseId, exerciseName)
       
       // Close modal
       closeModal('exerciseSelector')
     } catch (error) {
       console.error('Failed to select exercise:', error)
+      alert('Failed to select exercise. Please try again.')
     } finally {
       setLoadingExercise(false)
     }

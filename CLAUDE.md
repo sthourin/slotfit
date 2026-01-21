@@ -1,40 +1,27 @@
-# SlotFit - Claude Code Project Guide
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-SlotFit is a workout planning app with a novel "slot-based" approach. Users create routine templates with flexible slots targeting muscle groups, then select exercises on-the-fly during workouts based on available equipment.
+SlotFit is a workout planning app with a "slot-based" approach. Users create routine templates with flexible slots targeting muscle groups, then select exercises on-the-fly during workouts based on available equipment.
 
-**Development Strategy**: Web-first - build a fully-featured web app before Android native development.
+**Development Strategy**: Web-first - build fully-featured web app before Android native development.
 
 ## Tech Stack
 
-- **Backend**: Python 3.11+, FastAPI, PostgreSQL, SQLAlchemy, Alembic
+- **Backend**: Python 3.11+, FastAPI, PostgreSQL, SQLAlchemy (async), Alembic
 - **Web**: React 18, TypeScript, Vite, Zustand, Tailwind CSS
-- **AI**: Anthropic Claude API
-
-## Project Structure
-
-```
-slotfit/
-├── backend/           # FastAPI backend
-│   ├── app/
-│   │   ├── api/v1/    # API routes
-│   │   ├── models/    # SQLAlchemy models
-│   │   ├── schemas/   # Pydantic schemas
-│   │   ├── services/  # Business logic
-│   │   └── core/      # Config
-│   ├── alembic/       # Database migrations
-│   └── tests/
-├── web/               # React frontend
-│   └── src/
-├── android/           # Future - Native Android
-└── assets/            # Exercise database CSV
-```
+- **AI**: Anthropic Claude API (with Gemini fallback)
 
 ## Quick Commands
 
 ### Backend
 ```bash
+# PREFERRED: Use restart script to avoid stale server issues
+.\restart-server.bat
+
+# Or manually:
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
@@ -43,7 +30,7 @@ uvicorn app.main:app --reload --port 8000
 ### Database
 ```bash
 cd backend
-alembic upgrade head          # Run migrations
+alembic upgrade head                           # Run migrations
 alembic revision --autogenerate -m "description"  # Create migration
 ```
 
@@ -51,139 +38,138 @@ alembic revision --autogenerate -m "description"  # Create migration
 ```bash
 cd web
 npm install
-npm run dev
+npm run dev      # Dev server at http://localhost:3000
+npm run build    # Production build
+npm run lint     # ESLint
 ```
 
 ### Tests
 ```bash
 cd backend
-pytest
+pytest                              # Run all tests
+pytest tests/test_exercises.py      # Single test file
+pytest -k "test_create"             # Tests matching pattern
+pytest --cov=app --cov-report=html  # With coverage report
 ```
 
-## Current State
+## Critical: FastAPI Server Management
 
-### Completed
-- ✅ Backend project structure
-- ✅ Core models: Exercise, MuscleGroup, Equipment, RoutineTemplate, RoutineSlot, WorkoutSession, WorkoutExercise, WorkoutSet
-- ✅ Exercise database CSV (3,244 exercises)
-- ✅ Basic API endpoints
+**Stale server processes cause new endpoints to not appear in OpenAPI/Swagger.**
 
-### In Progress
-- 🔄 AI recommendation service
-- 🔄 Web interface foundation
+### Symptoms of Stale Server
+- New endpoints missing from http://localhost:8000/docs
+- API returns 404 for newly added endpoints
+- Changes to Pydantic schemas not reflected
 
-### Not Started (Priority Order)
-1. Equipment Profiles (location-based equipment presets)
-2. Enhanced Slot Types (warmup, finisher, active_recovery, wildcard)
-3. Slot Templates (reusable configurations)
-4. Personal Records tracking
-5. Weekly Volume tracking (periodization)
-6. Web workout execution interface
+### Solution
+Always kill Python processes before restarting:
+```bash
+# Windows (preferred)
+.\restart-server.bat
 
-## Key Documentation
-
-- **Main Plan**: `.cursor/plans/slotfit_plan.md`
-- **Analysis**: `.cursor/plans/slotfit_plan_analysis.md`
-- **Exercise CSV**: `assets/slotfit_exercise_database_with_urls.csv`
-
-## Database Connection
-
-Default PostgreSQL connection (check `backend/.env`):
+# Or manually:
+taskkill /F /IM python.exe
+cd backend && uvicorn app.main:app --reload --port 8000
 ```
-DATABASE_URL=postgresql://user:password@localhost:5432/slotfit
+
+## Architecture
+
+### Backend Structure
 ```
+backend/
+├── app/
+│   ├── api/v1/endpoints/   # Route handlers (one file per resource)
+│   ├── models/             # SQLAlchemy models
+│   ├── schemas/            # Pydantic request/response schemas
+│   ├── services/           # Business logic
+│   │   └── ai/             # AI recommendation providers
+│   └── core/               # Config, database, dependencies
+├── alembic/                # Database migrations
+└── tests/                  # pytest tests with seed data fixtures
+```
+
+### Web Structure
+```
+web/src/
+├── pages/           # Route components
+├── components/      # Reusable UI components
+├── services/        # API client functions
+├── stores/          # Zustand state stores
+└── hooks/           # Custom React hooks
+```
+
+### Key Architectural Patterns
+
+**User Identification (MVP)**: Device-based using `X-Device-ID` header. All user-scoped endpoints use `get_current_user` dependency from `backend/app/core/deps.py`.
+
+**AI Recommendations**: Three-provider fallback chain (Claude → Gemini → Rule-based) in `backend/app/services/ai/`. All providers implement `AIProvider` interface from `base.py`.
+
+**Workout State**: Persisted to localStorage via Zustand. Check for `'draft'` or `'active'` state on app load to support resume functionality.
+
+## Domain Concepts
+
+### Slot-Based System
+- **RoutineTemplate**: Collection of slots defining workout structure
+- **RoutineSlot**: Placeholder scoped to muscle groups, filled with exercise during workout
+- **Slot Types**: standard, warmup, finisher, active_recovery, wildcard
+- **1:1 Relationship**: One exercise per slot
+
+### Key Business Rules
+- **Bodyweight Exercises**: `primary_equipment_id = NULL` - ALWAYS available regardless of equipment profile
+- **Workout Pre-Population**: Query most recent COMPLETED workout for that routine to pre-fill exercises
+- **Weekly Volume**: Deprioritize muscle groups exceeding 20 sets/week in recommendations
+- **Injury Filtering**: Conservative approach - exclude exercises when uncertain
 
 ## API Conventions
 
 - All endpoints under `/api/v1/`
-- Pydantic schemas for request/response validation
-- SQLAlchemy async sessions
-- Standard CRUD patterns
+- User-scoped endpoints require `X-Device-ID` header
+- Global data (exercises, muscle groups, equipment) doesn't require user context
+- Pydantic schemas for all request/response validation
+
+## Adding New Features
+
+### New Backend Model
+1. Create model in `backend/app/models/{feature}.py`
+2. Add to `backend/app/models/__init__.py`
+3. Create schemas in `backend/app/schemas/{feature}.py`
+4. Create endpoint in `backend/app/api/v1/endpoints/{feature}.py`
+5. Register router in `backend/app/api/v1/api.py`
+6. Run: `alembic revision --autogenerate -m "add {feature}"`
+7. Run: `alembic upgrade head`
+
+### New Web Feature
+1. Create page in `web/src/pages/{Feature}.tsx`
+2. Create components in `web/src/components/{feature}/`
+3. Create API service in `web/src/services/{feature}.ts`
+4. Create store (if needed) in `web/src/stores/{feature}Store.ts`
+5. Add route to `App.tsx`
 
 ## Code Style
 
-- Python: Black formatter, isort for imports
-- TypeScript: ESLint + Prettier
-- Use type hints everywhere
-- Docstrings for public functions
+### Python
+- Type hints on all functions
+- Async/await for database operations
+- Black formatter, isort for imports
 
-## Important Notes
+### TypeScript
+- Strict TypeScript - no `any` types
+- Functional components with hooks
+- Tailwind CSS only (no CSS modules)
 
-1. **Exercise Database**: CSV in `assets/` - don't modify, import via scripts
-2. **Muscle Group Hierarchy**: 4 levels (Target → Prime Mover → Secondary → Tertiary)
-3. **Slot-to-Exercise**: 1:1 relationship (one exercise per slot)
-4. **Web-First**: Build all features for web before Android
-5. **No Auth Yet**: MVP uses browser local storage, auth deferred
+## Key Files Reference
 
-## Design Decisions
+- **Main Plan**: `.cursor/plans/slotfit_plan.md`
+- **Task List**: `TASKS.md`
+- **Exercise CSV**: `assets/slotfit_exercise_database_with_urls.csv` (don't modify directly)
+- **API Router**: `backend/app/api/v1/api.py`
+- **User Auth**: `backend/app/core/deps.py` (`get_current_user`)
+- **AI Service**: `backend/app/services/ai/service.py`
 
-These decisions have been made during development and should be followed consistently.
+## Test Infrastructure
 
-### Bodyweight Exercises
-Exercises with `primary_equipment_id = NULL` (bodyweight exercises) are **ALWAYS** available regardless of equipment profile selection. They should never be filtered out for equipment reasons in recommendations or exercise selection.
+Tests use in-memory SQLite with seed data fixtures:
+- `conftest.py` - Shared fixtures (`client`, `seeded_db`, `client_with_data`)
+- `seed_data.py` - Centralized seed data for muscle groups, equipment, exercises, injuries
 
-### Workout Slot Pre-Population
-When starting a workout from a routine:
-1. Query the most recent **COMPLETED** workout using that routine
-2. Pre-fill slots with the exercises from that workout
-3. If no previous completed workout exists, slots start empty (user selects exercises)
-
-This provides continuity for users who repeat the same routine regularly.
-
-### Save As New Routine
-If the user modifies exercises during a workout (different from the pre-filled selections):
-- At workout completion, prompt: "You made changes to this routine. Save as new routine?"
-- Options: "Save as New", "Update Original", "Don't Save Changes"
-- This allows maintaining alternate versions (e.g., "Push Day - Home" vs "Push Day - Gym")
-
-### Workout Resume (Simple Implementation)
-On app load, check localStorage for active workout state:
-- If found and `workout.state` is `'draft'` or `'active'`:
-  - Show a **banner** at top of screen: "You have an unfinished workout. [Resume] [Discard]"
-- No modal interruption - just a persistent banner until user takes action
-- This is the simplest implementation; can be enhanced later if needed
-
-### AI Recommendation "Why Not" Feature
-The recommendation response includes a `not_recommended` array explaining why exercises were filtered:
-- Equipment not available
-- Weekly volume exceeded for muscle group (>20 sets)
-- Performed recently (within 48 hours)
-- Does not target selected muscle groups
-- May aggravate user's injury (see below)
-
-Limit to ~10 entries with diverse reason types. This powers the "Why Not" expandable section in the Exercise Selection Modal.
-
-### Injury-Aware Recommendations
-Users can add injuries to their profile, which filters exercise recommendations:
-
-**Architecture (Phase 1 - Curated Mappings):**
-- Predefined injury types (e.g., "Rotator Cuff Injury", "Lower Back Pain")
-- Each injury has movement restrictions (patterns, force types, postures to avoid)
-- Severity levels (mild/moderate/severe) determine which restrictions apply
-- Exercises matching restrictions appear in `not_recommended` with reason "May aggravate {injury}"
-
-**Key Design Decisions:**
-- **Conservative approach**: When uncertain, exclude the exercise (safety first)
-- **Severity-based filtering**: Mild injuries restrict specific movements; severe injuries may exclude entire force types
-- **Always include disclaimer**: "Not medical advice - consult a healthcare professional"
-- **Bodyweight exercises**: Still follow injury restrictions (no special treatment)
-
-**Future Phases:**
-- Phase 2: PubMed research integration to expand injury mappings
-- Phase 3: Free-text injury input with AI interpretation
-- Phase 3: User overrides ("My PT cleared me for this exercise")
-
-## Common Tasks
-
-### Adding a New Model
-1. Create model in `backend/app/models/`
-2. Add to `backend/app/models/__init__.py`
-3. Create Pydantic schemas in `backend/app/schemas/`
-4. Create Alembic migration
-5. Add API endpoints in `backend/app/api/v1/endpoints/`
-
-### Adding a New API Endpoint
-1. Create endpoint file in `backend/app/api/v1/endpoints/`
-2. Register router in `backend/app/api/v1/api.py`
-3. Add Pydantic schemas for request/response
-4. Write tests in `backend/tests/`
+Use `USE_PROD_DB=true` environment variable to test against production database.

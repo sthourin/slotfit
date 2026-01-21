@@ -5,6 +5,7 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, model_validator, ConfigDict
 
 from app.models.slot_template import SlotType
+from app.schemas.tag import Tag
 
 
 class RoutineSlotBase(BaseModel):
@@ -70,6 +71,7 @@ class RoutineTemplateResponse(RoutineTemplateBase):
     
     id: int
     slots: List[RoutineSlotResponse] = []
+    tags: List[Tag] = []
 
 
 class RoutineTemplateListResponse(BaseModel):

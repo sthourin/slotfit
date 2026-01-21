@@ -2,7 +2,7 @@
  * Set Tracker Component
  * For logging sets (reps, weight, rest)
  */
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, type DragEvent } from 'react'
 import { type ActiveWorkoutSlot } from '../../stores/workoutStore'
 import { type Exercise } from '../../services/exercises'
 import { useWorkoutStore } from '../../stores/workoutStore'
@@ -19,8 +19,11 @@ export default function SetTracker({
   slot,
   exercise,
 }: SetTrackerProps) {
-  const { addSet, updateSet, removeSet } = useWorkoutStore()
+  const { addSet, updateSet, removeSet, reorderSets } = useWorkoutStore()
   const [editingSetIndex, setEditingSetIndex] = useState<number | null>(null)
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const previousSlotStateRef = useRef<ActiveWorkoutSlot['slotState']>(slot.slotState)
 
   // Default values from exercise variant
   const defaultReps = exercise?.default_reps || null
@@ -34,9 +37,23 @@ export default function SetTracker({
       reps: defaultReps,
       weight: defaultWeight,
       rest_seconds: defaultRest,
+      rpe: null,
       notes: null,
     })
+    setEditingSetIndex(setNumber - 1)
   }, [slotIndex, slot.sets.length, defaultReps, defaultWeight, defaultRest, addSet])
+
+  useEffect(() => {
+    const previousSlotState = previousSlotStateRef.current
+    previousSlotStateRef.current = slot.slotState
+    if (
+      previousSlotState !== 'in_progress' &&
+      slot.slotState === 'in_progress' &&
+      slot.sets.length === 0
+    ) {
+      handleAddSet()
+    }
+  }, [slot.slotState, slot.sets.length, handleAddSet])
   
   // Expose addSet function for keyboard shortcuts
   useEffect(() => {
@@ -56,11 +73,68 @@ export default function SetTracker({
     setEditingSetIndex(null)
   }
 
+  const handleSaveAndAddSet = (
+    setIndex: number,
+    updates: Partial<WorkoutSet>
+  ) => {
+    updateSet(slotIndex, setIndex, updates)
+    handleAddSet()
+  }
+
   const handleRemoveSet = (setIndex: number) => {
     if (window.confirm('Remove this set?')) {
       removeSet(slotIndex, setIndex)
     }
   }
+
+  const canReorder = slot.slotState === 'in_progress'
+
+  const handleDragStart = useCallback(
+    (setIndex: number) => (event: DragEvent<HTMLDivElement>) => {
+      if (!canReorder) return
+      setDraggingIndex(setIndex)
+      event.dataTransfer.effectAllowed = 'move'
+      event.dataTransfer.setData('text/plain', String(setIndex))
+    },
+    [canReorder]
+  )
+
+  const handleDragOver = useCallback(
+    (setIndex: number) => (event: DragEvent<HTMLDivElement>) => {
+      if (!canReorder) return
+      event.preventDefault()
+      setDragOverIndex(setIndex)
+      event.dataTransfer.dropEffect = 'move'
+    },
+    [canReorder]
+  )
+
+  const handleDrop = useCallback(
+    (setIndex: number) => (event: DragEvent<HTMLDivElement>) => {
+      if (!canReorder) return
+      event.preventDefault()
+      const dataIndex = parseInt(event.dataTransfer.getData('text/plain'), 10)
+      const fromIndex = Number.isNaN(dataIndex) ? draggingIndex : dataIndex
+      if (fromIndex === null || fromIndex === setIndex || !slot.sets[fromIndex]) {
+        setDraggingIndex(null)
+        setDragOverIndex(null)
+        return
+      }
+
+      const reorderedSets = [...slot.sets]
+      const [movedSet] = reorderedSets.splice(fromIndex, 1)
+      reorderedSets.splice(setIndex, 0, movedSet)
+      reorderSets(slotIndex, reorderedSets.map((workoutSet) => workoutSet.id))
+      setDraggingIndex(null)
+      setDragOverIndex(null)
+    },
+    [canReorder, draggingIndex, slot.sets, slotIndex, reorderSets]
+  )
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingIndex(null)
+    setDragOverIndex(null)
+  }, [])
 
   const startEditing = (setIndex: number) => {
     setEditingSetIndex(setIndex)
@@ -91,16 +165,26 @@ export default function SetTracker({
         <div className="space-y-3">
           {slot.sets.map((set, setIndex) => {
             const isEditing = editingSetIndex === setIndex
+            const isDragging = draggingIndex === setIndex
+            const isDragOver = dragOverIndex === setIndex
 
             return (
               <div
                 key={setIndex}
-                className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                className={`border rounded-lg p-4 transition-colors ${
+                  isDragging ? 'opacity-60' : 'hover:bg-gray-50'
+                } ${isDragOver ? 'border-blue-400 bg-blue-50' : ''}`}
+                draggable={canReorder}
+                onDragStart={handleDragStart(setIndex)}
+                onDragOver={handleDragOver(setIndex)}
+                onDrop={handleDrop(setIndex)}
+                onDragEnd={handleDragEnd}
               >
                 {isEditing ? (
                   <SetEditForm
                     set={set}
                     onSave={(updates) => handleUpdateSet(setIndex, updates)}
+                    onSaveAndAdd={(updates) => handleSaveAndAddSet(setIndex, updates)}
                     onCancel={() => setEditingSetIndex(null)}
                   />
                 ) : (
@@ -110,6 +194,7 @@ export default function SetTracker({
                     onEdit={() => startEditing(setIndex)}
                     onRemove={() => handleRemoveSet(setIndex)}
                     canEdit={slot.slotState === 'in_progress'}
+                    canReorder={canReorder}
                   />
                 )}
               </div>
@@ -127,12 +212,29 @@ interface SetDisplayProps {
   onEdit: () => void
   onRemove: () => void
   canEdit: boolean
+  canReorder: boolean
 }
 
-function SetDisplay({ set, setNumber, onEdit, onRemove, canEdit }: SetDisplayProps) {
+function SetDisplay({
+  set,
+  setNumber,
+  onEdit,
+  onRemove,
+  canEdit,
+  canReorder,
+}: SetDisplayProps) {
   return (
     <div className="flex items-center justify-between">
-      <div className="flex-1 grid grid-cols-4 gap-4">
+      <div className="flex items-center gap-3 flex-1">
+        {canReorder && (
+          <div
+            className="text-gray-400 cursor-grab select-none"
+            title="Drag to reorder"
+          >
+            ⠿
+          </div>
+        )}
+        <div className="flex-1 grid grid-cols-5 gap-4">
         <div>
           <div className="text-xs text-gray-500">Set</div>
           <div className="font-semibold">{setNumber}</div>
@@ -148,6 +250,10 @@ function SetDisplay({ set, setNumber, onEdit, onRemove, canEdit }: SetDisplayPro
           </div>
         </div>
         <div>
+          <div className="text-xs text-gray-500">RPE</div>
+          <div className="font-medium">{set.rpe ?? '—'}</div>
+        </div>
+        <div>
           <div className="text-xs text-gray-500">Rest</div>
           <div className="font-medium">
             {set.rest_seconds
@@ -155,6 +261,7 @@ function SetDisplay({ set, setNumber, onEdit, onRemove, canEdit }: SetDisplayPro
               : '—'}
           </div>
         </div>
+      </div>
       </div>
       {canEdit && (
         <div className="flex gap-2 ml-4">
@@ -179,12 +286,15 @@ function SetDisplay({ set, setNumber, onEdit, onRemove, canEdit }: SetDisplayPro
 interface SetEditFormProps {
   set: WorkoutSet
   onSave: (updates: Partial<WorkoutSet>) => void
+  onSaveAndAdd: (updates: Partial<WorkoutSet>) => void
   onCancel: () => void
 }
 
-function SetEditForm({ set, onSave, onCancel }: SetEditFormProps) {
+function SetEditForm({ set, onSave, onSaveAndAdd, onCancel }: SetEditFormProps) {
+  const repsInputRef = useRef<HTMLInputElement | null>(null)
   const [reps, setReps] = useState<string>(set.reps?.toString() || '')
   const [weight, setWeight] = useState<string>(set.weight?.toString() || '')
+  const [rpe, setRpe] = useState<string>(set.rpe?.toString() || '')
   const [restMinutes, setRestMinutes] = useState<string>(
     set.rest_seconds ? Math.floor(set.rest_seconds / 60).toString() : ''
   )
@@ -192,23 +302,40 @@ function SetEditForm({ set, onSave, onCancel }: SetEditFormProps) {
     set.rest_seconds ? (set.rest_seconds % 60).toString() : ''
   )
 
+  useEffect(() => {
+    repsInputRef.current?.focus()
+  }, [set.id])
+
   const handleSave = () => {
     const restTotal =
       (parseInt(restMinutes) || 0) * 60 + (parseInt(restSeconds) || 0)
     onSave({
       reps: reps ? parseInt(reps) : null,
       weight: weight ? parseFloat(weight) : null,
+      rpe: rpe ? parseFloat(rpe) : null,
+      rest_seconds: restTotal > 0 ? restTotal : null,
+    })
+  }
+
+  const handleSaveAndAdd = () => {
+    const restTotal =
+      (parseInt(restMinutes) || 0) * 60 + (parseInt(restSeconds) || 0)
+    onSaveAndAdd({
+      reps: reps ? parseInt(reps) : null,
+      weight: weight ? parseFloat(weight) : null,
+      rpe: rpe ? parseFloat(rpe) : null,
       rest_seconds: restTotal > 0 ? restTotal : null,
     })
   }
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <div>
           <label className="block text-xs text-gray-500 mb-1">Reps</label>
           <input
             type="number"
+            ref={repsInputRef}
             value={reps}
             onChange={(e) => setReps(e.target.value)}
             className="w-full px-3 py-2 border rounded-lg"
@@ -222,6 +349,19 @@ function SetEditForm({ set, onSave, onCancel }: SetEditFormProps) {
             step="0.5"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
+            className="w-full px-3 py-2 border rounded-lg"
+            placeholder="—"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">RPE (1-10)</label>
+          <input
+            type="number"
+            step="0.5"
+            min="1"
+            max="10"
+            value={rpe}
+            onChange={(e) => setRpe(e.target.value)}
             className="w-full px-3 py-2 border rounded-lg"
             placeholder="—"
           />
@@ -256,6 +396,12 @@ function SetEditForm({ set, onSave, onCancel }: SetEditFormProps) {
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
         >
           Save
+        </button>
+        <button
+          onClick={handleSaveAndAdd}
+          className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
+        >
+          Save and add set
         </button>
         <button
           onClick={onCancel}

@@ -3,7 +3,7 @@
  * Flow for starting a new workout from a routine
  */
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import RoutineSelector from '../components/workout/RoutineSelector'
 import EquipmentProfileSelector from '../components/workout/EquipmentProfileSelector'
 import QuickFillModal from '../components/workout/QuickFillModal'
@@ -24,11 +24,16 @@ interface SlotExercise {
 
 export default function WorkoutStart() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { loadProfiles, getSelectedProfile } = useEquipmentStore()
   const { initializeWorkoutWithSlots } = useWorkoutStore()
   
   // Step 1: Routine selection
-  const [selectedRoutineId, setSelectedRoutineId] = useState<number | null>(null)
+  const routineIdParam = searchParams.get('routineId')
+  const parsedRoutineId = routineIdParam ? Number(routineIdParam) : null
+  const [selectedRoutineId, setSelectedRoutineId] = useState<number | null>(
+    Number.isNaN(parsedRoutineId) ? null : parsedRoutineId
+  )
   const [selectedRoutine, setSelectedRoutine] = useState<RoutineTemplate | null>(null)
   const [loadingRoutine, setLoadingRoutine] = useState(false)
   
@@ -49,6 +54,15 @@ export default function WorkoutStart() {
   useEffect(() => {
     loadProfiles().catch(console.error)
   }, [loadProfiles])
+
+  useEffect(() => {
+    if (routineIdParam) {
+      const nextRoutineId = Number(routineIdParam)
+      if (!Number.isNaN(nextRoutineId)) {
+        setSelectedRoutineId(nextRoutineId)
+      }
+    }
+  }, [routineIdParam])
 
   // Set default equipment profile when profiles load
   useEffect(() => {

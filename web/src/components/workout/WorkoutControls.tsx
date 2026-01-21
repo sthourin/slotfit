@@ -4,9 +4,7 @@
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { type WorkoutState, type WorkoutSession } from '../../services/workouts'
-import { useWorkoutStore } from '../../stores/workoutStore'
-import WorkoutSummary from './WorkoutSummary'
+import { type WorkoutState } from '../../services/workouts'
 
 interface WorkoutControlsProps {
   workoutState: WorkoutState
@@ -24,10 +22,7 @@ export default function WorkoutControls({
   onAbandon,
 }: WorkoutControlsProps) {
   const navigate = useNavigate()
-  const { activeWorkout } = useWorkoutStore()
   const [processing, setProcessing] = useState(false)
-  const [showSummary, setShowSummary] = useState(false)
-  const [completedWorkout, setCompletedWorkout] = useState<WorkoutSession | null>(null)
 
   const handleComplete = async () => {
     if (
@@ -41,26 +36,13 @@ export default function WorkoutControls({
     setProcessing(true)
     try {
       await onComplete()
-      // Reload the workout to get the completed state with all data
-      if (activeWorkout) {
-        const { workoutApi } = await import('../../services/workouts')
-        const updatedWorkout = await workoutApi.get(activeWorkout.id)
-        setCompletedWorkout(updatedWorkout)
-        setShowSummary(true)
-      } else {
-        navigate('/workout/start')
-      }
+      // Summary will be shown by the Workout page component
     } catch (error) {
       console.error('Failed to complete workout:', error)
       alert('Failed to complete workout. Please try again.')
     } finally {
       setProcessing(false)
     }
-  }
-
-  const handleCloseSummary = () => {
-    setShowSummary(false)
-    navigate('/workout/start')
   }
 
   const handleAbandon = async () => {
@@ -166,11 +148,6 @@ export default function WorkoutControls({
           </div>
         </div>
       </div>
-
-      {/* Workout Summary Modal */}
-      {showSummary && completedWorkout && (
-        <WorkoutSummary workout={completedWorkout} onClose={handleCloseSummary} />
-      )}
     </div>
   )
 }

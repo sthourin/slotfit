@@ -13,6 +13,7 @@ export interface WorkoutSet {
   reps: number | null
   weight: number | null
   rest_seconds: number | null
+  rpe: number | null  // Rate of Perceived Exertion (1-10 scale)
   notes: string | null
 }
 
@@ -35,6 +36,7 @@ export interface WorkoutSession {
   paused_at: string | null // ISO date string
   completed_at: string | null // ISO date string
   exercises: WorkoutExercise[]
+  tags: Array<{ id: number; name: string; category: string | null }>
 }
 
 export interface WorkoutSessionListResponse {
@@ -57,14 +59,23 @@ export interface WorkoutSetCreate {
   reps?: number | null
   weight?: number | null
   rest_seconds?: number | null
+  rpe?: number | null  // Rate of Perceived Exertion (1-10 scale)
   notes?: string | null
 }
 
 export interface WorkoutSetUpdate {
+  set_number?: number
   reps?: number | null
   weight?: number | null
   rest_seconds?: number | null
+  rpe?: number | null  // Rate of Perceived Exertion (1-10 scale)
   notes?: string | null
+}
+
+export interface WorkoutExerciseUpdate {
+  slot_state?: SlotState
+  started_at?: string | null  // ISO date string
+  stopped_at?: string | null  // ISO date string
 }
 
 export const workoutApi = {
@@ -137,5 +148,90 @@ export const workoutApi = {
   abandon: async (id: number): Promise<WorkoutSession> => {
     const response = await apiClient.post<WorkoutSession>(`/workouts/${id}/abandon`)
     return response.data
+  },
+
+  /**
+   * Add an exercise to a workout slot
+   */
+  addExercise: async (
+    workoutId: number,
+    data: { routine_slot_id: number; exercise_id: number }
+  ): Promise<WorkoutExercise> => {
+    const response = await apiClient.post<WorkoutExercise>(
+      `/workouts/${workoutId}/exercises`,
+      data
+    )
+    return response.data
+  },
+
+  /**
+   * Add a tag to a workout
+   */
+  addTag: async (workoutId: number, tagName: string): Promise<void> => {
+    await apiClient.post(`/tags/workouts/${workoutId}/tags?tag_name=${encodeURIComponent(tagName)}`)
+  },
+
+  /**
+   * Remove a tag from a workout
+   */
+  removeTag: async (workoutId: number, tagId: number): Promise<void> => {
+    await apiClient.delete(`/tags/workouts/${workoutId}/tags/${tagId}`)
+  },
+
+  /**
+   * Update a workout exercise (state, timestamps)
+   */
+  updateExercise: async (
+    workoutId: number,
+    exerciseId: number,
+    data: WorkoutExerciseUpdate
+  ): Promise<WorkoutExercise> => {
+    const response = await apiClient.put<WorkoutExercise>(
+      `/workouts/${workoutId}/exercises/${exerciseId}`,
+      data
+    )
+    return response.data
+  },
+
+  /**
+   * Create a set for a workout exercise
+   */
+  createSet: async (
+    workoutId: number,
+    exerciseId: number,
+    data: WorkoutSetCreate
+  ): Promise<WorkoutSet> => {
+    const response = await apiClient.post<WorkoutSet>(
+      `/workouts/${workoutId}/exercises/${exerciseId}/sets`,
+      data
+    )
+    return response.data
+  },
+
+  /**
+   * Update a workout set
+   */
+  updateSet: async (
+    workoutId: number,
+    exerciseId: number,
+    setId: number,
+    data: WorkoutSetUpdate
+  ): Promise<WorkoutSet> => {
+    const response = await apiClient.put<WorkoutSet>(
+      `/workouts/${workoutId}/exercises/${exerciseId}/sets/${setId}`,
+      data
+    )
+    return response.data
+  },
+
+  /**
+   * Delete a workout set
+   */
+  deleteSet: async (
+    workoutId: number,
+    exerciseId: number,
+    setId: number
+  ): Promise<void> => {
+    await apiClient.delete(`/workouts/${workoutId}/exercises/${exerciseId}/sets/${setId}`)
   },
 }

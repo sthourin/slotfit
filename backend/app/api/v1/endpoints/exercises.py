@@ -4,7 +4,7 @@ Exercise API endpoints
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, func, desc, asc
+from sqlalchemy import select, or_, func, desc, asc, case
 from sqlalchemy.orm import selectinload
 from datetime import datetime
 
@@ -31,15 +31,19 @@ async def list_exercises(
     search: Optional[str] = None,
     muscle_group_id: Optional[int] = None,
     muscle_group_ids: Optional[str] = None,  # Comma-separated list of IDs
+    secondary_muscle_group_ids: Optional[str] = None,  # Comma-separated list of IDs for secondary role
+    tertiary_muscle_group_ids: Optional[str] = None,  # Comma-separated list of IDs for tertiary role
     equipment_id: Optional[int] = None,
     difficulty: Optional[str] = None,
     body_region: Optional[str] = None,
     mechanics: Optional[str] = None,  # "Compound" or "Isolation"
     routine_type: Optional[str] = None,  # "anterior", "posterior", "full_body", "custom"
     workout_style: Optional[str] = None,  # "5x5", "HIIT", "volume", "strength", "custom"
+    tag_ids: Optional[str] = None,  # Comma-separated list of tag IDs
     variant_type: Optional[str] = None,  # Filter by variant type: "HIIT", "Strength", etc.
     base_exercise_id: Optional[int] = None,  # Get all variants of a base exercise
     include_variants: Optional[bool] = Query(True, description="Include exercise variants in results"),
+    combination_only: Optional[bool] = Query(None, description="Filter to only combination exercises (multiple target muscle groups)"),
     sort_by: Optional[str] = Query("name", description="Sort by: name, difficulty, last_performed, equipment"),
     sort_order: Optional[str] = Query("asc", description="Sort order: asc or desc"),
     db: AsyncSession = Depends(get_db),
@@ -54,6 +58,7 @@ async def list_exercises(
             selectinload(Exercise.primary_equipment),
             selectinload(Exercise.secondary_equipment),
             selectinload(Exercise.muscle_groups),
+            selectinload(Exercise.tags),
         )
         
         # Filter by variant type or base exercise
@@ -111,38 +116,136 @@ async def list_exercises(
         if mechanics:
             query = query.where(Exercise.mechanics == mechanics)
         
+        # Filter by tags
+        if tag_ids:
+            from app.models.tag import exercise_tags
+            try:
+                tag_id_list = [int(id.strip()) for id in tag_ids.split(',') if id.strip()]
+                if tag_id_list:
+                    # Filter exercises that have ALL specified tags (AND logic)
+                    subquery = (
+                        select(exercise_tags.c.exercise_id)
+                        .where(exercise_tags.c.tag_id.in_(tag_id_list))
+                        .group_by(exercise_tags.c.exercise_id)
+                        .having(func.count(func.distinct(exercise_tags.c.tag_id)) == len(tag_id_list))
+                    )
+                    query = query.where(Exercise.id.in_(subquery))
+            except ValueError:
+                pass  # Invalid tag IDs, ignore filter
+        
         # Filter by routine_type (anterior/posterior)
         # This filters exercises to only those targeting anterior or posterior muscle groups
+        # BUT: If explicit muscle_group_ids are provided, respect those instead (user's explicit choice)
         if routine_type and routine_type.lower() in ["anterior", "posterior"]:
-            # Define anterior and posterior muscle groups
-            # Anterior: Chest, Shoulders (anterior deltoids), Quadriceps, Abdominals, Biceps
-            # Posterior: Back, Hamstrings, Glutes, Triceps, Calves
-            anterior_muscle_groups = ["Chest", "Shoulders", "Quadriceps", "Abdominals", "Biceps"]
-            posterior_muscle_groups = ["Back", "Hamstrings", "Glutes", "Triceps", "Calves"]
-            
-            target_groups = anterior_muscle_groups if routine_type.lower() == "anterior" else posterior_muscle_groups
-            
-            # Get muscle group IDs for the target groups
-            mg_query = select(MuscleGroup).where(
-                MuscleGroup.name.in_(target_groups),
-                MuscleGroup.level == 1  # Level 1 = Target Muscle Group
-            )
-            mg_result = await db.execute(mg_query)
-            routine_mg_ids = [mg.id for mg in mg_result.scalars().all()]
-            
-            if routine_mg_ids:
-                # If we already have muscle group IDs from muscle_group_ids parameter,
-                # intersect them with routine_type muscle groups
-                if target_mg_ids:
-                    # Only include exercises that match BOTH the specified muscle groups AND routine type
-                    target_mg_ids = list(set(target_mg_ids) & set(routine_mg_ids))
-                else:
-                    # Use routine type muscle groups
+            # Only apply routine_type filter if no explicit muscle_group_ids were provided
+            # This allows users to select any muscle groups they want, even if they don't match the routine type
+            if not target_mg_ids:
+                # Define anterior and posterior muscle groups
+                # Anterior: Chest, Shoulders (anterior deltoids), Quadriceps, Abdominals, Biceps
+                # Posterior: Back, Hamstrings, Glutes, Triceps, Calves
+                anterior_muscle_groups = ["Chest", "Shoulders", "Quadriceps", "Abdominals", "Biceps"]
+                posterior_muscle_groups = ["Back", "Hamstrings", "Glutes", "Triceps", "Calves"]
+                
+                target_groups = anterior_muscle_groups if routine_type.lower() == "anterior" else posterior_muscle_groups
+                
+                # Get muscle group IDs for the target groups
+                mg_query = select(MuscleGroup).where(
+                    MuscleGroup.name.in_(target_groups),
+                    MuscleGroup.level == 1  # Level 1 = Target Muscle Group
+                )
+                mg_result = await db.execute(mg_query)
+                routine_mg_ids = [mg.id for mg in mg_result.scalars().all()]
+                
+                if routine_mg_ids:
+                    # Use routine type muscle groups (no explicit selection was made)
                     target_mg_ids = routine_mg_ids
         
         # Apply muscle group filter if we have any target IDs
+        # Use OR logic: exercises that target ANY of the specified muscle groups
+        # Note: Currently each exercise has only one target muscle group, so AND logic would never match multiple selections
         if target_mg_ids:
-            query = query.join(Exercise.muscle_groups).where(MuscleGroup.id.in_(target_mg_ids))
+            from app.models.exercise import exercise_muscle_groups
+            # When combination_only is set, combine the muscle group and combination filters
+            # into a single subquery to ensure proper intersection
+            if combination_only is not None:
+                if combination_only:
+                    # Find exercises that are combination exercises:
+                    # 1. Have the selected muscle group as a "target"
+                    # 2. Have is_combination = "True"
+                    # Note: Secondary and tertiary muscle groups represent the other muscle groups in combination exercises
+                    subquery = (
+                        select(exercise_muscle_groups.c.exercise_id)
+                        .where(
+                            exercise_muscle_groups.c.role == "target",
+                            exercise_muscle_groups.c.muscle_group_id.in_(target_mg_ids)
+                        )
+                        .distinct()
+                        .subquery()
+                    )
+                    query = query.join(subquery, Exercise.id == subquery.c.exercise_id)
+                    query = query.where(Exercise.is_combination == "True")
+                else:
+                    # Find exercises that are single-muscle-group exercises:
+                    # 1. Have the selected muscle group(s) as target(s)
+                    # 2. Have is_combination != "True" (False or NULL)
+                    subquery = (
+                        select(exercise_muscle_groups.c.exercise_id)
+                        .where(
+                            exercise_muscle_groups.c.role == "target",
+                            exercise_muscle_groups.c.muscle_group_id.in_(target_mg_ids)
+                        )
+                        .distinct()
+                        .subquery()
+                    )
+                    query = query.join(subquery, Exercise.id == subquery.c.exercise_id)
+                    query = query.where(or_(Exercise.is_combination != "True", Exercise.is_combination.is_(None)))
+            else:
+                # Match on any role when not filtering by combination
+                subquery = (
+                    select(exercise_muscle_groups.c.exercise_id)
+                    .where(exercise_muscle_groups.c.muscle_group_id.in_(target_mg_ids))
+                    .distinct()
+                    .subquery()
+                )
+                query = query.join(subquery, Exercise.id == subquery.c.exercise_id)
+        
+        # Filter by secondary muscle groups
+        if secondary_muscle_group_ids:
+            from app.models.exercise import exercise_muscle_groups
+            try:
+                secondary_ids = [int(id.strip()) for id in secondary_muscle_group_ids.split(',') if id.strip()]
+                if secondary_ids:
+                    subquery = (
+                        select(exercise_muscle_groups.c.exercise_id)
+                        .where(
+                            exercise_muscle_groups.c.role == "secondary",
+                            exercise_muscle_groups.c.muscle_group_id.in_(secondary_ids)
+                        )
+                        .distinct()
+                        .subquery()
+                    )
+                    query = query.join(subquery, Exercise.id == subquery.c.exercise_id)
+            except ValueError:
+                pass  # Invalid IDs, ignore filter
+        
+        # Filter by tertiary muscle groups
+        if tertiary_muscle_group_ids:
+            from app.models.exercise import exercise_muscle_groups
+            try:
+                tertiary_ids = [int(id.strip()) for id in tertiary_muscle_group_ids.split(',') if id.strip()]
+                if tertiary_ids:
+                    subquery = (
+                        select(exercise_muscle_groups.c.exercise_id)
+                        .where(
+                            exercise_muscle_groups.c.role == "tertiary",
+                            exercise_muscle_groups.c.muscle_group_id.in_(tertiary_ids)
+                        )
+                        .distinct()
+                        .subquery()
+                    )
+                    query = query.join(subquery, Exercise.id == subquery.c.exercise_id)
+            except ValueError:
+                pass  # Invalid IDs, ignore filter
         
         # Filter by workout_style (HIIT, etc.)
         if workout_style and workout_style.upper() == "HIIT":
@@ -203,25 +306,104 @@ async def list_exercises(
         elif muscle_group_id:
             count_target_mg_ids.append(muscle_group_id)
         # Apply routine_type filter to count query (same logic as main query)
+        # Only apply routine_type filter if no explicit muscle_group_ids were provided
         if routine_type and routine_type.lower() in ["anterior", "posterior"]:
-            anterior_muscle_groups = ["Chest", "Shoulders", "Quadriceps", "Abdominals", "Biceps"]
-            posterior_muscle_groups = ["Back", "Hamstrings", "Glutes", "Triceps", "Calves"]
-            target_groups = anterior_muscle_groups if routine_type.lower() == "anterior" else posterior_muscle_groups
-            mg_query = select(MuscleGroup).where(
-                MuscleGroup.name.in_(target_groups),
-                MuscleGroup.level == 1
-            )
-            mg_result = await db.execute(mg_query)
-            routine_mg_ids = [mg.id for mg in mg_result.scalars().all()]
-            if routine_mg_ids:
-                if count_target_mg_ids:
-                    count_target_mg_ids = list(set(count_target_mg_ids) & set(routine_mg_ids))
-                else:
+            if not count_target_mg_ids:
+                anterior_muscle_groups = ["Chest", "Shoulders", "Quadriceps", "Abdominals", "Biceps"]
+                posterior_muscle_groups = ["Back", "Hamstrings", "Glutes", "Triceps", "Calves"]
+                target_groups = anterior_muscle_groups if routine_type.lower() == "anterior" else posterior_muscle_groups
+                mg_query = select(MuscleGroup).where(
+                    MuscleGroup.name.in_(target_groups),
+                    MuscleGroup.level == 1
+                )
+                mg_result = await db.execute(mg_query)
+                routine_mg_ids = [mg.id for mg in mg_result.scalars().all()]
+                if routine_mg_ids:
                     count_target_mg_ids = routine_mg_ids
         
-        # Apply muscle group filter to count query
+        # Apply muscle group filter to count query (same OR logic)
         if count_target_mg_ids:
-            count_query = count_query.join(Exercise.muscle_groups).where(MuscleGroup.id.in_(count_target_mg_ids))
+            from app.models.exercise import exercise_muscle_groups
+            # When combination_only is set, combine the muscle group and combination filters
+            # into a single subquery to ensure proper intersection
+            if combination_only is not None:
+                if combination_only:
+                    # Find exercises that are combination exercises:
+                    # 1. Have the selected muscle group as a "target"
+                    # 2. Have is_combination = "True"
+                    subquery = (
+                        select(exercise_muscle_groups.c.exercise_id)
+                        .where(
+                            exercise_muscle_groups.c.role == "target",
+                            exercise_muscle_groups.c.muscle_group_id.in_(count_target_mg_ids)
+                        )
+                        .distinct()
+                        .subquery()
+                    )
+                    count_query = count_query.join(subquery, Exercise.id == subquery.c.exercise_id)
+                    count_query = count_query.where(Exercise.is_combination == "True")
+                else:
+                    # Find exercises that are single-muscle-group exercises:
+                    # 1. Have the selected muscle group(s) as target(s)
+                    # 2. Have is_combination != "True" (False or NULL)
+                    subquery = (
+                        select(exercise_muscle_groups.c.exercise_id)
+                        .where(
+                            exercise_muscle_groups.c.role == "target",
+                            exercise_muscle_groups.c.muscle_group_id.in_(count_target_mg_ids)
+                        )
+                        .distinct()
+                        .subquery()
+                    )
+                    count_query = count_query.join(subquery, Exercise.id == subquery.c.exercise_id)
+                    count_query = count_query.where(or_(Exercise.is_combination != "True", Exercise.is_combination.is_(None)))
+            else:
+                # Match on any role when not filtering by combination
+                subquery = (
+                    select(exercise_muscle_groups.c.exercise_id)
+                    .where(exercise_muscle_groups.c.muscle_group_id.in_(count_target_mg_ids))
+                    .distinct()
+                    .subquery()
+                )
+                count_query = count_query.join(subquery, Exercise.id == subquery.c.exercise_id)
+        
+        # Filter by secondary muscle groups in count query
+        if secondary_muscle_group_ids:
+            from app.models.exercise import exercise_muscle_groups
+            try:
+                secondary_ids = [int(id.strip()) for id in secondary_muscle_group_ids.split(',') if id.strip()]
+                if secondary_ids:
+                    subquery = (
+                        select(exercise_muscle_groups.c.exercise_id)
+                        .where(
+                            exercise_muscle_groups.c.role == "secondary",
+                            exercise_muscle_groups.c.muscle_group_id.in_(secondary_ids)
+                        )
+                        .distinct()
+                        .subquery()
+                    )
+                    count_query = count_query.join(subquery, Exercise.id == subquery.c.exercise_id)
+            except ValueError:
+                pass  # Invalid IDs, ignore filter
+        
+        # Filter by tertiary muscle groups in count query
+        if tertiary_muscle_group_ids:
+            from app.models.exercise import exercise_muscle_groups
+            try:
+                tertiary_ids = [int(id.strip()) for id in tertiary_muscle_group_ids.split(',') if id.strip()]
+                if tertiary_ids:
+                    subquery = (
+                        select(exercise_muscle_groups.c.exercise_id)
+                        .where(
+                            exercise_muscle_groups.c.role == "tertiary",
+                            exercise_muscle_groups.c.muscle_group_id.in_(tertiary_ids)
+                        )
+                        .distinct()
+                        .subquery()
+                    )
+                    count_query = count_query.join(subquery, Exercise.id == subquery.c.exercise_id)
+            except ValueError:
+                pass  # Invalid IDs, ignore filter
         
         if equipment_id:
             count_query = count_query.where(
@@ -241,6 +423,22 @@ async def list_exercises(
             count_query = count_query.where(Exercise.body_region == body_region)
         if mechanics:
             count_query = count_query.where(Exercise.mechanics == mechanics)
+        
+        # Filter by tags in count query
+        if tag_ids:
+            from app.models.tag import exercise_tags
+            try:
+                tag_id_list = [int(id.strip()) for id in tag_ids.split(',') if id.strip()]
+                if tag_id_list:
+                    subquery = (
+                        select(exercise_tags.c.exercise_id)
+                        .where(exercise_tags.c.tag_id.in_(tag_id_list))
+                        .group_by(exercise_tags.c.exercise_id)
+                        .having(func.count(func.distinct(exercise_tags.c.tag_id)) == len(tag_id_list))
+                    )
+                    count_query = count_query.where(Exercise.id.in_(subquery))
+            except ValueError:
+                pass
         
         if workout_style and workout_style.upper() == "HIIT":
             count_query = count_query.where(
@@ -326,6 +524,87 @@ async def list_exercises(
             }
         )
         # Let the error handler middleware handle the response
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/available-muscle-groups")
+async def get_available_muscle_groups(
+    muscle_group_ids: Optional[str] = None,
+    combination_only: Optional[bool] = None,
+    role: str = Query(..., description="Role to filter by: 'secondary' or 'tertiary'"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get available muscle groups for a specific role (secondary or tertiary)
+    based on exercises filtered by target muscle groups and combination filter.
+    """
+    if role not in ["secondary", "tertiary"]:
+        raise HTTPException(status_code=400, detail="Role must be 'secondary' or 'tertiary'")
+    
+    try:
+        from app.models.exercise import exercise_muscle_groups
+        
+        # Build query to find exercise IDs matching the filters
+        exercise_query = select(Exercise.id)
+        
+        # Apply target muscle group filter
+        if muscle_group_ids:
+            try:
+                target_ids = [int(id.strip()) for id in muscle_group_ids.split(',') if id.strip()]
+                if target_ids:
+                    subquery = (
+                        select(exercise_muscle_groups.c.exercise_id)
+                        .where(
+                            exercise_muscle_groups.c.role == "target",
+                            exercise_muscle_groups.c.muscle_group_id.in_(target_ids)
+                        )
+                        .distinct()
+                        .subquery()
+                    )
+                    exercise_query = exercise_query.join(subquery, Exercise.id == subquery.c.exercise_id)
+            except ValueError:
+                pass
+        
+        # Apply combination filter
+        if combination_only is not None:
+            if combination_only:
+                exercise_query = exercise_query.where(Exercise.is_combination == "True")
+            else:
+                exercise_query = exercise_query.where(or_(Exercise.is_combination != "True", Exercise.is_combination.is_(None)))
+        
+        # Get exercise IDs
+        result = await db.execute(exercise_query)
+        exercise_ids = [row[0] for row in result.all()]
+        
+        if not exercise_ids:
+            return {"muscle_groups": []}
+        
+        # Get unique muscle groups with the specified role from these exercises
+        mg_query = (
+            select(MuscleGroup)
+            .join(
+                exercise_muscle_groups,
+                MuscleGroup.id == exercise_muscle_groups.c.muscle_group_id
+            )
+            .where(
+                exercise_muscle_groups.c.exercise_id.in_(exercise_ids),
+                exercise_muscle_groups.c.role == role
+            )
+            .distinct()
+            .order_by(MuscleGroup.name)
+        )
+        
+        mg_result = await db.execute(mg_query)
+        muscle_groups = mg_result.scalars().all()
+        
+        return {
+            "muscle_groups": [
+                {"id": mg.id, "name": mg.name, "level": mg.level, "parent_id": mg.parent_id}
+                for mg in muscle_groups
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error in get_available_muscle_groups: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -515,6 +794,7 @@ async def duplicate_exercise(
         selectinload(Exercise.primary_equipment),
         selectinload(Exercise.secondary_equipment),
         selectinload(Exercise.muscle_groups),
+        selectinload(Exercise.tags),
     )
     variant_result = await db.execute(variant_query)
     variant = variant_result.scalar_one()
@@ -534,6 +814,7 @@ async def get_exercise(
         selectinload(Exercise.primary_equipment),
         selectinload(Exercise.secondary_equipment),
         selectinload(Exercise.muscle_groups),
+        selectinload(Exercise.tags),
     )
     
     result = await db.execute(query)

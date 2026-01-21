@@ -20,6 +20,10 @@ from app.schemas.workout import (
     WorkoutSessionListResponse,
     AddExerciseToWorkoutRequest,
     WorkoutExerciseResponse,
+    WorkoutExerciseUpdate,
+    WorkoutSetCreate,
+    WorkoutSetUpdate,
+    WorkoutSetResponse,
 )
 
 router = APIRouter()
@@ -36,7 +40,8 @@ async def list_workouts(
     query = select(WorkoutSession).where(
         WorkoutSession.user_id == current_user.id
     ).options(
-        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets)
+        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets),
+        selectinload(WorkoutSession.tags)
     ).offset(skip).limit(limit).order_by(WorkoutSession.id.desc())
     
     result = await db.execute(query)
@@ -66,7 +71,8 @@ async def get_workout(
         WorkoutSession.id == workout_id,
         WorkoutSession.user_id == current_user.id
     ).options(
-        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets)
+        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets),
+        selectinload(WorkoutSession.tags)
     )
     
     result = await db.execute(query)
@@ -98,7 +104,8 @@ async def create_workout(
     query = select(WorkoutSession).where(
         WorkoutSession.id == workout.id
     ).options(
-        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets)
+        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets),
+        selectinload(WorkoutSession.tags),
     )
     result = await db.execute(query)
     workout = result.scalar_one()
@@ -136,7 +143,8 @@ async def update_workout(
     query = select(WorkoutSession).where(
         WorkoutSession.id == workout_id
     ).options(
-        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets)
+        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets),
+        selectinload(WorkoutSession.tags),
     )
     result = await db.execute(query)
     workout = result.scalar_one()
@@ -201,7 +209,8 @@ async def start_workout(
     query = select(WorkoutSession).where(
         WorkoutSession.id == workout_id
     ).options(
-        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets)
+        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets),
+        selectinload(WorkoutSession.tags),
     )
     result = await db.execute(query)
     workout = result.scalar_one()
@@ -242,7 +251,8 @@ async def pause_workout(
     query = select(WorkoutSession).where(
         WorkoutSession.id == workout_id
     ).options(
-        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets)
+        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets),
+        selectinload(WorkoutSession.tags),
     )
     result = await db.execute(query)
     workout = result.scalar_one()
@@ -284,7 +294,8 @@ async def complete_workout(
     query = select(WorkoutSession).where(
         WorkoutSession.id == workout_id
     ).options(
-        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets)
+        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets),
+        selectinload(WorkoutSession.tags),
     )
     result = await db.execute(query)
     workout = result.scalar_one()
@@ -319,7 +330,8 @@ async def abandon_workout(
     query = select(WorkoutSession).where(
         WorkoutSession.id == workout_id
     ).options(
-        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets)
+        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets),
+        selectinload(WorkoutSession.tags),
     )
     result = await db.execute(query)
     workout = result.scalar_one()
@@ -398,3 +410,204 @@ async def add_exercise_to_workout(
     workout_exercise = result.scalar_one()
     
     return WorkoutExerciseResponse.model_validate(workout_exercise)
+
+
+@router.put("/{workout_id}/exercises/{exercise_id}", response_model=WorkoutExerciseResponse)
+async def update_workout_exercise(
+    workout_id: int,
+    exercise_id: int,
+    exercise_data: WorkoutExerciseUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a workout exercise (state, timestamps)"""
+    # Verify workout exists and belongs to user
+    query = select(WorkoutSession).where(
+        WorkoutSession.id == workout_id,
+        WorkoutSession.user_id == current_user.id
+    )
+    result = await db.execute(query)
+    workout = result.scalar_one_or_none()
+    
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    
+    # Verify workout exercise exists and belongs to workout
+    exercise_query = select(WorkoutExercise).where(
+        WorkoutExercise.id == exercise_id,
+        WorkoutExercise.workout_session_id == workout_id
+    )
+    exercise_result = await db.execute(exercise_query)
+    workout_exercise = exercise_result.scalar_one_or_none()
+    
+    if not workout_exercise:
+        raise HTTPException(status_code=404, detail="Workout exercise not found")
+    
+    # Update fields
+    update_data = exercise_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(workout_exercise, field, value)
+    
+    await db.commit()
+    await db.refresh(workout_exercise)
+    
+    # Reload with relationships
+    query = select(WorkoutExercise).where(
+        WorkoutExercise.id == exercise_id
+    ).options(
+        selectinload(WorkoutExercise.sets)
+    )
+    result = await db.execute(query)
+    workout_exercise = result.scalar_one()
+    
+    return WorkoutExerciseResponse.model_validate(workout_exercise)
+
+
+@router.post("/{workout_id}/exercises/{exercise_id}/sets", response_model=WorkoutSetResponse, status_code=201)
+async def create_workout_set(
+    workout_id: int,
+    exercise_id: int,
+    set_data: WorkoutSetCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new set for a workout exercise"""
+    # Verify workout exists and belongs to user
+    query = select(WorkoutSession).where(
+        WorkoutSession.id == workout_id,
+        WorkoutSession.user_id == current_user.id
+    )
+    result = await db.execute(query)
+    workout = result.scalar_one_or_none()
+    
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    
+    # Verify workout exercise exists and belongs to workout
+    exercise_query = select(WorkoutExercise).where(
+        WorkoutExercise.id == exercise_id,
+        WorkoutExercise.workout_session_id == workout_id
+    )
+    exercise_result = await db.execute(exercise_query)
+    workout_exercise = exercise_result.scalar_one_or_none()
+    
+    if not workout_exercise:
+        raise HTTPException(status_code=404, detail="Workout exercise not found")
+    
+    # Create workout set
+    workout_set = WorkoutSet(
+        workout_exercise_id=exercise_id,
+        set_number=set_data.set_number,
+        reps=set_data.reps,
+        weight=set_data.weight,
+        rest_seconds=set_data.rest_seconds,
+        rpe=set_data.rpe,
+        notes=set_data.notes,
+    )
+    db.add(workout_set)
+    await db.commit()
+    await db.refresh(workout_set)
+    
+    return WorkoutSetResponse.model_validate(workout_set)
+
+
+@router.put("/{workout_id}/exercises/{exercise_id}/sets/{set_id}", response_model=WorkoutSetResponse)
+async def update_workout_set(
+    workout_id: int,
+    exercise_id: int,
+    set_id: int,
+    set_data: WorkoutSetUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a workout set"""
+    # Verify workout exists and belongs to user
+    query = select(WorkoutSession).where(
+        WorkoutSession.id == workout_id,
+        WorkoutSession.user_id == current_user.id
+    )
+    result = await db.execute(query)
+    workout = result.scalar_one_or_none()
+    
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    
+    # Verify workout exercise exists and belongs to workout
+    exercise_query = select(WorkoutExercise).where(
+        WorkoutExercise.id == exercise_id,
+        WorkoutExercise.workout_session_id == workout_id
+    )
+    exercise_result = await db.execute(exercise_query)
+    workout_exercise = exercise_result.scalar_one_or_none()
+    
+    if not workout_exercise:
+        raise HTTPException(status_code=404, detail="Workout exercise not found")
+    
+    # Verify set exists and belongs to exercise
+    set_query = select(WorkoutSet).where(
+        WorkoutSet.id == set_id,
+        WorkoutSet.workout_exercise_id == exercise_id
+    )
+    set_result = await db.execute(set_query)
+    workout_set = set_result.scalar_one_or_none()
+    
+    if not workout_set:
+        raise HTTPException(status_code=404, detail="Workout set not found")
+    
+    # Update fields
+    update_data = set_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(workout_set, field, value)
+    
+    await db.commit()
+    await db.refresh(workout_set)
+    
+    return WorkoutSetResponse.model_validate(workout_set)
+
+
+@router.delete("/{workout_id}/exercises/{exercise_id}/sets/{set_id}", status_code=204)
+async def delete_workout_set(
+    workout_id: int,
+    exercise_id: int,
+    set_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a workout set"""
+    # Verify workout exists and belongs to user
+    query = select(WorkoutSession).where(
+        WorkoutSession.id == workout_id,
+        WorkoutSession.user_id == current_user.id
+    )
+    result = await db.execute(query)
+    workout = result.scalar_one_or_none()
+    
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    
+    # Verify workout exercise exists and belongs to workout
+    exercise_query = select(WorkoutExercise).where(
+        WorkoutExercise.id == exercise_id,
+        WorkoutExercise.workout_session_id == workout_id
+    )
+    exercise_result = await db.execute(exercise_query)
+    workout_exercise = exercise_result.scalar_one_or_none()
+    
+    if not workout_exercise:
+        raise HTTPException(status_code=404, detail="Workout exercise not found")
+    
+    # Verify set exists and belongs to exercise
+    set_query = select(WorkoutSet).where(
+        WorkoutSet.id == set_id,
+        WorkoutSet.workout_exercise_id == exercise_id
+    )
+    set_result = await db.execute(set_query)
+    workout_set = set_result.scalar_one_or_none()
+    
+    if not workout_set:
+        raise HTTPException(status_code=404, detail="Workout set not found")
+    
+    await db.delete(workout_set)
+    await db.commit()
+    
+    return None

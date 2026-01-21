@@ -33,7 +33,8 @@ async def list_routines(
     query = select(RoutineTemplate).where(
         RoutineTemplate.user_id == current_user.id
     ).options(
-        selectinload(RoutineTemplate.slots)
+        selectinload(RoutineTemplate.slots),
+        selectinload(RoutineTemplate.tags)
     ).offset(skip).limit(limit)
     
     result = await db.execute(query)
@@ -61,7 +62,10 @@ async def get_routine(
     query = select(RoutineTemplate).where(
         RoutineTemplate.id == routine_id,
         RoutineTemplate.user_id == current_user.id
-    ).options(selectinload(RoutineTemplate.slots))
+    ).options(
+        selectinload(RoutineTemplate.slots),
+        selectinload(RoutineTemplate.tags)
+    )
     
     result = await db.execute(query)
     routine = result.scalar_one_or_none()
@@ -106,10 +110,13 @@ async def create_routine(
     await db.commit()
     await db.refresh(routine)
     
-    # Reload with slots
+    # Reload with slots and tags
     query = select(RoutineTemplate).where(
         RoutineTemplate.id == routine.id
-    ).options(selectinload(RoutineTemplate.slots))
+    ).options(
+        selectinload(RoutineTemplate.slots),
+        selectinload(RoutineTemplate.tags)
+    )
     result = await db.execute(query)
     routine = result.scalar_one()
     
@@ -127,7 +134,10 @@ async def update_routine(
     query = select(RoutineTemplate).where(
         RoutineTemplate.id == routine_id,
         RoutineTemplate.user_id == current_user.id
-    ).options(selectinload(RoutineTemplate.slots))
+    ).options(
+        selectinload(RoutineTemplate.slots),
+        selectinload(RoutineTemplate.tags)
+    )
     
     result = await db.execute(query)
     routine = result.scalar_one_or_none()
@@ -143,7 +153,7 @@ async def update_routine(
     await db.commit()
     await db.refresh(routine)
     
-    # Reload with slots
+    # Reload with slots and tags
     result = await db.execute(query)
     routine = result.scalar_one()
     
@@ -211,10 +221,13 @@ async def add_slot(
     db.add(slot)
     await db.commit()
     
-    # Reload routine with slots
+    # Reload routine with slots and tags
     query = select(RoutineTemplate).where(
         RoutineTemplate.id == routine_id
-    ).options(selectinload(RoutineTemplate.slots))
+    ).options(
+        selectinload(RoutineTemplate.slots),
+        selectinload(RoutineTemplate.tags)
+    )
     result = await db.execute(query)
     routine = result.scalar_one()
     
@@ -261,10 +274,13 @@ async def update_slot(
     
     await db.commit()
     
-    # Reload routine with slots
+    # Reload routine with slots and tags
     routine_query = select(RoutineTemplate).where(
         RoutineTemplate.id == routine_id
-    ).options(selectinload(RoutineTemplate.slots))
+    ).options(
+        selectinload(RoutineTemplate.slots),
+        selectinload(RoutineTemplate.tags)
+    )
     routine_result = await db.execute(routine_query)
     routine = routine_result.scalar_one()
     
@@ -303,10 +319,13 @@ async def delete_slot(
     await db.delete(slot)
     await db.commit()
     
-    # Reload routine with slots
+    # Reload routine with slots and tags
     routine_query = select(RoutineTemplate).where(
         RoutineTemplate.id == routine_id
-    ).options(selectinload(RoutineTemplate.slots))
+    ).options(
+        selectinload(RoutineTemplate.slots),
+        selectinload(RoutineTemplate.tags)
+    )
     routine_result = await db.execute(routine_query)
     routine = routine_result.scalar_one()
     

@@ -96,7 +96,7 @@ async def seed_exercises(session: AsyncSession, muscle_groups, equipment):
         Exercise(
             name="Push-up",
             description="Classic bodyweight chest exercise",
-            difficulty=DifficultyLevel.BEGINNER,
+            difficulty=DifficultyLevel.EASY,
             primary_equipment_id=bodyweight_eq.id,
             body_region="Upper Body",
             force_type="Push",
@@ -126,7 +126,7 @@ async def seed_exercises(session: AsyncSession, muscle_groups, equipment):
         Exercise(
             name="Dumbbell Bicep Curl",
             description="Isolation bicep exercise",
-            difficulty=DifficultyLevel.BEGINNER,
+            difficulty=DifficultyLevel.EASY,
             primary_equipment_id=dumbbell_eq.id,
             body_region="Upper Body",
             force_type="Pull",
@@ -136,7 +136,7 @@ async def seed_exercises(session: AsyncSession, muscle_groups, equipment):
         Exercise(
             name="Squat",
             description="Bodyweight squat",
-            difficulty=DifficultyLevel.BEGINNER,
+            difficulty=DifficultyLevel.EASY,
             primary_equipment_id=bodyweight_eq.id,
             body_region="Lower Body",
             force_type="Other",
@@ -146,7 +146,7 @@ async def seed_exercises(session: AsyncSession, muscle_groups, equipment):
         Exercise(
             name="Plank",
             description="Core stability exercise",
-            difficulty=DifficultyLevel.BEGINNER,
+            difficulty=DifficultyLevel.EASY,
             primary_equipment_id=bodyweight_eq.id,
             body_region="Core",
             force_type="Other",

@@ -21,6 +21,7 @@ export interface RoutineTemplate {
   workoutStyle: '5x5' | 'HIIT' | 'volume' | 'strength' | 'custom'
   description: string
   slots: RoutineSlot[]
+  tags: Array<{ id: number; name: string; category: string | null }>
 }
 
 interface RoutineStore {
@@ -30,6 +31,7 @@ interface RoutineStore {
   setCurrentRoutine: (routine: RoutineTemplate | null) => void
   loadRoutine: (id: number) => Promise<void>
   saveRoutine: () => Promise<void>
+  updateRoutineTags: (tags: Array<{ id: number; name: string; category: string | null }>) => void
   addSlot: (slot: Omit<RoutineSlot, 'id'>) => void
   updateSlot: (slotId: string, updates: Partial<RoutineSlot>) => void
   removeSlot: (slotId: string) => void
@@ -56,6 +58,7 @@ export const useRoutineStore = create<RoutineStore>((set, get) => ({
         routineType: (apiRoutine.routine_type as any) || 'custom',
         workoutStyle: (apiRoutine.workout_style as any) || 'custom',
         description: apiRoutine.description || '',
+        tags: apiRoutine.tags || [],
         slots: apiRoutine.slots.map((slot) => ({
           id: `slot-${slot.id}`,
           name: slot.name || null,
@@ -130,6 +133,7 @@ export const useRoutineStore = create<RoutineStore>((set, get) => ({
           routineType: (final.routine_type as any) || 'custom',
           workoutStyle: (final.workout_style as any) || 'custom',
           description: final.description || '',
+          tags: final.tags || [],
           slots: final.slots.map((s) => ({
             id: `slot-${s.id}`,
             name: s.name || null,
@@ -157,6 +161,7 @@ export const useRoutineStore = create<RoutineStore>((set, get) => ({
           routineType: (created.routine_type as any) || 'custom',
           workoutStyle: (created.workout_style as any) || 'custom',
           description: created.description || '',
+          tags: created.tags || [],
           slots: created.slots.map((s) => ({
             id: `slot-${s.id}`,
             name: s.name || null,
@@ -256,6 +261,17 @@ export const useRoutineStore = create<RoutineStore>((set, get) => ({
           slots: state.currentRoutine.slots.map((slot) =>
             slot.id === slotId ? { ...slot, supersetTag: tag } : slot
           ),
+        },
+      }
+    }),
+
+  updateRoutineTags: (tags) =>
+    set((state) => {
+      if (!state.currentRoutine) return state
+      return {
+        currentRoutine: {
+          ...state.currentRoutine,
+          tags,
         },
       }
     }),

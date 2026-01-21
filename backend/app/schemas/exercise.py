@@ -6,6 +6,7 @@ from pydantic import BaseModel, HttpUrl, ConfigDict
 from datetime import datetime
 
 from app.models.exercise import DifficultyLevel
+from app.schemas.tag import Tag
 
 
 class MuscleGroupBase(BaseModel):
@@ -61,6 +62,7 @@ class Exercise(ExerciseBase):
     default_weight: Optional[float] = None
     default_time_seconds: Optional[int] = None
     default_rest_seconds: Optional[int] = None
+    tags: List[Tag] = []
 
     model_config = ConfigDict(from_attributes=True)
 

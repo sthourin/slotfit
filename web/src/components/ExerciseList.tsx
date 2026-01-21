@@ -91,7 +91,7 @@ export default function ExerciseList({
           comparison = a.name.localeCompare(b.name)
           break
         case 'difficulty': {
-          const difficultyOrder = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Expert']
+          const difficultyOrder = ['Easy', 'Intermediate', 'Advanced']
           const aDiff = a.difficulty ? difficultyOrder.indexOf(a.difficulty) : -1
           const bDiff = b.difficulty ? difficultyOrder.indexOf(b.difficulty) : -1
           comparison = aDiff - bDiff

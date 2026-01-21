@@ -3,6 +3,7 @@
  * Displays a summary card for a workout session
  */
 import { type WorkoutSession } from '../../services/workouts'
+import { TagDisplay } from '../TagDisplay'
 
 interface WorkoutCardProps {
   workout: WorkoutSession
@@ -111,6 +112,13 @@ export default function WorkoutCard({ workout, onClick }: WorkoutCardProps) {
           </span>
         </div>
       </div>
+
+      {/* Tags */}
+      {workout.tags && workout.tags.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <TagDisplay tags={workout.tags} size="sm" />
+        </div>
+      )}
     </div>
   )
 }

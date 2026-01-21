@@ -6,6 +6,10 @@ import { type WorkoutSession } from '../../services/workouts'
 import { exerciseApi, type Exercise } from '../../services/exercises'
 import { useState, useEffect } from 'react'
 import VolumeBreakdown from '../workout/VolumeBreakdown'
+import { TagDisplay } from '../TagDisplay'
+import { TagInput } from '../TagInput'
+import { workoutApi } from '../../services/workouts'
+import { tagsService, type Tag } from '../../services/tags'
 
 interface WorkoutDetailProps {
   workout: WorkoutSession
@@ -15,6 +19,9 @@ interface WorkoutDetailProps {
 export default function WorkoutDetail({ workout, onClose }: WorkoutDetailProps) {
   const [exerciseDetails, setExerciseDetails] = useState<Map<number, Exercise>>(new Map())
   const [loading, setLoading] = useState(true)
+  const [workoutTags, setWorkoutTags] = useState<Tag[]>(workout.tags || [])
+  const [savingTags, setSavingTags] = useState(false)
+  const [editingTags, setEditingTags] = useState(false)
 
   // Calculate workout duration
   const duration = workout.started_at && workout.completed_at
@@ -58,6 +65,45 @@ export default function WorkoutDetail({ workout, onClose }: WorkoutDetailProps) 
 
     loadExercises()
   }, [workout.exercises])
+
+  // Sync tags when workout changes
+  useEffect(() => {
+    setWorkoutTags(workout.tags || [])
+  }, [workout.tags])
+
+  const handleTagsChange = async (newTags: Tag[]) => {
+    if (!workout.id) return
+
+    setSavingTags(true)
+    try {
+      const currentTagIds = new Set(workoutTags.map((t) => t.id))
+      const newTagIds = new Set(newTags.map((t) => t.id))
+
+      // Find tags to add
+      const tagsToAdd = newTags.filter((tag) => !currentTagIds.has(tag.id))
+      // Find tags to remove
+      const tagsToRemove = workoutTags.filter((tag) => !newTagIds.has(tag.id))
+
+      // Add new tags
+      for (const tag of tagsToAdd) {
+        await workoutApi.addTag(workout.id, tag.name)
+      }
+
+      // Remove old tags
+      for (const tag of tagsToRemove) {
+        await workoutApi.removeTag(workout.id, tag.id)
+      }
+
+      // Reload workout to get updated tags
+      const updated = await workoutApi.get(workout.id)
+      setWorkoutTags(updated.tags || [])
+    } catch (error) {
+      console.error('Failed to update tags:', error)
+      alert('Failed to update tags. Please try again.')
+    } finally {
+      setSavingTags(false)
+    }
+  }
 
   // Calculate total volume
   const totalVolume = workout.exercises.reduce((sum, exercise) => {
@@ -138,6 +184,35 @@ export default function WorkoutDetail({ workout, onClose }: WorkoutDetailProps) 
                   {workout.exercises.length}
                 </div>
               </div>
+            </div>
+
+            {/* Tags */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold">Tags</h3>
+                {workout.state === 'completed' && (
+                  <button
+                    onClick={() => setEditingTags(!editingTags)}
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    {editingTags ? 'Cancel' : 'Edit Tags'}
+                  </button>
+                )}
+              </div>
+              {editingTags ? (
+                <div>
+                  <TagInput
+                    selectedTags={workoutTags}
+                    onTagsChange={handleTagsChange}
+                    placeholder="Add tags..."
+                  />
+                  {savingTags && (
+                    <p className="text-sm text-gray-500 mt-2">Saving tags...</p>
+                  )}
+                </div>
+              ) : (
+                <TagDisplay tags={workoutTags} size="md" />
+              )}
             </div>
 
             {/* Volume Breakdown */}
