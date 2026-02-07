@@ -32,7 +32,7 @@ class ClaudeProvider(AIProvider):
                 self.client = None
         else:
             self.client = None
-        self.model = "claude-3-sonnet-20240229"  # Can be made configurable
+        self.model = "claude-sonnet-4-5-20250929"  # Can be made configurable
         self.db = db
     
     async def is_available(self) -> bool:

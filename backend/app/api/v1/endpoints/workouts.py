@@ -2,7 +2,7 @@
 Workout Session API endpoints
 """
 from typing import List
-from datetime import datetime
+from datetime import datetime, UTC
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -199,7 +199,7 @@ async def start_workout(
         )
     
     workout.state = WorkoutState.ACTIVE
-    workout.started_at = datetime.utcnow()
+    workout.started_at = datetime.now(UTC)
     workout.paused_at = None
     
     await db.commit()
@@ -242,7 +242,7 @@ async def pause_workout(
         )
     
     workout.state = WorkoutState.PAUSED
-    workout.paused_at = datetime.utcnow()
+    workout.paused_at = datetime.now(UTC)
     
     await db.commit()
     await db.refresh(workout)
@@ -284,7 +284,7 @@ async def complete_workout(
         )
     
     workout.state = WorkoutState.COMPLETED
-    workout.completed_at = datetime.utcnow()
+    workout.completed_at = datetime.now(UTC)
     workout.paused_at = None
     
     await db.commit()

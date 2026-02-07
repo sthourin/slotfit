@@ -2,7 +2,7 @@
 AI Exercise Recommendation API endpoints
 """
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -35,7 +35,7 @@ async def get_user_workout_history(
     - exercise_frequency: Dict mapping exercise_id to count
     - last_performed: Dict mapping exercise_id to last performed date
     """
-    cutoff_date = datetime.utcnow() - timedelta(days=days_back)
+    cutoff_date = datetime.now(UTC) - timedelta(days=days_back)
     
     # Query recent workout sessions
     sessions_query = select(WorkoutSession).where(
