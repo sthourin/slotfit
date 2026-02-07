@@ -40,6 +40,11 @@ class HeartRateZone(str, enum.Enum):
     MAXIMUM = "maximum"  # 85-100% max HR
 
 
+class WeightUnit(str, enum.Enum):
+    KG = "kg"
+    LBS = "lbs"
+
+
 class WorkoutSession(Base):
     __tablename__ = "workout_sessions"
 
@@ -91,6 +96,9 @@ class WorkoutExercise(Base):
     # Slot state
     slot_state = Column(SQLEnum(SlotState), default=SlotState.NOT_STARTED, nullable=False)
     
+    # Weight unit for this exercise (all sets use same unit)
+    weight_unit = Column(SQLEnum(WeightUnit), default=WeightUnit.LBS, nullable=False)
+    
     # Timestamps
     started_at = Column(DateTime, nullable=True)
     stopped_at = Column(DateTime, nullable=True)
@@ -127,10 +135,14 @@ class WorkoutSet(Base):
     workout_exercise_id = Column(Integer, ForeignKey("workout_exercises.id"), nullable=False)
     set_number = Column(Integer, nullable=False)
     reps = Column(Integer, nullable=True)
-    weight = Column(Float, nullable=True)  # In user's preferred units
+    weight = Column(Float, nullable=True)  # In units specified by WorkoutExercise.weight_unit
     rest_seconds = Column(Integer, nullable=True)
     rpe = Column(Float, nullable=True)  # Rate of Perceived Exertion (1-10 scale)
     notes = Column(Text, nullable=True)
+    
+    # Timed/cardio exercise fields (added for Hevy import support)
+    duration_seconds = Column(Integer, nullable=True)  # For timed exercises (HIIT, planks, etc.)
+    distance_meters = Column(Float, nullable=True)  # For distance-based exercises (rowing, running)
 
     # Relationships
     workout_exercise = relationship("WorkoutExercise", back_populates="sets")

@@ -126,14 +126,14 @@ export const exerciseApi = {
     equipment_id?: number
     difficulty?: string
     body_region?: string
-    mechanics?: string
+    mechanics?: string // Filter by exercise mechanics: "Compound" (multi-joint) or "Isolation" (single-joint)
     routine_type?: 'anterior' | 'posterior' | 'full_body' | 'custom'
     workout_style?: '5x5' | 'HIIT' | 'volume' | 'strength' | 'custom'
     tag_ids?: number[] // Multiple tag IDs (AND logic - exercise must have all tags)
     variant_type?: string // Filter by variant type: "HIIT", "Strength", etc.
     base_exercise_id?: number // Get all variants of a base exercise
     include_variants?: boolean // Include exercise variants in results
-    combination_only?: boolean // Filter to only combination exercises (multiple target muscle groups)
+    combination_only?: boolean // Deprecated: use mechanics filter instead. Filter to only combination exercises (multiple movement patterns)
     sort_by?: 'name' | 'difficulty' | 'last_performed' | 'equipment'
     sort_order?: 'asc' | 'desc'
   }): Promise<ExerciseListResponse> => {

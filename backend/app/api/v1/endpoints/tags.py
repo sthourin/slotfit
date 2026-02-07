@@ -8,8 +8,10 @@ from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
+from app.core.deps import get_current_user
 from app.core.logging import get_logger
 from app.models import Tag, Exercise, RoutineTemplate, WorkoutSession
+from app.models.user import User
 from app.schemas.tag import Tag as TagSchema, TagCreate, TagListResponse
 
 logger = get_logger(__name__)
@@ -193,6 +195,7 @@ async def remove_tag_from_exercise(
 async def add_tag_to_routine(
     routine_id: int,
     tag_name: str = Query(..., description="Tag name (will be created if doesn't exist)"),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -201,18 +204,21 @@ async def add_tag_to_routine(
     # Get or create tag
     result = await db.execute(select(Tag).where(Tag.name == tag_name))
     tag = result.scalar_one_or_none()
-    
+
     if not tag:
         tag = Tag(name=tag_name)
         db.add(tag)
         await db.flush()
-    
-    # Get routine
+
+    # Get routine (must belong to current user)
     result = await db.execute(
-        select(RoutineTemplate).where(RoutineTemplate.id == routine_id).options(selectinload(RoutineTemplate.tags))
+        select(RoutineTemplate).where(
+            RoutineTemplate.id == routine_id,
+            RoutineTemplate.user_id == current_user.id
+        ).options(selectinload(RoutineTemplate.tags))
     )
     routine = result.scalar_one_or_none()
-    
+
     if not routine:
         raise HTTPException(status_code=404, detail="Routine not found")
     
@@ -228,16 +234,20 @@ async def add_tag_to_routine(
 async def remove_tag_from_routine(
     routine_id: int,
     tag_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Remove a tag from a routine
     """
     result = await db.execute(
-        select(RoutineTemplate).where(RoutineTemplate.id == routine_id).options(selectinload(RoutineTemplate.tags))
+        select(RoutineTemplate).where(
+            RoutineTemplate.id == routine_id,
+            RoutineTemplate.user_id == current_user.id
+        ).options(selectinload(RoutineTemplate.tags))
     )
     routine = result.scalar_one_or_none()
-    
+
     if not routine:
         raise HTTPException(status_code=404, detail="Routine not found")
     
@@ -258,6 +268,7 @@ async def remove_tag_from_routine(
 async def add_tag_to_workout(
     workout_id: int,
     tag_name: str = Query(..., description="Tag name (will be created if doesn't exist)"),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -266,18 +277,21 @@ async def add_tag_to_workout(
     # Get or create tag
     result = await db.execute(select(Tag).where(Tag.name == tag_name))
     tag = result.scalar_one_or_none()
-    
+
     if not tag:
         tag = Tag(name=tag_name)
         db.add(tag)
         await db.flush()
-    
-    # Get workout
+
+    # Get workout (must belong to current user)
     result = await db.execute(
-        select(WorkoutSession).where(WorkoutSession.id == workout_id).options(selectinload(WorkoutSession.tags))
+        select(WorkoutSession).where(
+            WorkoutSession.id == workout_id,
+            WorkoutSession.user_id == current_user.id
+        ).options(selectinload(WorkoutSession.tags))
     )
     workout = result.scalar_one_or_none()
-    
+
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
     
@@ -293,16 +307,20 @@ async def add_tag_to_workout(
 async def remove_tag_from_workout(
     workout_id: int,
     tag_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Remove a tag from a workout
     """
     result = await db.execute(
-        select(WorkoutSession).where(WorkoutSession.id == workout_id).options(selectinload(WorkoutSession.tags))
+        select(WorkoutSession).where(
+            WorkoutSession.id == workout_id,
+            WorkoutSession.user_id == current_user.id
+        ).options(selectinload(WorkoutSession.tags))
     )
     workout = result.scalar_one_or_none()
-    
+
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
     

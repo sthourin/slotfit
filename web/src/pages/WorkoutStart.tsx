@@ -8,12 +8,11 @@ import RoutineSelector from '../components/workout/RoutineSelector'
 import EquipmentProfileSelector from '../components/workout/EquipmentProfileSelector'
 import QuickFillModal from '../components/workout/QuickFillModal'
 import LastWorkoutOption from '../components/workout/LastWorkoutOption'
-import { useRoutineStore } from '../stores/routineStore'
 import { useEquipmentStore } from '../stores/equipmentStore'
 import { useWorkoutStore } from '../stores/workoutStore'
 import { routineApi, type RoutineTemplate } from '../services/routines'
 import { workoutApi, type WorkoutSession } from '../services/workouts'
-import { exerciseApi, type Exercise } from '../services/exercises'
+import { exerciseApi } from '../services/exercises'
 
 interface SlotExercise {
   slotId: number
@@ -42,7 +41,7 @@ export default function WorkoutStart() {
   
   // Step 3: Exercise pre-fill options
   const [showQuickFillModal, setShowQuickFillModal] = useState(false)
-  const [showLastWorkoutOption, setShowLastWorkoutOption] = useState(false)
+  const [, setShowLastWorkoutOption] = useState(false)
   const [lastWorkout, setLastWorkout] = useState<WorkoutSession | null>(null)
   const [loadingLastWorkout, setLoadingLastWorkout] = useState(false)
   

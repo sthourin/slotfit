@@ -7,6 +7,8 @@ import { type ActiveWorkoutSlot } from '../../stores/workoutStore'
 import { type Exercise } from '../../services/exercises'
 import { useWorkoutStore } from '../../stores/workoutStore'
 import { type WorkoutSet } from '../../services/workouts'
+import { ConfirmDialog } from '../ui'
+import { useConfirm } from '../../hooks/useConfirm'
 
 interface SetTrackerProps {
   slotIndex: number
@@ -24,6 +26,7 @@ export default function SetTracker({
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const previousSlotStateRef = useRef<ActiveWorkoutSlot['slotState']>(slot.slotState)
+  const { confirm, dialogProps } = useConfirm()
 
   // Default values from exercise variant
   const defaultReps = exercise?.default_reps || null
@@ -58,7 +61,7 @@ export default function SetTracker({
   // Expose addSet function for keyboard shortcuts
   useEffect(() => {
     if (slot.slotState === 'in_progress') {
-      (window as Record<string, unknown>).__setTrackerAddSet = handleAddSet
+      (window as unknown as Record<string, unknown>).__setTrackerAddSet = handleAddSet
     }
     return () => {
       delete (window as any).__setTrackerAddSet
@@ -81,8 +84,14 @@ export default function SetTracker({
     handleAddSet()
   }
 
-  const handleRemoveSet = (setIndex: number) => {
-    if (window.confirm('Remove this set?')) {
+  const handleRemoveSet = async (setIndex: number) => {
+    const confirmed = await confirm({
+      title: 'Remove Set',
+      message: 'Are you sure you want to remove this set?',
+      confirmLabel: 'Remove',
+      variant: 'danger',
+    })
+    if (confirmed) {
       removeSet(slotIndex, setIndex)
     }
   }
@@ -140,10 +149,35 @@ export default function SetTracker({
     setEditingSetIndex(setIndex)
   }
 
+  // Target progress calculation
+  const targetSets = slot.targetSets
+  const completedSets = slot.sets.length
+  const progressPercentage = targetSets ? Math.min(100, (completedSets / targetSets) * 100) : 0
+  const isTargetReached = targetSets ? completedSets >= targetSets : false
+
   return (
+    <>
+    <ConfirmDialog {...dialogProps} />
     <div className="bg-white rounded-lg shadow-sm p-6">
+      {/* Header with target progress */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-semibold">Sets</h3>
+        <div className="flex items-center gap-3">
+          <h3 className="text-xl font-semibold">Sets</h3>
+          {targetSets && (
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-sm font-medium ${
+                  isTargetReached ? 'text-green-600' : 'text-gray-500'
+                }`}
+              >
+                {completedSets}/{targetSets}
+              </span>
+              {isTargetReached && (
+                <span className="text-green-600 text-sm">Target reached!</span>
+              )}
+            </div>
+          )}
+        </div>
         {slot.slotState === 'in_progress' && (
           <button
             onClick={handleAddSet}
@@ -153,6 +187,20 @@ export default function SetTracker({
           </button>
         )}
       </div>
+
+      {/* Target Progress Bar */}
+      {targetSets && (
+        <div className="mb-4">
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full transition-all duration-300 ${
+                isTargetReached ? 'bg-green-500' : 'bg-blue-500'
+              }`}
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {slot.sets.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
@@ -203,6 +251,7 @@ export default function SetTracker({
         </div>
       )}
     </div>
+    </>
   )
 }
 
@@ -230,6 +279,8 @@ function SetDisplay({
           <div
             className="text-gray-400 cursor-grab select-none"
             title="Drag to reorder"
+            role="img"
+            aria-label="Drag handle - drag to reorder sets"
           >
             ⠿
           </div>

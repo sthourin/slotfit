@@ -9,6 +9,7 @@ import Workout from './pages/Workout'
 import WorkoutHistory from './pages/WorkoutHistory'
 import Analytics from './pages/Analytics'
 import PersonalRecords from './pages/PersonalRecords'
+import { ToastContainer } from './components/ui'
 import { useUserStore } from './stores/userStore'
 
 function App() {
@@ -98,6 +99,8 @@ function App() {
           <Route path="/records" element={<PersonalRecords />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
+
+        <ToastContainer />
       </div>
     </BrowserRouter>
   )

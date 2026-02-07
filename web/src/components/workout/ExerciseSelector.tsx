@@ -2,7 +2,7 @@
  * Exercise Selector Modal Component
  * Allows selecting an exercise for a slot with AI recommendations, search, and "Why Not" section
  */
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useUIStore } from '../../stores/uiStore'
 import { useWorkoutStore } from '../../stores/workoutStore'
 import { useEquipmentStore } from '../../stores/equipmentStore'
@@ -18,7 +18,7 @@ interface ExerciseSelectorProps {
   slotId: number | null
 }
 
-export default function ExerciseSelector({ slotIndex, muscleGroupIds, slotId }: ExerciseSelectorProps) {
+export default function ExerciseSelector({ slotIndex, muscleGroupIds }: ExerciseSelectorProps) {
   const { modals, closeModal } = useUIStore()
   const { activeWorkout, selectExerciseForSlot } = useWorkoutStore()
   const { getSelectedProfile } = useEquipmentStore()
@@ -29,10 +29,10 @@ export default function ExerciseSelector({ slotIndex, muscleGroupIds, slotId }: 
   const [searchResults, setSearchResults] = useState<Exercise[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<'recommendations' | 'search'>('recommendations')
-  const [loadingExercise, setLoadingExercise] = useState(false)
+  const [, setLoadingExercise] = useState(false)
 
   // Check if this modal instance should be open (match slotIndex from modal data)
-  const modalData = modals.exerciseSelector.data
+  const modalData = modals.exerciseSelector.data as { slotIndex?: number } | undefined
   const isOpen = modals.exerciseSelector.isOpen && modalData?.slotIndex === slotIndex
   const equipmentProfile = getSelectedProfile()
   const availableEquipmentIds = equipmentProfile?.equipment_ids || []
@@ -120,8 +120,9 @@ export default function ExerciseSelector({ slotIndex, muscleGroupIds, slotId }: 
             <button
               onClick={() => closeModal('exerciseSelector')}
               className="text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close exercise selector"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>

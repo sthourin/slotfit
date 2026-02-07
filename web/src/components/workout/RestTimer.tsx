@@ -28,8 +28,6 @@ export default function RestTimer({
     : setInternalIsRunning
   const [soundEnabled, setSoundEnabled] = useState(true)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-
   useEffect(() => {
     if (isRunning && seconds > 0) {
       intervalRef.current = setInterval(() => {
@@ -88,14 +86,6 @@ export default function RestTimer({
     return `${mins}:${String(secs).padStart(2, '0')}`
   }
 
-  const handleStart = () => {
-    setIsRunning(true)
-  }
-
-  const handlePause = () => {
-    setIsRunning(false)
-  }
-
   const handleToggle = () => {
     setIsRunning(!isRunning)
   }
@@ -122,6 +112,7 @@ export default function RestTimer({
               ? 'bg-blue-100 text-blue-600'
               : 'bg-gray-100 text-gray-400'
           }`}
+          aria-label={soundEnabled ? 'Disable sound notification' : 'Enable sound notification'}
           title={soundEnabled ? 'Sound enabled' : 'Sound disabled'}
         >
           <svg
@@ -129,6 +120,7 @@ export default function RestTimer({
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             {soundEnabled ? (
               <path

@@ -5,9 +5,10 @@
 import { useState, useEffect } from 'react'
 import { exerciseApi, Exercise } from '../services/exercises'
 import { equipmentApi, Equipment } from '../services/equipment'
-import { tagsService, type Tag } from '../services/tags'
+import { type Tag } from '../services/tags'
 import { TagInput } from '../components/TagInput'
 import { TagDisplay } from '../components/TagDisplay'
+import { EmptyState } from '../components/ui'
 
 export default function ExerciseBrowser() {
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -126,7 +127,13 @@ export default function ExerciseBrowser() {
       {loading ? (
         <div className="text-center py-12 text-gray-500">Loading exercises...</div>
       ) : exercises.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">No exercises found</div>
+        <div className="bg-white rounded-lg shadow-sm">
+          <EmptyState
+            icon="🔍"
+            title="No exercises found"
+            description="Try adjusting your search filters or browse all exercises."
+          />
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {exercises.map((exercise) => (

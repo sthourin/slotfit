@@ -3,6 +3,8 @@
  * Displays all slots in the routine with drag-and-drop reordering
  */
 import { useRoutineStore } from '../stores/routineStore'
+import { ConfirmDialog } from './ui'
+import { useConfirm } from '../hooks/useConfirm'
 
 interface SlotListProps {
   selectedSlotId: string | null
@@ -11,6 +13,7 @@ interface SlotListProps {
 
 export default function SlotList({ selectedSlotId, onSelectSlot }: SlotListProps) {
   const { currentRoutine, addSlot, removeSlot } = useRoutineStore()
+  const { confirm, dialogProps } = useConfirm()
 
   if (!currentRoutine) return null
 
@@ -25,8 +28,14 @@ export default function SlotList({ selectedSlotId, onSelectSlot }: SlotListProps
     })
   }
 
-  const handleRemoveSlot = (slotId: string) => {
-    if (confirm('Remove this slot?')) {
+  const handleRemoveSlot = async (slotId: string) => {
+    const confirmed = await confirm({
+      title: 'Remove Slot',
+      message: 'Are you sure you want to remove this slot from the routine?',
+      confirmLabel: 'Remove',
+      variant: 'danger',
+    })
+    if (confirmed) {
       removeSlot(slotId)
       if (selectedSlotId === slotId) {
         onSelectSlot('')
@@ -35,6 +44,8 @@ export default function SlotList({ selectedSlotId, onSelectSlot }: SlotListProps
   }
 
   return (
+    <>
+    <ConfirmDialog {...dialogProps} />
     <div className="bg-white rounded-lg shadow">
       <div className="p-4 border-b flex justify-between items-center">
         <h3 className="font-semibold">Slots ({currentRoutine.slots.length})</h3>
@@ -92,6 +103,7 @@ export default function SlotList({ selectedSlotId, onSelectSlot }: SlotListProps
                       handleRemoveSlot(slot.id)
                     }}
                     className="text-red-500 hover:text-red-700 text-sm"
+                    aria-label="Remove slot"
                   >
                     ×
                   </button>
@@ -101,5 +113,6 @@ export default function SlotList({ selectedSlotId, onSelectSlot }: SlotListProps
         )}
       </div>
     </div>
+    </>
   )
 }

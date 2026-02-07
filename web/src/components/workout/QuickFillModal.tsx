@@ -3,9 +3,8 @@
  * Uses AI recommendations to quickly fill all slots with exercises
  */
 import { useState, useEffect } from 'react'
-import { type RoutineTemplate, type RoutineSlot } from '../../services/routines'
+import { type RoutineTemplate } from '../../services/routines'
 import { recommendationApi, type ExerciseRecommendation } from '../../services/recommendations'
-import { exerciseApi, type Exercise } from '../../services/exercises'
 
 interface QuickFillModalProps {
   routine: RoutineTemplate

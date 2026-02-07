@@ -6,7 +6,6 @@ import { useState, useEffect } from 'react'
 import { analyticsApi, type WeeklyVolumeResponse, type SlotPerformanceResponse } from '../services/analytics'
 import { routineApi, type RoutineTemplate } from '../services/routines'
 import VolumeChart from '../components/analytics/VolumeChart'
-import ProgressionChart from '../components/analytics/ProgressionChart'
 import MovementBalance from '../components/analytics/MovementBalance'
 import SlotPerformance from '../components/analytics/SlotPerformance'
 

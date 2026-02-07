@@ -35,7 +35,7 @@ export default function SlotEditor({ slot }: SlotEditorProps) {
   const [showVariantDialog, setShowVariantDialog] = useState(false)
   const [selectedExerciseForVariant, setSelectedExerciseForVariant] = useState<Exercise | null>(null)
   const [filterByRoutineType, setFilterByRoutineType] = useState(true) // Default to filtering enabled
-  const [combinationFilter, setCombinationFilter] = useState<string>('') // '', 'combination', 'single'
+  const [mechanicsFilter, setMechanicsFilter] = useState<string>('') // '', 'Isolation', 'Compound'
   const [secondaryMuscleGroupId, setSecondaryMuscleGroupId] = useState<number | null>(null)
   const [tertiaryMuscleGroupId, setTertiaryMuscleGroupId] = useState<number | null>(null)
   const [availableSecondaryGroups, setAvailableSecondaryGroups] = useState<MuscleGroup[]>([])
@@ -111,7 +111,7 @@ export default function SlotEditor({ slot }: SlotEditorProps) {
       setAvailableSecondaryGroups([])
       setAvailableTertiaryGroups([])
     }
-  }, [slot.muscleGroupIds, slot.workoutStyle, currentRoutine?.routineType, currentRoutine?.workoutStyle, combinationFilter, secondaryMuscleGroupId, tertiaryMuscleGroupId])
+  }, [slot.muscleGroupIds, slot.workoutStyle, currentRoutine?.routineType, currentRoutine?.workoutStyle, mechanicsFilter, secondaryMuscleGroupId, tertiaryMuscleGroupId])
 
   // Load available secondary/tertiary muscle groups when filters change
   useEffect(() => {
@@ -119,7 +119,7 @@ export default function SlotEditor({ slot }: SlotEditorProps) {
     // Clear selected values when filters change (they may no longer be valid)
     setSecondaryMuscleGroupId(null)
     setTertiaryMuscleGroupId(null)
-  }, [slot.muscleGroupIds, combinationFilter])
+  }, [slot.muscleGroupIds, mechanicsFilter])
 
   const loadMuscleGroups = async () => {
     setLoadingMuscleGroups(true)
@@ -181,14 +181,12 @@ export default function SlotEditor({ slot }: SlotEditorProps) {
       // Only send workout_style if it's "HIIT" - the backend only supports HIIT filtering
       // Other workout styles (volume, strength, 5x5) don't have backend filtering yet
       if (effectiveWorkoutStyle && effectiveWorkoutStyle.toUpperCase() === 'HIIT') {
-        params.workout_style = effectiveWorkoutStyle
+        params.workout_style = effectiveWorkoutStyle as typeof params.workout_style
       }
       
-      // Add combination exercises filter if set
-      if (combinationFilter === 'combination') {
-        params.combination_only = true
-      } else if (combinationFilter === 'single') {
-        params.combination_only = false
+      // Add mechanics filter (Isolation/Compound) if set
+      if (mechanicsFilter) {
+        params.mechanics = mechanicsFilter
       }
       
       // Add secondary and tertiary muscle group filters
@@ -246,10 +244,8 @@ export default function SlotEditor({ slot }: SlotEditorProps) {
       const baseParams: Record<string, any> = {
         muscle_group_ids: slot.muscleGroupIds.join(',')
       }
-      if (combinationFilter === 'combination') {
-        baseParams.combination_only = true
-      } else if (combinationFilter === 'single') {
-        baseParams.combination_only = false
+      if (mechanicsFilter) {
+        baseParams.mechanics = mechanicsFilter
       }
 
       // Load secondary groups
@@ -390,26 +386,26 @@ export default function SlotEditor({ slot }: SlotEditorProps) {
           )}
         </div>
 
-        {/* Combination Exercises Filter */}
+        {/* Exercise Mechanics Filter (Isolation/Compound) */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Exercise Type (Optional)
+            Exercise Mechanics (Optional)
           </label>
           <p className="text-xs text-gray-500 mb-2">
-            Filter exercises by whether they target single or multiple muscle groups.
+            Filter by exercise mechanics: isolation (single-joint) or compound (multi-joint).
           </p>
           <select
-            value={combinationFilter}
-            onChange={(e) => setCombinationFilter(e.target.value)}
+            value={mechanicsFilter}
+            onChange={(e) => setMechanicsFilter(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Exercises</option>
-            <option value="combination">Combination Exercises Only</option>
-            <option value="single">Single Muscle Group Only</option>
+            <option value="Isolation">Isolation Exercises Only</option>
+            <option value="Compound">Compound Exercises Only</option>
           </select>
-          {combinationFilter && (
+          {mechanicsFilter && (
             <p className="text-xs text-gray-500 mt-1">
-              Showing: <strong>{combinationFilter === 'combination' ? 'Combination exercises (multiple targets)' : 'Single muscle group exercises'}</strong>
+              Showing: <strong>{mechanicsFilter === 'Isolation' ? 'Isolation exercises (single-joint movements)' : 'Compound exercises (multi-joint movements)'}</strong>
             </p>
           )}
         </div>

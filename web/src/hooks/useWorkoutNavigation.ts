@@ -74,11 +74,10 @@ export function useWorkoutNavigation({
     [activeSlots.length, setCurrentSlot]
   )
 
+  // Note: Confirmation is handled by the calling component (CurrentSlot.tsx)
   const skipCurrentSlot = useCallback(() => {
     if (currentSlotIndex !== null) {
-      if (window.confirm('Are you sure you want to skip this slot?')) {
-        skipSlot(currentSlotIndex)
-      }
+      skipSlot(currentSlotIndex)
     }
   }, [currentSlotIndex, skipSlot])
 
@@ -99,7 +98,7 @@ export function useWorkoutNavigation({
       const slot = activeSlots[currentSlotIndex]
       if (slot && slot.slotState === 'in_progress') {
         // Try to use the SetTracker's addSet function if available
-        const addSetFn = (window as Record<string, unknown>).__setTrackerAddSet
+        const addSetFn = (window as unknown as Record<string, unknown>).__setTrackerAddSet
         if (addSetFn && typeof addSetFn === 'function') {
           addSetFn()
         } else {
@@ -110,6 +109,7 @@ export function useWorkoutNavigation({
             reps: null,
             weight: null,
             rest_seconds: null,
+            rpe: null,
             notes: null,
           })
         }

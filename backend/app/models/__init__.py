@@ -12,6 +12,7 @@ from app.models.workout import (
     WorkoutSet,
     HeartRateReading,
     HeartRateAnalytics,
+    WeightUnit,
 )
 from app.models.equipment_profile import EquipmentProfile
 from app.models.slot_template import SlotTemplate, SlotType
@@ -33,6 +34,7 @@ __all__ = [
     "WorkoutSet",
     "HeartRateReading",
     "HeartRateAnalytics",
+    "WeightUnit",
     "EquipmentProfile",
     "SlotTemplate",
     "SlotType",

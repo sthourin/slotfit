@@ -11,7 +11,8 @@ from app.schemas.tag import Tag
 class RoutineSlotBase(BaseModel):
     name: Optional[str] = None  # Optional name for the slot
     order: int
-    muscle_group_ids: List[int] = []  # Allow empty list
+    primary_muscle_group_id: Optional[int] = None  # Main target muscle group
+    muscle_group_ids: List[int] = []  # Secondary muscle groups (kept for backward compat)
     superset_tag: Optional[str] = None
     selected_exercise_id: Optional[int] = None  # Optional pre-selected exercise
     workout_style: Optional[str] = None  # Optional workout style for this slot (overrides routine workout_style)

@@ -200,10 +200,13 @@ async def list_exercises(
                     query = query.join(subquery, Exercise.id == subquery.c.exercise_id)
                     query = query.where(or_(Exercise.is_combination != "True", Exercise.is_combination.is_(None)))
             else:
-                # Match on any role when not filtering by combination
+                # Match on target role only - exercises that primarily target these muscle groups
                 subquery = (
                     select(exercise_muscle_groups.c.exercise_id)
-                    .where(exercise_muscle_groups.c.muscle_group_id.in_(target_mg_ids))
+                    .where(
+                        exercise_muscle_groups.c.role == "target",
+                        exercise_muscle_groups.c.muscle_group_id.in_(target_mg_ids)
+                    )
                     .distinct()
                     .subquery()
                 )
@@ -358,10 +361,13 @@ async def list_exercises(
                     count_query = count_query.join(subquery, Exercise.id == subquery.c.exercise_id)
                     count_query = count_query.where(or_(Exercise.is_combination != "True", Exercise.is_combination.is_(None)))
             else:
-                # Match on any role when not filtering by combination
+                # Match on target role only - exercises that primarily target these muscle groups
                 subquery = (
                     select(exercise_muscle_groups.c.exercise_id)
-                    .where(exercise_muscle_groups.c.muscle_group_id.in_(count_target_mg_ids))
+                    .where(
+                        exercise_muscle_groups.c.role == "target",
+                        exercise_muscle_groups.c.muscle_group_id.in_(count_target_mg_ids)
+                    )
                     .distinct()
                     .subquery()
                 )
@@ -530,13 +536,14 @@ async def list_exercises(
 @router.get("/available-muscle-groups")
 async def get_available_muscle_groups(
     muscle_group_ids: Optional[str] = None,
-    combination_only: Optional[bool] = None,
+    combination_only: Optional[bool] = None,  # Deprecated: use mechanics instead
+    mechanics: Optional[str] = None,  # "Compound" or "Isolation"
     role: str = Query(..., description="Role to filter by: 'secondary' or 'tertiary'"),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Get available muscle groups for a specific role (secondary or tertiary)
-    based on exercises filtered by target muscle groups and combination filter.
+    based on exercises filtered by target muscle groups and mechanics filter.
     """
     if role not in ["secondary", "tertiary"]:
         raise HTTPException(status_code=400, detail="Role must be 'secondary' or 'tertiary'")
@@ -565,8 +572,11 @@ async def get_available_muscle_groups(
             except ValueError:
                 pass
         
-        # Apply combination filter
-        if combination_only is not None:
+        # Apply mechanics filter (Isolation/Compound)
+        if mechanics:
+            exercise_query = exercise_query.where(Exercise.mechanics == mechanics)
+        # Legacy: Apply combination filter (deprecated, use mechanics instead)
+        elif combination_only is not None:
             if combination_only:
                 exercise_query = exercise_query.where(Exercise.is_combination == "True")
             else:

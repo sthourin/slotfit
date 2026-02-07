@@ -5,6 +5,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { type WorkoutState } from '../../services/workouts'
+import { ConfirmDialog } from '../ui'
+import { useConfirm } from '../../hooks/useConfirm'
+import { useUIStore } from '../../stores/uiStore'
 
 interface WorkoutControlsProps {
   workoutState: WorkoutState
@@ -23,15 +26,17 @@ export default function WorkoutControls({
 }: WorkoutControlsProps) {
   const navigate = useNavigate()
   const [processing, setProcessing] = useState(false)
+  const { confirm, dialogProps } = useConfirm()
+  const { showToast } = useUIStore()
 
   const handleComplete = async () => {
-    if (
-      !window.confirm(
-        'Are you sure you want to complete this workout? This will save all your progress.'
-      )
-    ) {
-      return
-    }
+    const confirmed = await confirm({
+      title: 'Complete Workout',
+      message: 'Are you sure you want to complete this workout? This will save all your progress.',
+      confirmLabel: 'Complete',
+      variant: 'info',
+    })
+    if (!confirmed) return
 
     setProcessing(true)
     try {
@@ -39,20 +44,20 @@ export default function WorkoutControls({
       // Summary will be shown by the Workout page component
     } catch (error) {
       console.error('Failed to complete workout:', error)
-      alert('Failed to complete workout. Please try again.')
+      showToast('error', 'Failed to complete workout. Please try again.')
     } finally {
       setProcessing(false)
     }
   }
 
   const handleAbandon = async () => {
-    if (
-      !window.confirm(
-        'Are you sure you want to abandon this workout? All unsaved progress will be lost.'
-      )
-    ) {
-      return
-    }
+    const confirmed = await confirm({
+      title: 'Abandon Workout',
+      message: 'Are you sure you want to abandon this workout? All unsaved progress will be lost.',
+      confirmLabel: 'Abandon',
+      variant: 'danger',
+    })
+    if (!confirmed) return
 
     setProcessing(true)
     try {
@@ -60,7 +65,7 @@ export default function WorkoutControls({
       navigate('/workout/start')
     } catch (error) {
       console.error('Failed to abandon workout:', error)
-      alert('Failed to abandon workout. Please try again.')
+      showToast('error', 'Failed to abandon workout. Please try again.')
     } finally {
       setProcessing(false)
     }
@@ -70,9 +75,10 @@ export default function WorkoutControls({
     setProcessing(true)
     try {
       await onPause()
+      showToast('info', 'Workout paused')
     } catch (error) {
       console.error('Failed to pause workout:', error)
-      alert('Failed to pause workout. Please try again.')
+      showToast('error', 'Failed to pause workout. Please try again.')
     } finally {
       setProcessing(false)
     }
@@ -82,15 +88,18 @@ export default function WorkoutControls({
     setProcessing(true)
     try {
       await onResume()
+      showToast('success', 'Workout resumed')
     } catch (error) {
       console.error('Failed to resume workout:', error)
-      alert('Failed to resume workout. Please try again.')
+      showToast('error', 'Failed to resume workout. Please try again.')
     } finally {
       setProcessing(false)
     }
   }
 
   return (
+    <>
+    <ConfirmDialog {...dialogProps} />
     <div className="bg-white rounded-lg shadow-sm p-6">
       <h3 className="text-xl font-semibold mb-4">Workout Controls</h3>
 
@@ -149,5 +158,6 @@ export default function WorkoutControls({
         </div>
       </div>
     </div>
+    </>
   )
 }

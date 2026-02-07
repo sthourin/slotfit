@@ -2,7 +2,7 @@
  * PR Notification Component
  * Shows new personal records achieved in the workout
  */
-import { type WorkoutSession, type WorkoutExercise } from '../../services/workouts'
+import { type WorkoutSession } from '../../services/workouts'
 import { type Exercise } from '../../services/exercises'
 import { personalRecordApi, type PersonalRecord } from '../../services/personalRecords'
 import { useState, useEffect } from 'react'

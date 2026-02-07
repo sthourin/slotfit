@@ -2,7 +2,7 @@
  * Last Workout Option Component
  * Shows option to copy exercises from the last completed workout
  */
-import { workoutApi, type WorkoutSession } from '../../services/workouts'
+import { type WorkoutSession } from '../../services/workouts'
 import { formatDistanceToNow } from 'date-fns'
 
 interface LastWorkoutOptionProps {

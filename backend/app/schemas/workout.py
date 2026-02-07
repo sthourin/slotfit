@@ -5,17 +5,20 @@ from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from app.models.workout import WorkoutState, SlotState
+from app.models.workout import WorkoutState, SlotState, WeightUnit
 from app.schemas.tag import Tag
 
 
 class WorkoutSetBase(BaseModel):
     set_number: int
     reps: Optional[int] = None
-    weight: Optional[float] = None
+    weight: Optional[float] = None  # In units specified by parent WorkoutExercise.weight_unit
     rest_seconds: Optional[int] = None
     rpe: Optional[float] = None  # Rate of Perceived Exertion (1-10 scale)
     notes: Optional[str] = None
+    # Timed/cardio exercise fields
+    duration_seconds: Optional[int] = None  # For timed exercises (HIIT, planks, etc.)
+    distance_meters: Optional[float] = None  # For distance-based exercises (rowing, running)
 
 
 class WorkoutSetCreate(WorkoutSetBase):
@@ -29,6 +32,8 @@ class WorkoutSetUpdate(BaseModel):
     rest_seconds: Optional[int] = None
     rpe: Optional[float] = None  # Rate of Perceived Exertion (1-10 scale)
     notes: Optional[str] = None
+    duration_seconds: Optional[int] = None
+    distance_meters: Optional[float] = None
 
 
 class WorkoutSetResponse(WorkoutSetBase):
@@ -42,6 +47,7 @@ class WorkoutExerciseBase(BaseModel):
     exercise_id: int
     slot_id: Optional[int] = None
     slot_state: SlotState = SlotState.NOT_STARTED
+    weight_unit: WeightUnit = WeightUnit.LBS  # Unit for all sets in this exercise
     started_at: Optional[datetime] = None
     stopped_at: Optional[datetime] = None
 
@@ -52,6 +58,7 @@ class WorkoutExerciseCreate(WorkoutExerciseBase):
 
 class WorkoutExerciseUpdate(BaseModel):
     slot_state: Optional[SlotState] = None
+    weight_unit: Optional[WeightUnit] = None  # Change unit for all sets in this exercise
     started_at: Optional[datetime] = None
     stopped_at: Optional[datetime] = None
 

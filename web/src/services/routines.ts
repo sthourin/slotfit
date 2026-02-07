@@ -2,22 +2,29 @@
  * Routine API service
  */
 import { apiClient } from './api'
+import type { SlotType } from './slotTemplates'
+
+export type { SlotType }
 
 export interface RoutineSlot {
   id: number
   routine_template_id: number
   name: string | null
   order: number
-  muscle_group_ids: number[]
+  primary_muscle_group_id: number | null // Main target muscle group
+  muscle_group_ids: number[] // Secondary muscle groups (kept for backward compat)
   superset_tag: string | null
   selected_exercise_id: number | null
   workout_style: string | null // Optional workout style for this slot (overrides routine workout_style)
-  slot_type?: string // 'standard' | 'warmup' | 'finisher' | 'active_recovery' | 'wildcard'
+  slot_type: SlotType // 'standard' | 'warmup' | 'finisher' | 'active_recovery' | 'wildcard'
   slot_template_id?: number | null
   time_limit_seconds?: number | null
   required_equipment_ids?: number[] | null
+  target_sets?: number | null
   target_reps_min?: number | null
   target_reps_max?: number | null
+  target_weight?: number | null
+  target_rest_seconds?: number | null
   progression_rule?: Record<string, any> | null
 }
 
@@ -39,16 +46,20 @@ export interface RoutineTemplateListResponse {
 export interface RoutineSlotCreate {
   name?: string | null
   order: number
+  primary_muscle_group_id?: number | null
   muscle_group_ids: number[]
   superset_tag?: string | null
   selected_exercise_id?: number | null
   workout_style?: string | null
-  slot_type?: string
+  slot_type?: SlotType
   slot_template_id?: number | null
   time_limit_seconds?: number | null
   required_equipment_ids?: number[] | null
+  target_sets?: number | null
   target_reps_min?: number | null
   target_reps_max?: number | null
+  target_weight?: number | null
+  target_rest_seconds?: number | null
   progression_rule?: Record<string, any> | null
 }
 

@@ -2,7 +2,7 @@
  * Workout Summary Component
  * Displays summary of completed workout
  */
-import { type WorkoutSession, type WorkoutExercise } from '../../services/workouts'
+import { type WorkoutSession } from '../../services/workouts'
 import { exerciseApi, type Exercise } from '../../services/exercises'
 import { useState, useEffect } from 'react'
 import VolumeBreakdown from './VolumeBreakdown'
@@ -215,8 +215,9 @@ export default function WorkoutSummary({
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close workout summary"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>

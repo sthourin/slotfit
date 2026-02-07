@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react'
 import { useRoutineStore } from '../stores/routineStore'
 import { routineApi } from '../services/routines'
-import { tagsService, type Tag } from '../services/tags'
+import { type Tag } from '../services/tags'
 import { TagInput } from './TagInput'
 import { TagDisplay } from './TagDisplay'
 
@@ -13,7 +13,7 @@ export default function RoutineHeader() {
   const { currentRoutine, setCurrentRoutine, saveRoutine, saving, updateRoutineTags } = useRoutineStore()
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [routineTags, setRoutineTags] = useState<Tag[]>([])
-  const [savingTags, setSavingTags] = useState(false)
+  const [, setSavingTags] = useState(false)
 
   // Sync tags from store
   useEffect(() => {
@@ -115,7 +115,7 @@ export default function RoutineHeader() {
             </label>
             <select
               value={currentRoutine.routineType}
-              onChange={(e) => updateField('routineType', e.target.value)}
+              onChange={(e) => updateField('routineType', e.target.value as typeof currentRoutine.routineType)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="anterior">Anterior</option>
@@ -131,7 +131,7 @@ export default function RoutineHeader() {
             </label>
             <select
               value={currentRoutine.workoutStyle}
-              onChange={(e) => updateField('workoutStyle', e.target.value)}
+              onChange={(e) => updateField('workoutStyle', e.target.value as typeof currentRoutine.workoutStyle)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="5x5">5x5</option>

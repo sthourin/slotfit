@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { equipmentProfileApi, type EquipmentProfile } from '../../services/equipmentProfiles'
 import EquipmentProfileModal from './EquipmentProfileModal'
+import { ConfirmDialog } from '../ui'
+import { useConfirm } from '../../hooks/useConfirm'
+import { useUIStore } from '../../stores/uiStore'
 
 interface EquipmentProfilesSectionProps {
   onUpdate?: () => void
@@ -12,6 +15,8 @@ function EquipmentProfilesSection({ onUpdate }: EquipmentProfilesSectionProps) {
   const [showModal, setShowModal] = useState(false)
   const [editingProfile, setEditingProfile] = useState<EquipmentProfile | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const { confirm, dialogProps } = useConfirm()
+  const { showToast } = useUIStore()
 
   const fetchProfiles = async () => {
     setLoading(true)
@@ -40,18 +45,23 @@ function EquipmentProfilesSection({ onUpdate }: EquipmentProfilesSectionProps) {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this equipment profile?')) {
-      return
-    }
+    const confirmed = await confirm({
+      title: 'Delete Equipment Profile',
+      message: 'Are you sure you want to delete this equipment profile?',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    })
+    if (!confirmed) return
 
     setDeletingId(id)
     try {
       await equipmentProfileApi.delete(id)
       await fetchProfiles()
       onUpdate?.()
+      showToast('success', 'Equipment profile deleted')
     } catch (error) {
       console.error('Failed to delete equipment profile:', error)
-      alert('Failed to delete equipment profile. Please try again.')
+      showToast('error', 'Failed to delete equipment profile. Please try again.')
     } finally {
       setDeletingId(null)
     }
@@ -62,9 +72,10 @@ function EquipmentProfilesSection({ onUpdate }: EquipmentProfilesSectionProps) {
       await equipmentProfileApi.setDefault(id)
       await fetchProfiles()
       onUpdate?.()
+      showToast('success', 'Default profile updated')
     } catch (error) {
       console.error('Failed to set default profile:', error)
-      alert('Failed to set default profile. Please try again.')
+      showToast('error', 'Failed to set default profile. Please try again.')
     }
   }
 
@@ -85,6 +96,7 @@ function EquipmentProfilesSection({ onUpdate }: EquipmentProfilesSectionProps) {
 
   return (
     <>
+      <ConfirmDialog {...dialogProps} />
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Equipment Profiles</h2>
@@ -92,7 +104,7 @@ function EquipmentProfilesSection({ onUpdate }: EquipmentProfilesSectionProps) {
             onClick={handleCreate}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
           >
-            <svg className="h-5 w-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             Add Profile
@@ -112,7 +124,7 @@ function EquipmentProfilesSection({ onUpdate }: EquipmentProfilesSectionProps) {
               >
                 <div className="flex items-center space-x-3">
                   {profile.is_default && (
-                    <svg className="h-5 w-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="h-5 w-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20" aria-label="Default profile">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                   )}

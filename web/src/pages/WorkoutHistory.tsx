@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { workoutApi, type WorkoutSession } from '../services/workouts'
 import WorkoutCard from '../components/history/WorkoutCard'
 import WorkoutDetail from '../components/history/WorkoutDetail'
+import { EmptyState } from '../components/ui'
 
 export default function WorkoutHistory() {
   const [workouts, setWorkouts] = useState<WorkoutSession[]>([])
@@ -71,9 +72,16 @@ export default function WorkoutHistory() {
         </div>
 
         {workouts.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <p className="text-gray-500 text-lg">No workout history yet.</p>
-            <p className="text-gray-400 mt-2">Complete your first workout to see it here!</p>
+          <div className="bg-white rounded-lg shadow-sm">
+            <EmptyState
+              icon="📊"
+              title="No workout history yet"
+              description="Complete your first workout to see it here!"
+              action={{
+                label: 'Start a Workout',
+                href: '/workout/start',
+              }}
+            />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

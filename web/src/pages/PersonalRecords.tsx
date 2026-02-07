@@ -7,6 +7,7 @@ import { personalRecordApi, type PersonalRecord, type RecordType } from '../serv
 import { exerciseApi, type Exercise } from '../services/exercises'
 import PRCard from '../components/records/PRCard'
 import PRHistory from '../components/records/PRHistory'
+import { EmptyState } from '../components/ui'
 
 export default function PersonalRecords() {
   const [records, setRecords] = useState<PersonalRecord[]>([])
@@ -152,9 +153,16 @@ export default function PersonalRecords() {
         </div>
 
         {records.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <p className="text-gray-500 text-lg">No personal records yet.</p>
-            <p className="text-gray-400 mt-2">Complete workouts to start tracking your PRs!</p>
+          <div className="bg-white rounded-lg shadow-sm">
+            <EmptyState
+              icon="🏆"
+              title="No personal records yet"
+              description="Complete workouts to start tracking your PRs!"
+              action={{
+                label: 'Start a Workout',
+                href: '/workout/start',
+              }}
+            />
           </div>
         ) : (
           <div className="space-y-4">

@@ -44,7 +44,8 @@ class RoutineSlot(Base):
     routine_template_id = Column(Integer, ForeignKey("routine_templates.id"), nullable=False)
     name = Column(String, nullable=True)  # Optional name for the slot (e.g., "Warm-up", "Main Set 1")
     order = Column(Integer, nullable=False)  # Mutable during workout
-    muscle_group_ids = Column(JSONB, nullable=False)  # Array of muscle group IDs for slot scope
+    primary_muscle_group_id = Column(Integer, ForeignKey("muscle_groups.id"), nullable=True)  # Main target muscle group
+    muscle_group_ids = Column(JSONB, nullable=False)  # Secondary muscle group IDs (kept for backward compat)
     # Note: JSONB stores as JSON array, e.g., [1, 2, 3]
     superset_tag = Column(String, nullable=True)  # Tag for visual grouping (slots with same tag are superset)
     selected_exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=True)  # Optional pre-selected exercise for this slot
@@ -67,6 +68,7 @@ class RoutineSlot(Base):
     routine_template = relationship("RoutineTemplate", back_populates="slots")
     workout_exercises = relationship("WorkoutExercise", back_populates="slot")
     slot_template = relationship("SlotTemplate", foreign_keys=[slot_template_id])
+    primary_muscle_group = relationship("MuscleGroup", foreign_keys=[primary_muscle_group_id])
 
     def __repr__(self):
         return f"<RoutineSlot(id={self.id}, order={self.order}, routine_id={self.routine_template_id}, slot_type='{self.slot_type.value}')>"

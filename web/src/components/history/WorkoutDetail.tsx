@@ -9,7 +9,7 @@ import VolumeBreakdown from '../workout/VolumeBreakdown'
 import { TagDisplay } from '../TagDisplay'
 import { TagInput } from '../TagInput'
 import { workoutApi } from '../../services/workouts'
-import { tagsService, type Tag } from '../../services/tags'
+import { type Tag } from '../../services/tags'
 
 interface WorkoutDetailProps {
   workout: WorkoutSession
@@ -151,8 +151,9 @@ export default function WorkoutDetail({ workout, onClose }: WorkoutDetailProps) 
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close workout details"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>

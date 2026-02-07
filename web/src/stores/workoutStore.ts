@@ -10,16 +10,32 @@ import type {
 } from '../services/workouts'
 import { workoutApi } from '../services/workouts'
 
+import type { SlotType } from '../services/routines'
+
+export type { SlotType }
+
 export interface ActiveWorkoutSlot {
   slotId: number | null // From routine_slots.id
   exerciseId: number | null // Selected exercise
   exerciseName: string | null
   workoutExerciseId: number | null // Backend workout_exercise.id (for syncing sets)
-  muscleGroupIds: number[] // Muscle group IDs for this slot (from routine slot)
+  muscleGroupIds: number[] // Muscle group IDs for this slot (from routine slot) - kept for backward compat
   slotState: SlotState
   sets: WorkoutSet[]
   startedAt: string | null // ISO date string
   stoppedAt: string | null // ISO date string
+  // Slot specification fields
+  slotName: string | null
+  slotType: SlotType
+  workoutStyle: string | null
+  supersetTag: string | null
+  primaryMuscleGroupId: number | null
+  secondaryMuscleGroupIds: number[]
+  targetSets: number | null
+  targetRepsMin: number | null
+  targetRepsMax: number | null
+  targetWeight: number | null
+  targetRestSeconds: number | null
 }
 
 interface WorkoutStore {
@@ -73,7 +89,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
       loading: false,
       saving: false,
 
-      initializeWorkout: async (routineId: number, equipmentProfileId?: number) => {
+      initializeWorkout: async (routineId: number, _equipmentProfileId?: number) => {
         set({ loading: true })
         try {
           // Create a new workout session
@@ -97,6 +113,18 @@ export const useWorkoutStore = create<WorkoutStore>()(
             sets: [],
             startedAt: null,
             stoppedAt: null,
+            // Slot specification fields
+            slotName: slot.name,
+            slotType: (slot.slot_type as SlotType) || 'standard',
+            workoutStyle: slot.workout_style || routine.workout_style,
+            supersetTag: slot.superset_tag,
+            primaryMuscleGroupId: slot.primary_muscle_group_id,
+            secondaryMuscleGroupIds: slot.muscle_group_ids,
+            targetSets: slot.target_sets ?? null,
+            targetRepsMin: slot.target_reps_min ?? null,
+            targetRepsMax: slot.target_reps_max ?? null,
+            targetWeight: slot.target_weight ?? null,
+            targetRestSeconds: slot.target_rest_seconds ?? null,
           }))
           
           set({
@@ -115,7 +143,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
       initializeWorkoutWithSlots: async (
         routineId: number,
         slots: Array<{ slotId: number; exerciseId: number | null; exerciseName: string | null }>,
-        equipmentProfileId?: number
+        _equipmentProfileId?: number
       ) => {
         set({ loading: true })
         try {
@@ -129,24 +157,39 @@ export const useWorkoutStore = create<WorkoutStore>()(
           const { routineApi } = await import('../services/routines')
           const routine = await routineApi.get(routineId)
           
-          // Create a map of slotId to muscle_group_ids
-          const slotMuscleGroupsMap = new Map<number, number[]>()
-          routine.slots.forEach((slot) => {
-            slotMuscleGroupsMap.set(slot.id, slot.muscle_group_ids)
+          // Create a map of slotId to routine slot details
+          const slotDetailsMap = new Map<number, typeof routine.slots[0]>()
+          routine.slots.forEach((routineSlot) => {
+            slotDetailsMap.set(routineSlot.id, routineSlot)
           })
-          
+
           // Initialize slots with pre-filled exercises
-          const activeSlots: ActiveWorkoutSlot[] = slots.map((slot) => ({
-            slotId: slot.slotId,
-            exerciseId: slot.exerciseId,
-            exerciseName: slot.exerciseName,
-            workoutExerciseId: null, // Will be set when exercise is added to workout
-            muscleGroupIds: slotMuscleGroupsMap.get(slot.slotId) || [],
-            slotState: 'not_started',
-            sets: [],
-            startedAt: null,
-            stoppedAt: null,
-          }))
+          const activeSlots: ActiveWorkoutSlot[] = slots.map((slot) => {
+            const routineSlot = slotDetailsMap.get(slot.slotId)
+            return {
+              slotId: slot.slotId,
+              exerciseId: slot.exerciseId,
+              exerciseName: slot.exerciseName,
+              workoutExerciseId: null, // Will be set when exercise is added to workout
+              muscleGroupIds: routineSlot?.muscle_group_ids || [],
+              slotState: 'not_started',
+              sets: [],
+              startedAt: null,
+              stoppedAt: null,
+              // Slot specification fields
+              slotName: routineSlot?.name ?? null,
+              slotType: (routineSlot?.slot_type as SlotType) || 'standard',
+              workoutStyle: routineSlot?.workout_style || routine.workout_style,
+              supersetTag: routineSlot?.superset_tag ?? null,
+              primaryMuscleGroupId: routineSlot?.primary_muscle_group_id ?? null,
+              secondaryMuscleGroupIds: routineSlot?.muscle_group_ids || [],
+              targetSets: routineSlot?.target_sets ?? null,
+              targetRepsMin: routineSlot?.target_reps_min ?? null,
+              targetRepsMax: routineSlot?.target_reps_max ?? null,
+              targetWeight: routineSlot?.target_weight ?? null,
+              targetRestSeconds: routineSlot?.target_rest_seconds ?? null,
+            }
+          })
           
           // Add exercises to workout if they're pre-filled
           for (let i = 0; i < slots.length; i++) {
@@ -182,33 +225,51 @@ export const useWorkoutStore = create<WorkoutStore>()(
         set({ loading: true })
         try {
           const workout = await workoutApi.get(workoutId)
-          
-          // Load routine to get muscle_group_ids for slots
-          const slotMuscleGroupsMap = new Map<number, number[]>()
+
+          // Load routine to get slot details
+          const slotDetailsMap = new Map<number, { muscleGroupIds: number[]; routineSlot: any }>()
+          let routineWorkoutStyle: string | null = null
           if (workout.routine_template_id) {
             try {
               const { routineApi } = await import('../services/routines')
               const routine = await routineApi.get(workout.routine_template_id)
+              routineWorkoutStyle = routine.workout_style
               routine.slots.forEach((slot) => {
-                slotMuscleGroupsMap.set(slot.id, slot.muscle_group_ids)
+                slotDetailsMap.set(slot.id, { muscleGroupIds: slot.muscle_group_ids, routineSlot: slot })
               })
             } catch (error) {
-              console.error('Failed to load routine for muscle groups:', error)
+              console.error('Failed to load routine for slot details:', error)
             }
           }
-          
+
           // Convert workout exercises to active slots
-          const activeSlots: ActiveWorkoutSlot[] = workout.exercises.map((exercise) => ({
-            slotId: exercise.slot_id,
-            exerciseId: exercise.exercise_id,
-            exerciseName: null, // Would need to fetch exercise name separately
-            workoutExerciseId: exercise.id, // Backend workout_exercise.id
-            muscleGroupIds: slotMuscleGroupsMap.get(exercise.slot_id || 0) || [],
-            slotState: exercise.slot_state,
-            sets: exercise.sets,
-            startedAt: exercise.started_at,
-            stoppedAt: exercise.stopped_at,
-          }))
+          const activeSlots: ActiveWorkoutSlot[] = workout.exercises.map((exercise) => {
+            const slotDetails = slotDetailsMap.get(exercise.slot_id || 0)
+            const routineSlot = slotDetails?.routineSlot
+            return {
+              slotId: exercise.slot_id,
+              exerciseId: exercise.exercise_id,
+              exerciseName: null, // Would need to fetch exercise name separately
+              workoutExerciseId: exercise.id, // Backend workout_exercise.id
+              muscleGroupIds: slotDetails?.muscleGroupIds || [],
+              slotState: exercise.slot_state,
+              sets: exercise.sets,
+              startedAt: exercise.started_at,
+              stoppedAt: exercise.stopped_at,
+              // Slot specification fields
+              slotName: routineSlot?.name ?? null,
+              slotType: (routineSlot?.slot_type as SlotType) || 'standard',
+              workoutStyle: routineSlot?.workout_style || routineWorkoutStyle,
+              supersetTag: routineSlot?.superset_tag ?? null,
+              primaryMuscleGroupId: routineSlot?.primary_muscle_group_id ?? null,
+              secondaryMuscleGroupIds: routineSlot?.muscle_group_ids || [],
+              targetSets: routineSlot?.target_sets ?? null,
+              targetRepsMin: routineSlot?.target_reps_min ?? null,
+              targetRepsMax: routineSlot?.target_reps_max ?? null,
+              targetWeight: routineSlot?.target_weight ?? null,
+              targetRestSeconds: routineSlot?.target_rest_seconds ?? null,
+            }
+          })
           
           // Find current slot (first in_progress or first not_started)
           const currentIndex =
@@ -354,16 +415,29 @@ export const useWorkoutStore = create<WorkoutStore>()(
         set((state) => {
           const newSlots = [...state.activeSlots]
           if (!newSlots[slotIndex]) {
-            // Create new slot if it doesn't exist
+            // Create new slot if it doesn't exist (shouldn't normally happen)
             newSlots[slotIndex] = {
               slotId: null,
               exerciseId,
               exerciseName,
-              muscleGroupIds: [], // Default empty, should be populated from routine slot
+              workoutExerciseId: null,
+              muscleGroupIds: [],
               slotState: 'not_started',
               sets: [],
               startedAt: null,
               stoppedAt: null,
+              // Default slot spec fields
+              slotName: null,
+              slotType: 'standard',
+              workoutStyle: null,
+              supersetTag: null,
+              primaryMuscleGroupId: null,
+              secondaryMuscleGroupIds: [],
+              targetSets: null,
+              targetRepsMin: null,
+              targetRepsMax: null,
+              targetWeight: null,
+              targetRestSeconds: null,
             }
           } else {
             newSlots[slotIndex] = {

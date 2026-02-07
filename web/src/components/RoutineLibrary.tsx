@@ -6,6 +6,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { routineApi, type RoutineTemplate } from '../services/routines'
 import { useRoutineStore } from '../stores/routineStore'
 import { TagDisplay } from './TagDisplay'
+import { ConfirmDialog } from './ui'
+import { useConfirm } from '../hooks/useConfirm'
+import { useUIStore } from '../stores/uiStore'
 
 export default function RoutineLibrary() {
   const { currentRoutine, setCurrentRoutine, loadRoutine } = useRoutineStore()
@@ -13,6 +16,8 @@ export default function RoutineLibrary() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busyIds, setBusyIds] = useState<Set<number>>(new Set())
+  const { confirm, dialogProps } = useConfirm()
+  const { showToast } = useUIStore()
 
   const currentRoutineId = currentRoutine?.id ?? null
 
@@ -73,7 +78,7 @@ export default function RoutineLibrary() {
       await loadRoutine(routineId)
     } catch (err) {
       console.error('Failed to load routine:', err)
-      alert('Failed to load routine. Please try again.')
+      showToast('error', 'Failed to load routine. Please try again.')
     } finally {
       updateBusy(routineId, false)
     }
@@ -113,16 +118,24 @@ export default function RoutineLibrary() {
 
       await loadRoutine(created.id)
       await loadRoutines()
+      showToast('success', 'Routine copied successfully')
     } catch (err) {
       console.error('Failed to copy routine:', err)
-      alert('Failed to copy routine. Please try again.')
+      showToast('error', 'Failed to copy routine. Please try again.')
     } finally {
       updateBusy(routineId, false)
     }
   }
 
   const handleDelete = async (routineId: number) => {
-    if (!confirm('Delete this routine? This cannot be undone.')) return
+    const confirmed = await confirm({
+      title: 'Delete Routine',
+      message: 'Are you sure you want to delete this routine? This cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    })
+    if (!confirmed) return
+
     updateBusy(routineId, true)
     try {
       await routineApi.delete(routineId)
@@ -130,15 +143,18 @@ export default function RoutineLibrary() {
         setCurrentRoutine(null)
       }
       await loadRoutines()
+      showToast('success', 'Routine deleted')
     } catch (err) {
       console.error('Failed to delete routine:', err)
-      alert('Failed to delete routine. Please try again.')
+      showToast('error', 'Failed to delete routine. Please try again.')
     } finally {
       updateBusy(routineId, false)
     }
   }
 
   return (
+    <>
+    <ConfirmDialog {...dialogProps} />
     <div className="bg-white rounded-lg shadow p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">Routine Library</h2>
@@ -211,5 +227,6 @@ export default function RoutineLibrary() {
         </div>
       )}
     </div>
+    </>
   )
 }

@@ -3,7 +3,7 @@
  * Search and filter all exercises
  */
 import { useState, useEffect } from 'react'
-import { exerciseApi, type Exercise } from '../../services/exercises'
+import { type Exercise } from '../../services/exercises'
 
 interface ExerciseSearchProps {
   searchQuery: string

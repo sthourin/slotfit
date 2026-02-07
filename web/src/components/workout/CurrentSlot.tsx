@@ -1,12 +1,21 @@
 /**
- * Current Slot Component
- * Displays information about the current slot being worked on
+ * CurrentSlot Component - Slot-First Design
+ * Displays the slot specification as the primary focus, with exercise as a selection that fills it
  */
-import { type ActiveWorkoutSlot } from '../../stores/workoutStore'
-import { type Exercise } from '../../services/exercises'
+import { useState, useEffect, useCallback } from 'react'
+import type { ActiveWorkoutSlot } from '../../stores/workoutStore'
+import type { Exercise } from '../../services/exercises'
+import type { MuscleGroup } from '../../services/api'
 import { useWorkoutStore } from '../../stores/workoutStore'
 import { useUIStore } from '../../stores/uiStore'
+import { muscleGroupApi } from '../../services/muscleGroups'
+import { recommendationApi } from '../../services/recommendations'
 import ExerciseSelector from './ExerciseSelector'
+import { ConfirmDialog } from '../ui'
+import { useConfirm } from '../../hooks/useConfirm'
+import SlotSpecificationCard from './SlotSpecificationCard'
+import ExerciseSelectionCard from './ExerciseSelectionCard'
+import QuickAlternatives from './QuickAlternatives'
 
 interface CurrentSlotProps {
   slot: ActiveWorkoutSlot
@@ -15,15 +24,103 @@ interface CurrentSlotProps {
   loadingExercise: boolean
 }
 
+interface Alternative {
+  exerciseId: number
+  exerciseName: string
+  matchScore?: number
+}
+
 export default function CurrentSlot({
   slot,
   slotIndex,
   exercise,
   loadingExercise,
 }: CurrentSlotProps) {
-  const { startSlot, completeSlot, skipSlot } = useWorkoutStore()
-  const { openModal } = useUIStore()
+  const { startSlot, completeSlot, skipSlot, selectExerciseForSlot, activeWorkout } = useWorkoutStore()
+  const { openModal, showToast } = useUIStore()
+  const { confirm, dialogProps } = useConfirm()
 
+  // Muscle group state
+  const [muscleGroups, setMuscleGroups] = useState<MuscleGroup[]>([])
+  const [muscleGroupsLoaded, setMuscleGroupsLoaded] = useState(false)
+
+  // Recommendations state for quick alternatives
+  const [alternatives, setAlternatives] = useState<Alternative[]>([])
+  const [loadingAlternatives, setLoadingAlternatives] = useState(false)
+
+  // Load muscle groups once
+  useEffect(() => {
+    if (!muscleGroupsLoaded) {
+      muscleGroupApi.list().then((groups) => {
+        setMuscleGroups(groups)
+        setMuscleGroupsLoaded(true)
+      }).catch((err) => {
+        console.error('Failed to load muscle groups:', err)
+      })
+    }
+  }, [muscleGroupsLoaded])
+
+  // Load recommendations when slot changes
+  const loadAlternatives = useCallback(async () => {
+    const muscleIds = slot.primaryMuscleGroupId
+      ? [slot.primaryMuscleGroupId, ...slot.secondaryMuscleGroupIds]
+      : slot.muscleGroupIds
+
+    if (muscleIds.length === 0) {
+      setAlternatives([])
+      return
+    }
+
+    setLoadingAlternatives(true)
+    try {
+      const response = await recommendationApi.getRecommendations({
+        muscle_group_ids: muscleIds,
+        available_equipment_ids: [], // TODO: Get from equipment profile
+        workout_session_id: activeWorkout?.id,
+        limit: 8,
+      })
+
+      setAlternatives(
+        response.recommendations.map((rec) => ({
+          exerciseId: rec.exercise_id,
+          exerciseName: rec.exercise_name,
+          matchScore: Math.round(rec.priority_score * 100),
+        }))
+      )
+    } catch (err) {
+      console.error('Failed to load recommendations:', err)
+      setAlternatives([])
+    } finally {
+      setLoadingAlternatives(false)
+    }
+  }, [slot.primaryMuscleGroupId, slot.secondaryMuscleGroupIds, slot.muscleGroupIds, activeWorkout?.id])
+
+  useEffect(() => {
+    loadAlternatives()
+  }, [loadAlternatives])
+
+  // Resolve muscle group IDs to objects
+  const primaryMuscleGroup = slot.primaryMuscleGroupId
+    ? muscleGroups.find((mg) => mg.id === slot.primaryMuscleGroupId) || null
+    : null
+
+  const secondaryMuscleGroups = slot.secondaryMuscleGroupIds
+    .map((id) => muscleGroups.find((mg) => mg.id === id))
+    .filter((mg): mg is MuscleGroup => mg !== undefined)
+
+  // Fallback: if no primary, treat first muscleGroupId as primary for display
+  const displayPrimaryMuscleGroup = primaryMuscleGroup
+    || (slot.muscleGroupIds.length > 0
+      ? muscleGroups.find((mg) => mg.id === slot.muscleGroupIds[0]) || null
+      : null)
+
+  const displaySecondaryMuscleGroups = primaryMuscleGroup
+    ? secondaryMuscleGroups
+    : slot.muscleGroupIds.slice(1)
+        .map((id) => muscleGroups.find((mg) => mg.id === id))
+        .filter((mg): mg is MuscleGroup => mg !== undefined)
+
+  // Handlers
   const handleSelectExercise = () => {
     openModal('exerciseSelector', { slotIndex, muscleGroupIds: slot.muscleGroupIds, slotId: slot.slotId })
   }
@@ -34,113 +131,86 @@ export default function CurrentSlot({
 
   const handleComplete = () => {
     completeSlot(slotIndex)
+    showToast('success', 'Slot completed!')
   }
 
-  const handleSkip = () => {
-    if (window.confirm('Are you sure you want to skip this slot?')) {
+  const handleSkip = async () => {
+    const confirmed = await confirm({
+      title: 'Skip Slot',
+      message: 'Are you sure you want to skip this slot?',
+      confirmLabel: 'Skip',
+      variant: 'warning',
+    })
+    if (confirmed) {
       skipSlot(slotIndex)
+      showToast('info', 'Slot skipped')
     }
   }
 
+  const handleQuickSwap = async (exerciseId: number, exerciseName: string) => {
+    await selectExerciseForSlot(slotIndex, exerciseId, exerciseName)
+    showToast('success', `Switched to ${exerciseName}`)
+    // Refresh alternatives
+    loadAlternatives()
+  }
+
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h2 className="text-2xl font-bold mb-2">
-            Slot {slotIndex + 1}
-            {slot.slotState === 'in_progress' && (
-              <span className="ml-2 text-sm font-normal text-blue-600">
-                (In Progress)
-              </span>
-            )}
-            {slot.slotState === 'completed' && (
-              <span className="ml-2 text-sm font-normal text-green-600">
-                (Completed)
-              </span>
-            )}
-          </h2>
+    <>
+      <ConfirmDialog {...dialogProps} />
+      <div className="space-y-4">
+        {/* Slot Specification Card - The primary visual element */}
+        <SlotSpecificationCard
+          slotNumber={slotIndex + 1}
+          slotName={slot.slotName}
+          slotType={slot.slotType}
+          primaryMuscleGroup={displayPrimaryMuscleGroup}
+          secondaryMuscleGroups={displaySecondaryMuscleGroups}
+          workoutStyle={slot.workoutStyle}
+          targetSets={slot.targetSets}
+          targetRepsMin={slot.targetRepsMin}
+          targetRepsMax={slot.targetRepsMax}
+          targetWeight={slot.targetWeight}
+          targetRestSeconds={slot.targetRestSeconds}
+          completedSets={slot.sets.length}
+          slotState={slot.slotState}
+        />
 
-          {loadingExercise ? (
-            <div className="text-gray-500">Loading exercise...</div>
-          ) : exercise ? (
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                {exercise.name}
-              </h3>
-              {exercise.difficulty && (
-                <span className="inline-block mt-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                  {exercise.difficulty}
-                </span>
-              )}
-            </div>
-          ) : slot.exerciseName ? (
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                {slot.exerciseName}
-              </h3>
-            </div>
-          ) : (
-            <div className="text-gray-500 italic">
-              No exercise selected yet
-            </div>
-          )}
-        </div>
+        {/* Exercise Selection Card - Shows current exercise as one option */}
+        <ExerciseSelectionCard
+          exercise={exercise}
+          loading={loadingExercise}
+          primaryMuscleGroup={displayPrimaryMuscleGroup}
+          secondaryMuscleGroups={displaySecondaryMuscleGroups}
+          slotState={slot.slotState}
+          onSwap={handleSelectExercise}
+          onStart={handleStart}
+          onComplete={handleComplete}
+          onSelectExercise={handleSelectExercise}
+        />
 
-        {/* Slot Actions */}
-        <div className="flex gap-2">
-          {slot.slotState === 'not_started' && (
-            <>
-              {!slot.exerciseId && (
-                <button
-                  onClick={handleSelectExercise}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                >
-                  Select Exercise
-                </button>
-              )}
-              {slot.exerciseId && (
-                <button
-                  onClick={handleStart}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Start Slot
-                </button>
-              )}
-              <button
-                onClick={handleSkip}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Skip
-              </button>
-            </>
-          )}
-          {slot.slotState === 'in_progress' && (
-            <>
-              <button
-                onClick={handleSelectExercise}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-              >
-                Change Exercise
-              </button>
-              <button
-                onClick={handleComplete}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Complete Slot
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+        {/* Quick Alternatives - Inline swap options */}
+        {slot.slotState !== 'completed' && slot.slotState !== 'skipped' && (
+          <QuickAlternatives
+            currentExerciseId={slot.exerciseId}
+            alternatives={alternatives}
+            loading={loadingAlternatives}
+            onSelect={handleQuickSwap}
+            onShowMore={handleSelectExercise}
+          />
+        )}
 
-      {/* Sets Summary */}
-      {slot.sets.length > 0 && (
-        <div className="mt-4 pt-4 border-t">
-          <div className="text-sm text-gray-600">
-            <strong>{slot.sets.length}</strong> set{slot.sets.length !== 1 ? 's' : ''} logged
+        {/* Skip button - shown when slot is not completed */}
+        {slot.slotState !== 'completed' && slot.slotState !== 'skipped' && (
+          <div className="flex justify-end">
+            <button
+              onClick={handleSkip}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Skip Slot
+            </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Exercise Selector Modal */}
       <ExerciseSelector
@@ -148,6 +218,6 @@ export default function CurrentSlot({
         muscleGroupIds={slot.muscleGroupIds}
         slotId={slot.slotId}
       />
-    </div>
+    </>
   )
 }

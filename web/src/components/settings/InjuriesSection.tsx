@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { injuryApi, type UserInjury } from '../../services/injuries'
 import AddInjuryModal from './AddInjuryModal'
+import { ConfirmDialog } from '../ui'
+import { useConfirm } from '../../hooks/useConfirm'
+import { useUIStore } from '../../stores/uiStore'
 
 interface InjuriesSectionProps {
   onUpdate?: () => void
@@ -13,6 +16,8 @@ function InjuriesSection({ onUpdate }: InjuriesSectionProps) {
   const [showHealed, setShowHealed] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editingInjury, setEditingInjury] = useState<UserInjury | null>(null)
+  const { confirm, dialogProps } = useConfirm()
+  const { showToast } = useUIStore()
 
   const fetchInjuries = async () => {
     setLoading(true)
@@ -47,24 +52,30 @@ function InjuriesSection({ onUpdate }: InjuriesSectionProps) {
       await injuryApi.updateUserInjury(id, { is_active: false })
       await fetchInjuries()
       onUpdate?.()
+      showToast('success', 'Injury marked as healed')
     } catch (error) {
       console.error('Failed to mark injury as healed:', error)
-      alert('Failed to update injury. Please try again.')
+      showToast('error', 'Failed to update injury. Please try again.')
     }
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to remove this injury from your profile?')) {
-      return
-    }
+    const confirmed = await confirm({
+      title: 'Remove Injury',
+      message: 'Are you sure you want to remove this injury from your profile?',
+      confirmLabel: 'Remove',
+      variant: 'danger',
+    })
+    if (!confirmed) return
 
     try {
       await injuryApi.deleteUserInjury(id)
       await fetchInjuries()
       onUpdate?.()
+      showToast('success', 'Injury removed')
     } catch (error) {
       console.error('Failed to delete injury:', error)
-      alert('Failed to delete injury. Please try again.')
+      showToast('error', 'Failed to delete injury. Please try again.')
     }
   }
 
@@ -98,6 +109,7 @@ function InjuriesSection({ onUpdate }: InjuriesSectionProps) {
 
   return (
     <>
+      <ConfirmDialog {...dialogProps} />
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         {/* Disclaimer */}
         <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
@@ -113,7 +125,7 @@ function InjuriesSection({ onUpdate }: InjuriesSectionProps) {
             onClick={handleAdd}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
           >
-            <svg className="h-5 w-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             Add Injury
