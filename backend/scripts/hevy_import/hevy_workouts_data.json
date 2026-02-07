@@ -1,0 +1,567 @@
+{
+  "export_date": "2026-01-25",
+  "date_range": {
+    "start": "2025-11-26",
+    "end": "2026-01-25"
+  },
+  "workouts": [
+    {
+      "hevy_id": "d0616ce4-ff75-46a0-82c6-33ea0992238f",
+      "title": "HIIT Strength Full Body 2",
+      "started_at": "2026-01-20T17:32:30+00:00",
+      "completed_at": "2026-01-20T18:16:30+00:00",
+      "exercises": [
+        {"name": "Rowing Machine", "hevy_template_id": "0222DB42", "notes": "", "sets": [{"set_number": 1, "type": "normal", "weight_kg": null, "reps": null, "distance_m": 500, "duration_sec": 108, "rpe": null}]},
+        {"name": "Cable Fly Crossovers", "hevy_template_id": "651F844C", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 31.75, "reps": 5, "rpe": 6},
+          {"set_number": 2, "type": "normal", "weight_kg": 34.02, "reps": 5, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 36.29, "reps": 5, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 39.01, "reps": 5, "rpe": 8}
+        ]},
+        {"name": "Bulgarian Split Squat", "hevy_template_id": "B5D3A742", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 22.68, "reps": 10, "rpe": 6},
+          {"set_number": 2, "type": "normal", "weight_kg": 31.75, "reps": 10, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 36.29, "reps": 10, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 40.82, "reps": 10, "rpe": 7.5}
+        ]},
+        {"name": "Chin Up", "hevy_template_id": "29083183", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": null, "reps": 6, "rpe": 8.5},
+          {"set_number": 2, "type": "normal", "weight_kg": null, "reps": 6, "rpe": 8}
+        ]},
+        {"name": "Romanian Deadlift (Dumbbell)", "hevy_template_id": "72CFFAD5", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 63.50, "reps": 5, "rpe": 6},
+          {"set_number": 2, "type": "normal", "weight_kg": 72.57, "reps": 5, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 81.65, "reps": 5, "rpe": 8}
+        ]},
+        {"name": "HIIT Neutral Grip DB Front Raise", "hevy_template_id": "1d10ec3f-827a-4023-9d73-72118da4c52a", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 9.07, "duration_sec": 40, "rpe": null},
+          {"set_number": 2, "type": "normal", "weight_kg": 9.07, "duration_sec": 40, "rpe": null}
+        ]},
+        {"name": "HIIT Mountain Climber", "hevy_template_id": "93a8b6fb-0a0e-4c6f-a351-7c7a659384dd", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": null, "duration_sec": 40, "rpe": null},
+          {"set_number": 2, "type": "normal", "weight_kg": null, "duration_sec": 40, "rpe": null}
+        ]},
+        {"name": "HIIT Alternating DB Rows", "hevy_template_id": "1e560881-05eb-4be5-934f-5adf53340adf", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 18.14, "duration_sec": 40, "rpe": null},
+          {"set_number": 2, "type": "normal", "weight_kg": 18.14, "duration_sec": 40, "rpe": null}
+        ]}
+      ]
+    },
+    {
+      "hevy_id": "92db1cd1-99fd-4e70-8576-ef6824c454d8",
+      "title": "HIIT Strength C: Full Body",
+      "started_at": "2026-01-19T13:24:32+00:00",
+      "completed_at": "2026-01-19T14:09:33+00:00",
+      "exercises": [
+        {"name": "Rowing Machine", "hevy_template_id": "0222DB42", "notes": "", "sets": [{"set_number": 1, "type": "normal", "weight_kg": null, "reps": null, "distance_m": 500, "duration_sec": 108, "rpe": null}]},
+        {"name": "Incline Bench Press (Dumbbell)", "hevy_template_id": "07B38369", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 40.82, "reps": 10, "rpe": null},
+          {"set_number": 2, "type": "normal", "weight_kg": 68.04, "reps": 5, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 72.57, "reps": 5, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 77.11, "reps": 3, "rpe": 9.5}
+        ]},
+        {"name": "Goblet Squat", "hevy_template_id": "3D0C7C75", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 36.29, "reps": 5, "rpe": 6},
+          {"set_number": 2, "type": "normal", "weight_kg": 40.82, "reps": 5, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 45.36, "reps": 5, "rpe": 7}
+        ]},
+        {"name": "Pull Up", "hevy_template_id": "1B2B1E7C", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": null, "reps": 5, "rpe": 8.5},
+          {"set_number": 2, "type": "normal", "weight_kg": null, "reps": 5, "rpe": 8.5},
+          {"set_number": 3, "type": "normal", "weight_kg": null, "reps": 5, "rpe": 8.5}
+        ]},
+        {"name": "Single Leg Romanian Deadlift (Dumbbell)", "hevy_template_id": "937292AB", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 31.75, "reps": 10, "rpe": 7},
+          {"set_number": 2, "type": "normal", "weight_kg": 34.02, "reps": 10, "rpe": 8}
+        ]},
+        {"name": "HIIT DB Up And Arounds", "hevy_template_id": "9b13d622-98b0-40fd-8b32-dccd372d16ab", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 9.07, "duration_sec": 40, "rpe": null},
+          {"set_number": 2, "type": "normal", "weight_kg": 9.07, "duration_sec": 40, "rpe": null}
+        ]},
+        {"name": "HIIT DB Step Ups", "hevy_template_id": "3ad40643-6db8-44fa-9048-1d8e7bd875b7", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 13.61, "duration_sec": 40, "rpe": null},
+          {"set_number": 2, "type": "normal", "weight_kg": 13.61, "duration_sec": 40, "rpe": null}
+        ]},
+        {"name": "HIIT Bent Over Reverse Ys", "hevy_template_id": "91a070e1-0d52-4151-86c6-560bbdb862f3", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 9.07, "duration_sec": 40, "rpe": null},
+          {"set_number": 2, "type": "normal", "weight_kg": 9.07, "duration_sec": 40, "rpe": null}
+        ]}
+      ]
+    },
+    {
+      "hevy_id": "cc975f08-4f11-4db4-920c-65fbc062c290",
+      "title": "Morning workout",
+      "started_at": "2026-01-05T13:31:48+00:00",
+      "completed_at": "2026-01-05T14:22:19+00:00",
+      "exercises": [
+        {"name": "Rowing Machine", "hevy_template_id": "0222DB42", "notes": "", "sets": [{"set_number": 1, "type": "normal", "weight_kg": null, "distance_m": 500, "duration_sec": 120, "rpe": null}]},
+        {"name": "Chin Up", "hevy_template_id": "29083183", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": null, "reps": 5, "rpe": 7},
+          {"set_number": 2, "type": "normal", "weight_kg": null, "reps": 5, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": null, "reps": 5, "rpe": 7.5},
+          {"set_number": 4, "type": "normal", "weight_kg": null, "reps": 5, "rpe": 8}
+        ]},
+        {"name": "Bulgarian Split Squat", "hevy_template_id": "B5D3A742", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 36.29, "reps": 10, "rpe": 7},
+          {"set_number": 2, "type": "normal", "weight_kg": 40.82, "reps": 10, "rpe": 7.5},
+          {"set_number": 3, "type": "normal", "weight_kg": 45.36, "reps": 10, "rpe": 7.5}
+        ]},
+        {"name": "HIIT KB Swings", "hevy_template_id": "c26d33c3-0eba-40c4-90e2-cfc09e98d5ab", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 15.88, "duration_sec": 40, "rpe": null},
+          {"set_number": 2, "type": "normal", "weight_kg": 15.88, "duration_sec": 40, "rpe": null},
+          {"set_number": 3, "type": "normal", "weight_kg": 15.88, "duration_sec": 40, "rpe": null}
+        ]},
+        {"name": "HIIT DB Push Press", "hevy_template_id": "a7ad2c24-420c-49e9-b3ec-12bd03125d1b", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 11.34, "duration_sec": 40, "rpe": null},
+          {"set_number": 2, "type": "normal", "weight_kg": 9.07, "duration_sec": 40, "rpe": null},
+          {"set_number": 3, "type": "normal", "weight_kg": 9.07, "duration_sec": 40, "rpe": null}
+        ]},
+        {"name": "Cable Core Palloff Press", "hevy_template_id": "CC55119B", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 15.88, "reps": 20, "rpe": null},
+          {"set_number": 2, "type": "normal", "weight_kg": 22.68, "reps": 12, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 26.08, "reps": 10, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 29.48, "reps": 10, "rpe": 8.5}
+        ]},
+        {"name": "Face Pull", "hevy_template_id": "BE640BA0", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 15.88, "reps": 10, "rpe": null},
+          {"set_number": 2, "type": "normal", "weight_kg": 29.48, "reps": 6, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 32.89, "reps": 5, "rpe": 7.5},
+          {"set_number": 4, "type": "normal", "weight_kg": 32.89, "reps": 5, "rpe": 7.5}
+        ]}
+      ]
+    },
+    {
+      "hevy_id": "4f2dff75-6567-48f1-b2a8-cec921225c4c",
+      "title": "HIIT Strength C: Full Body",
+      "started_at": "2026-01-03T20:21:07+00:00",
+      "completed_at": "2026-01-03T21:21:38+00:00",
+      "exercises": [
+        {"name": "Rowing Machine", "hevy_template_id": "0222DB42", "notes": "", "sets": [{"set_number": 1, "type": "normal", "distance_m": 500, "duration_sec": 125}]},
+        {"name": "Incline Bench Press (Dumbbell)", "hevy_template_id": "07B38369", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 40.82, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 72.57, "reps": 5, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 77.11, "reps": 5, "rpe": 8.5},
+          {"set_number": 4, "type": "normal", "weight_kg": 77.11, "reps": 5, "rpe": 9.5}
+        ]},
+        {"name": "Goblet Squat", "hevy_template_id": "3D0C7C75", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 40.82, "reps": 6, "rpe": 6},
+          {"set_number": 2, "type": "normal", "weight_kg": 45.36, "reps": 5, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 49.90, "reps": 5, "rpe": 8}
+        ]},
+        {"name": "Pull Up", "hevy_template_id": "1B2B1E7C", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "reps": 6, "rpe": 7.5},
+          {"set_number": 2, "type": "normal", "reps": 5, "rpe": 7.5},
+          {"set_number": 3, "type": "normal", "reps": 5, "rpe": 7.5},
+          {"set_number": 4, "type": "normal", "reps": 5, "rpe": 8.5}
+        ]},
+        {"name": "Single Leg Romanian Deadlift (Dumbbell)", "hevy_template_id": "937292AB", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 24.95, "reps": 16},
+          {"set_number": 2, "type": "normal", "weight_kg": 36.29, "reps": 10, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 38.56, "reps": 10, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 40.82, "reps": 10, "rpe": 8.5}
+        ]},
+        {"name": "HIIT DB Up And Arounds", "hevy_template_id": "9b13d622-98b0-40fd-8b32-dccd372d16ab", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 9.07, "duration_sec": 40},
+          {"set_number": 2, "type": "normal", "weight_kg": 9.07, "duration_sec": 40},
+          {"set_number": 3, "type": "normal", "weight_kg": 9.07, "duration_sec": 40}
+        ]},
+        {"name": "HIIT DB Step Ups", "hevy_template_id": "3ad40643-6db8-44fa-9048-1d8e7bd875b7", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 13.61, "duration_sec": 40},
+          {"set_number": 2, "type": "normal", "weight_kg": 13.61, "duration_sec": 40},
+          {"set_number": 3, "type": "normal", "weight_kg": 13.61, "duration_sec": 40}
+        ]},
+        {"name": "HIIT Bent Over Reverse Ys", "hevy_template_id": "91a070e1-0d52-4151-86c6-560bbdb862f3", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 9.07, "duration_sec": 40},
+          {"set_number": 2, "type": "normal", "weight_kg": 9.07, "duration_sec": 40},
+          {"set_number": 3, "type": "normal", "weight_kg": 9.07, "duration_sec": 35}
+        ]}
+      ]
+    },
+    {
+      "hevy_id": "ea78a1af-746d-414d-82a1-741227ab9525",
+      "title": "HIIT Strength A: Posterior Chain Power",
+      "started_at": "2025-12-31T15:58:02+00:00",
+      "completed_at": "2025-12-31T16:36:08+00:00",
+      "exercises": [
+        {"name": "Rowing Machine", "hevy_template_id": "0222DB42", "notes": "", "sets": [{"set_number": 1, "type": "warmup", "distance_m": 500, "duration_sec": 109}]},
+        {"name": "Deadlift (Dumbbell)", "hevy_template_id": "5F4E6DD3", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 40.82, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 63.50, "reps": 6, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 68.04, "reps": 6, "rpe": 7.5}
+        ]},
+        {"name": "Bent Over Row (Dumbbell)", "hevy_template_id": "23E92538", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 40.82, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 63.50, "reps": 6, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 68.04, "reps": 6, "rpe": 7.5}
+        ]},
+        {"name": "Rear Delt Reverse Fly (Dumbbell)", "hevy_template_id": "E5988A0A", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 9.07, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 13.61, "reps": 6, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 18.14, "reps": 6, "rpe": 7}
+        ]},
+        {"name": "Triceps Extension (Dumbbell)", "hevy_template_id": "3765684D", "notes": "Pain on L switch to cable press down @ 70#", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 13.61, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 24.95, "reps": 6, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 29.48, "reps": 3, "rpe": 10}
+        ]},
+        {"name": "Romanian Deadlift (Dumbbell)", "hevy_template_id": "72CFFAD5", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 40.82, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 63.50, "reps": 6, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 68.04, "reps": 6, "rpe": 7}
+        ]},
+        {"name": "HIIT KB Swings", "hevy_template_id": "c26d33c3-0eba-40c4-90e2-cfc09e98d5ab", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 20.41, "duration_sec": 40},
+          {"set_number": 2, "type": "normal", "weight_kg": 20.41, "duration_sec": 40}
+        ]},
+        {"name": "HIIT Racked KB March", "hevy_template_id": "eb143d7a-7ff9-4cf4-9efb-2d6bc86b06fb", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 20.41, "duration_sec": 40},
+          {"set_number": 2, "type": "normal", "weight_kg": 20.41, "duration_sec": 40},
+          {"set_number": 3, "type": "normal", "weight_kg": 20.41, "duration_sec": 40},
+          {"set_number": 4, "type": "normal", "weight_kg": 20.41, "duration_sec": 40}
+        ]},
+        {"name": "HIIT Alt'g KB Clean", "hevy_template_id": "cd4c395e-c913-43ce-8b5a-ceb7d9abb05b", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 20.41, "duration_sec": 40},
+          {"set_number": 2, "type": "normal", "weight_kg": 20.41, "duration_sec": 41}
+        ]}
+      ]
+    },
+    {
+      "hevy_id": "b3289382-7048-4fc2-80c4-a616c6e8e7ce",
+      "title": "HIIT Strength B: Anterior Chain",
+      "started_at": "2025-12-29T21:01:32+00:00",
+      "completed_at": "2025-12-29T21:53:08+00:00",
+      "exercises": [
+        {"name": "Rowing Machine", "hevy_template_id": "0222DB42", "notes": "", "sets": [{"set_number": 1, "type": "warmup", "distance_m": 500, "duration_sec": 109}]},
+        {"name": "Incline Bench Press (Dumbbell)", "hevy_template_id": "07B38369", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 40.82, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 68.04, "reps": 4, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 72.57, "reps": 4, "rpe": 7.5}
+        ]},
+        {"name": "Goblet Squat", "hevy_template_id": "3D0C7C75", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 20.41, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 38.56, "reps": 4, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 45.36, "reps": 4, "rpe": 7.5}
+        ]},
+        {"name": "Cable Fly Crossovers", "hevy_template_id": "651F844C", "notes": "Free motion dual machine", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 22.68, "reps": 4, "rpe": 6},
+          {"set_number": 2, "type": "normal", "weight_kg": 31.75, "reps": 5, "rpe": 7.5},
+          {"set_number": 3, "type": "normal", "weight_kg": 31.75, "reps": 4, "rpe": 7.5}
+        ]},
+        {"name": "Hack Squat", "hevy_template_id": "AC5A4C58", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 100, "reps": 4, "rpe": 8.5},
+          {"set_number": 2, "type": "normal", "weight_kg": 100, "reps": 4, "rpe": 8.5}
+        ]},
+        {"name": "HIIT Neutral Grip DB Front Raise", "hevy_template_id": "1d10ec3f-827a-4023-9d73-72118da4c52a", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 13.61, "duration_sec": 40},
+          {"set_number": 2, "type": "normal", "weight_kg": 13.61, "duration_sec": 40}
+        ]},
+        {"name": "HIIT DB Step Ups", "hevy_template_id": "3ad40643-6db8-44fa-9048-1d8e7bd875b7", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 13.61, "duration_sec": 40},
+          {"set_number": 2, "type": "normal", "weight_kg": 13.61, "duration_sec": 40}
+        ]},
+        {"name": "HIIT DB Punches", "hevy_template_id": "2f9dcd12-b057-41b5-bbce-b437e75c3eb2", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 9.07, "duration_sec": 40},
+          {"set_number": 2, "type": "normal", "weight_kg": 9.07, "duration_sec": 40}
+        ]},
+        {"name": "HIIT Mountain Climber", "hevy_template_id": "93a8b6fb-0a0e-4c6f-a351-7c7a659384dd", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "duration_sec": 40},
+          {"set_number": 2, "type": "normal", "duration_sec": 40}
+        ]}
+      ]
+    },
+    {
+      "hevy_id": "da663642-8d5e-4c9b-aa1a-aeb7fc8c1b87",
+      "title": "HIIT Strength A: Posterior Chain Power",
+      "started_at": "2025-12-27T17:01:30+00:00",
+      "completed_at": "2025-12-27T17:43:46+00:00",
+      "exercises": [
+        {"name": "Rowing Machine", "hevy_template_id": "0222DB42", "notes": "", "sets": [{"set_number": 1, "type": "warmup", "distance_m": 500, "duration_sec": 109}]},
+        {"name": "Deadlift (Dumbbell)", "hevy_template_id": "5F4E6DD3", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 40.82, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 63.50, "reps": 6, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 68.04, "reps": 6, "rpe": 7.5}
+        ]},
+        {"name": "Bent Over Row (Dumbbell)", "hevy_template_id": "23E92538", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 20.41, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 63.50, "reps": 6, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 68.04, "reps": 6, "rpe": 8.5}
+        ]},
+        {"name": "Front Raise (Dumbbell)", "hevy_template_id": "8293E554", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 9.07, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 18.14, "reps": 6, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 22.68, "reps": 6, "rpe": 7.5}
+        ]},
+        {"name": "Triceps Extension (Dumbbell)", "hevy_template_id": "3765684D", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 13.61, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 22.68, "reps": 6, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 27.22, "reps": 5, "rpe": 7.5}
+        ]},
+        {"name": "Romanian Deadlift (Dumbbell)", "hevy_template_id": "72CFFAD5", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 40.82, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 63.50, "reps": 6, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 68.04, "reps": 6, "rpe": 7.5}
+        ]},
+        {"name": "Rear Delt Reverse Fly (Dumbbell)", "hevy_template_id": "E5988A0A", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 9.07, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 13.61, "reps": 6, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 18.14, "reps": 6, "rpe": 7}
+        ]},
+        {"name": "HIIT KB Swings", "hevy_template_id": "c26d33c3-0eba-40c4-90e2-cfc09e98d5ab", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 20.41, "duration_sec": 43},
+          {"set_number": 2, "type": "normal", "weight_kg": 18.14, "duration_sec": 42}
+        ]},
+        {"name": "HIIT Racked KB March", "hevy_template_id": "eb143d7a-7ff9-4cf4-9efb-2d6bc86b06fb", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 20.41, "duration_sec": 40},
+          {"set_number": 2, "type": "normal", "weight_kg": 20.41, "duration_sec": 40},
+          {"set_number": 3, "type": "normal", "weight_kg": 18.14, "duration_sec": 40},
+          {"set_number": 4, "type": "normal", "weight_kg": 18.14, "duration_sec": 40}
+        ]},
+        {"name": "HIIT Alt'g KB Clean", "hevy_template_id": "cd4c395e-c913-43ce-8b5a-ceb7d9abb05b", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 20.41, "duration_sec": 40},
+          {"set_number": 2, "type": "normal", "weight_kg": 18.14, "duration_sec": 41}
+        ]}
+      ]
+    },
+    {
+      "hevy_id": "a95ad556-8fc3-4ca6-9133-5b73bc58a814",
+      "title": "Full Body 3",
+      "started_at": "2025-12-21T17:03:12+00:00",
+      "completed_at": "2025-12-21T17:32:44+00:00",
+      "exercises": [
+        {"name": "Rowing Machine", "hevy_template_id": "0222DB42", "notes": "", "sets": [{"set_number": 1, "type": "normal", "distance_m": 500, "duration_sec": 111}]},
+        {"name": "Cable Core Palloff Press", "hevy_template_id": "CC55119B", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 15.88, "reps": 20},
+          {"set_number": 2, "type": "normal", "weight_kg": 26.08, "reps": 10, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 29.48, "reps": 10, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 31.75, "reps": 10, "rpe": 7.5}
+        ]},
+        {"name": "Seated Cable Row - V Grip (Cable)", "hevy_template_id": "0393F233", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 63.50, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 90.72, "reps": 5, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 99.79, "reps": 5, "rpe": 8.5},
+          {"set_number": 4, "type": "normal", "weight_kg": 104.33, "reps": 4, "rpe": 10}
+        ]},
+        {"name": "Hack Squat (Machine)", "hevy_template_id": "1E42FD5F", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 72.57, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 90.72, "reps": 5, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 122.47, "reps": 5, "rpe": 6},
+          {"set_number": 4, "type": "normal", "weight_kg": 145.15, "reps": 5, "rpe": 7},
+          {"set_number": 5, "type": "normal", "weight_kg": 154.22, "reps": 5, "rpe": 7.5}
+        ]}
+      ]
+    },
+    {
+      "hevy_id": "542d87f7-6998-4199-8346-3bcf898c5100",
+      "title": "Full Body 2",
+      "started_at": "2025-12-10T20:36:18+00:00",
+      "completed_at": "2025-12-10T21:39:08+00:00",
+      "exercises": [
+        {"name": "Rowing Machine", "hevy_template_id": "0222DB42", "notes": "", "sets": [{"set_number": 1, "type": "normal", "distance_m": 500, "duration_sec": 110}]},
+        {"name": "Pull Up", "hevy_template_id": "1B2B1E7C", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "reps": 8, "rpe": 8},
+          {"set_number": 2, "type": "normal", "reps": 5, "rpe": 9.5},
+          {"set_number": 3, "type": "normal", "reps": 5, "rpe": 10}
+        ]},
+        {"name": "Iso-Lateral Chest Press (Machine)", "hevy_template_id": "24706DCD", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 40.82, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 63.50, "reps": 5, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 72.57, "reps": 5, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 81.65, "reps": 5, "rpe": 8.5}
+        ]},
+        {"name": "Bulgarian Split Squat", "hevy_template_id": "B5D3A742", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 36.29, "reps": 10, "rpe": 7.5},
+          {"set_number": 2, "type": "normal", "weight_kg": 38.56, "reps": 10, "rpe": 7.5},
+          {"set_number": 3, "type": "normal", "weight_kg": 40.82, "reps": 10, "rpe": 8.5}
+        ]},
+        {"name": "Chest Supported Y Raise (Dumbbell)", "hevy_template_id": "F21D5693", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 9.07, "reps": 5},
+          {"set_number": 2, "type": "normal", "weight_kg": 13.61, "reps": 5, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 18.14, "reps": 5, "rpe": 6},
+          {"set_number": 4, "type": "normal", "weight_kg": 22.68, "reps": 5, "rpe": 9.5}
+        ]},
+        {"name": "Chest Supported Ws", "hevy_template_id": "9a07ca99-6932-4ed8-aeda-c8e90f77bfd9", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 9.07, "reps": 5},
+          {"set_number": 2, "type": "normal", "weight_kg": 13.61, "reps": 5, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 18.14, "reps": 5, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 18.14, "reps": 5, "rpe": 8.5}
+        ]},
+        {"name": "Elevated Plank DB Drag Across", "hevy_template_id": "6b1dffe1-d3c3-468a-b748-a46678051de7", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 11.34, "reps": 10, "rpe": 6},
+          {"set_number": 2, "type": "normal", "weight_kg": 20.41, "reps": 10, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 29.48, "reps": 16, "rpe": 8.5}
+        ]}
+      ]
+    },
+    {
+      "hevy_id": "69a0b2d7-0dd3-4dfe-aa9e-d8d901842a68",
+      "title": "Full Body 1",
+      "started_at": "2025-12-06T19:02:07+00:00",
+      "completed_at": "2025-12-06T20:13:24+00:00",
+      "exercises": [
+        {"name": "Rowing Machine", "hevy_template_id": "0222DB42", "notes": "", "sets": [{"set_number": 1, "type": "normal", "distance_m": 500, "duration_sec": 109}]},
+        {"name": "Chest Fly (Machine)", "hevy_template_id": "78683336", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 36.29, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 72.57, "reps": 5, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 81.65, "reps": 5, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 90.72, "reps": 5, "rpe": 7.5},
+          {"set_number": 5, "type": "normal", "weight_kg": 99.79, "reps": 3, "rpe": 10}
+        ]},
+        {"name": "Bulgarian Split Squat", "hevy_template_id": "B5D3A742", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 0.45, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 31.75, "reps": 10, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 40.82, "reps": 10, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 45.36, "reps": 10, "rpe": 7.5}
+        ]},
+        {"name": "Seated Cable Row - V Grip (Cable)", "hevy_template_id": "0393F233", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 54.43, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 99.79, "reps": 5, "rpe": 7.5},
+          {"set_number": 3, "type": "normal", "weight_kg": 104.33, "reps": 5, "rpe": 10},
+          {"set_number": 4, "type": "normal", "weight_kg": 108.86, "reps": 5, "rpe": 10}
+        ]},
+        {"name": "Bent Elbow Lateral Raise", "hevy_template_id": "f8d91857-71cc-45e5-a1cd-2203bb265de9", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 4.54, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 13.61, "reps": 5, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 13.61, "reps": 5, "rpe": 7.5},
+          {"set_number": 4, "type": "normal", "weight_kg": 13.61, "reps": 5, "rpe": 7.5},
+          {"set_number": 5, "type": "normal", "weight_kg": 18.14, "reps": 5, "rpe": 8.5}
+        ]},
+        {"name": "Bicep Curl (Barbell)", "hevy_template_id": "A5AC6449", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 22.68, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 31.75, "reps": 5, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 36.29, "reps": 5, "rpe": 7.5},
+          {"set_number": 4, "type": "normal", "weight_kg": 40.82, "reps": 5, "rpe": 10}
+        ]},
+        {"name": "Triceps Pushdown", "hevy_template_id": "93A552C6", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 31.75, "reps": 5, "rpe": 6},
+          {"set_number": 2, "type": "normal", "weight_kg": 38.56, "reps": 5, "rpe": 7.5},
+          {"set_number": 3, "type": "normal", "weight_kg": 45.36, "reps": 5, "rpe": 9.5}
+        ]},
+        {"name": "Standing Calf Raise (Machine)", "hevy_template_id": "E05C2C38", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 36.29, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 226.80, "reps": 5, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 235.87, "reps": 5, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 244.94, "reps": 5, "rpe": 7.5}
+        ]},
+        {"name": "Bicycle Crunch Raised Legs", "hevy_template_id": "594450D2", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "reps": 30},
+          {"set_number": 2, "type": "normal", "reps": 20}
+        ]}
+      ]
+    },
+    {
+      "hevy_id": "e79c5566-90f9-4435-94e0-8dc80c688338",
+      "title": "Full Body 2",
+      "started_at": "2025-11-30T17:23:38+00:00",
+      "completed_at": "2025-11-30T18:23:51+00:00",
+      "exercises": [
+        {"name": "Rowing Machine", "hevy_template_id": "0222DB42", "notes": "", "sets": [{"set_number": 1, "type": "normal", "distance_m": 500, "duration_sec": 105}]},
+        {"name": "Lat Pulldown (Cable) Single Pulley", "hevy_template_id": "d1377bea-1a05-41ce-ae63-08c07cd025af", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 38.56, "reps": 5, "rpe": 7.5},
+          {"set_number": 2, "type": "normal", "weight_kg": 47.63, "reps": 5, "rpe": 8.5},
+          {"set_number": 3, "type": "normal", "weight_kg": 49.90, "reps": 5, "rpe": 10}
+        ]},
+        {"name": "Iso-Lateral Chest Press (Machine)", "hevy_template_id": "24706DCD", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 40.82, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 63.50, "reps": 5, "rpe": 9},
+          {"set_number": 3, "type": "normal", "weight_kg": 63.50, "reps": 5, "rpe": 9.5},
+          {"set_number": 4, "type": "normal", "weight_kg": 63.50, "reps": 4, "rpe": 10}
+        ]},
+        {"name": "Smith Iso-Bulgarian Glutes", "hevy_template_id": "a556d145-17b8-4cfc-a2ac-fda10239f69c", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 20.41, "reps": 20},
+          {"set_number": 2, "type": "normal", "weight_kg": 43.09, "reps": 10, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 52.16, "reps": 10, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 61.24, "reps": 10, "rpe": 8.5}
+        ]},
+        {"name": "Chest Supported Y Raise (Dumbbell)", "hevy_template_id": "F21D5693", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 9.07, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 13.61, "reps": 6, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 13.61, "reps": 6, "rpe": 7}
+        ]},
+        {"name": "Chest Supported Ws", "hevy_template_id": "9a07ca99-6932-4ed8-aeda-c8e90f77bfd9", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 9.07, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 9.07, "reps": 6, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 13.61, "reps": 6, "rpe": 8.5}
+        ]},
+        {"name": "Shrug (Dumbbell)", "hevy_template_id": "ABEC557F", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 72.57, "reps": 5, "rpe": 6},
+          {"set_number": 2, "type": "normal", "weight_kg": 86.18, "reps": 5, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 90.72, "reps": 5, "rpe": 7.5}
+        ]},
+        {"name": "1-Leg Deadlift Curl Press", "hevy_template_id": "bfb94bea-077a-40e8-b648-4b943c915cd2", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 13.61, "reps": 10, "rpe": 6},
+          {"set_number": 2, "type": "normal", "weight_kg": 15.88, "reps": 10, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 18.14, "reps": 10, "rpe": 8.5}
+        ]}
+      ]
+    },
+    {
+      "hevy_id": "9546173c-e7b6-4772-8ca2-027866831992",
+      "title": "Full Body 1a",
+      "started_at": "2025-11-29T16:36:03+00:00",
+      "completed_at": "2025-11-29T17:11:43+00:00",
+      "exercises": [
+        {"name": "Rowing Machine", "hevy_template_id": "0222DB42", "notes": "", "sets": [{"set_number": 1, "type": "warmup", "duration_sec": 112}]},
+        {"name": "Incline Bench Press (Dumbbell)", "hevy_template_id": "07B38369", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 40.82, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 68.04, "reps": 5, "rpe": 7.5},
+          {"set_number": 3, "type": "normal", "weight_kg": 68.04, "reps": 5, "rpe": 7.5},
+          {"set_number": 4, "type": "normal", "weight_kg": 72.57, "reps": 5, "rpe": 8.5}
+        ]},
+        {"name": "Leg Press (Machine)", "hevy_template_id": "C7973E0E", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 122.47, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 204.12, "reps": 5, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 238.14, "reps": 5, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 272.16, "reps": 5, "rpe": 7.5}
+        ]},
+        {"name": "Seated Cable Row - V Grip (Cable)", "hevy_template_id": "0393F233", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 56.70, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 99.79, "reps": 5, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 108.86, "reps": 5, "rpe": 9.5},
+          {"set_number": 4, "type": "normal", "weight_kg": 108.86, "reps": 5, "rpe": 10}
+        ]},
+        {"name": "Face Pull", "hevy_template_id": "BE640BA0", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 29.48, "reps": 5, "rpe": 6},
+          {"set_number": 2, "type": "normal", "weight_kg": 32.89, "reps": 5, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 36.29, "reps": 5, "rpe": 7}
+        ]}
+      ]
+    },
+    {
+      "hevy_id": "3d8c3f7b-f500-4f26-97f6-fcdac8ce7d5c",
+      "title": "Full Body 3",
+      "started_at": "2025-11-25T19:48:23+00:00",
+      "completed_at": "2025-11-25T20:47:23+00:00",
+      "exercises": [
+        {"name": "Rowing Machine", "hevy_template_id": "0222DB42", "notes": "", "sets": [{"set_number": 1, "type": "normal", "distance_m": 500, "duration_sec": 111}]},
+        {"name": "Cable Core Palloff Press", "hevy_template_id": "CC55119B", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 13.61, "reps": 20},
+          {"set_number": 2, "type": "normal", "weight_kg": 26.08, "reps": 10, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 29.48, "reps": 10, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 29.48, "reps": 10, "rpe": 7.5}
+        ]},
+        {"name": "Seated Cable Row - V Grip (Cable)", "hevy_template_id": "0393F233", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 45.36, "reps": 10},
+          {"set_number": 2, "type": "normal", "weight_kg": 90.72, "reps": 5, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 99.79, "reps": 5, "rpe": 7},
+          {"set_number": 4, "type": "normal", "weight_kg": 108.86, "reps": 5, "rpe": 10}
+        ]},
+        {"name": "Smith Machine Iso Bulgarian - Upright", "hevy_template_id": "6c76e3d8-c2a1-40bd-95bb-50aff8f74bf8", "notes": "", "sets": [
+          {"set_number": 1, "type": "warmup", "weight_kg": 11.34, "reps": 20},
+          {"set_number": 2, "type": "normal", "weight_kg": 20.41, "reps": 10, "rpe": 6},
+          {"set_number": 3, "type": "normal", "weight_kg": 34.02, "reps": 10, "rpe": 6},
+          {"set_number": 4, "type": "normal", "weight_kg": 43.09, "reps": 10, "rpe": 7}
+        ]},
+        {"name": "Cable Twist (Down to up)", "hevy_template_id": "92D858EA", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 13.61, "reps": 12, "rpe": 6},
+          {"set_number": 2, "type": "normal", "weight_kg": 13.61, "reps": 10, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 15.88, "reps": 10, "rpe": 7.5}
+        ]},
+        {"name": "Front Raise (Dumbbell)", "hevy_template_id": "8293E554", "notes": "", "sets": [
+          {"set_number": 1, "type": "normal", "weight_kg": 22.68, "reps": 6, "rpe": 6},
+          {"set_number": 2, "type": "normal", "weight_kg": 27.22, "reps": 5, "rpe": 7},
+          {"set_number": 3, "type": "normal", "weight_kg": 31.75, "reps": 5, "rpe": 9.5}
+        ]}
+      ]
+    }
+  ]
+}

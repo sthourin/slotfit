@@ -1,0 +1,428 @@
+[
+  {
+    "id": "b20ed4aa-396c-49c6-89da-8050343848ed",
+    "title": "EMOM",
+    "folderId": 323809,
+    "createdAt": "2024-01-27T18:36:26.613Z",
+    "updatedAt": "2025-01-19T18:54:36.970Z",
+    "exercises": [
+      {
+        "name": "Man Maker Cleans",
+        "index": 0,
+        "exerciseTemplateId": "d4700a48-6f5f-4d0f-9ce2-e89021cf8bc3",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": 31.75150366049478, "reps": 3, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": 31.75150366049478, "reps": 5, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": 31.75150366049478, "reps": 3, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": 40.82336184920758, "reps": 5, "distance": null, "duration": null, "customMetric": null}
+        ]
+      },
+      {
+        "name": "Pull Up",
+        "index": 1,
+        "exerciseTemplateId": "1B2B1E7C",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": null, "reps": 5, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": null, "reps": 4, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": null, "reps": 4, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": null, "reps": 5, "distance": null, "duration": null, "customMetric": null}
+        ]
+      },
+      {
+        "name": "Deadlift (Dumbbell)",
+        "index": 2,
+        "exerciseTemplateId": "5F4E6DD3",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": 31.75150366049478, "reps": 10, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": 31.75150366049478, "reps": 5, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": 31.75150366049478, "reps": 5, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": 68.03893641534596, "reps": 5, "distance": null, "duration": null, "customMetric": null}
+        ]
+      },
+      {
+        "name": "DB Push Press",
+        "index": 3,
+        "exerciseTemplateId": "94c2025e-5e14-4fc9-a3f2-77b871c4190a",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": 31.75150366049478, "reps": 5, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": 31.75150366049478, "reps": 5, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": 31.75150366049478, "reps": 5, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": 54.43114913227677, "reps": 5, "distance": null, "duration": null, "customMetric": null}
+        ]
+      },
+      {
+        "name": "Plank Jacks",
+        "index": 4,
+        "exerciseTemplateId": "c3d28aee-688d-45a7-87ef-83ada8064fdc",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": null, "reps": 30, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": null, "reps": 30, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": null, "reps": 40, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": null, "reps": 40, "distance": null, "duration": null, "customMetric": null}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "7b0ccd99-5076-4a4b-9c25-7366d45873a0",
+    "title": "EMOM x6s",
+    "folderId": 323809,
+    "createdAt": "2024-01-23T13:19:16.614Z",
+    "updatedAt": "2025-09-16T13:28:23.319Z",
+    "exercises": [
+      {
+        "name": "Rowing Machine",
+        "index": 0,
+        "exerciseTemplateId": "0222DB42",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": 1000, "duration": 225, "customMetric": null}]
+      },
+      {
+        "name": "Burpee",
+        "index": 1,
+        "exerciseTemplateId": "BB792A36",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": null, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": null, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": null, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": null, "reps": 6, "distance": null, "duration": null, "customMetric": null}
+        ]
+      },
+      {
+        "name": "Iso-lateral Press+Sit-up",
+        "index": 2,
+        "exerciseTemplateId": "2b11624b-ae1b-4d89-9f89-ebc6e5af41dd",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": 11.339822735890994, "reps": 6, "distance": null, "duration": null, "customMetric": null}
+        ]
+      },
+      {
+        "name": "Iso-lateral Press+Sit-up",
+        "index": 3,
+        "exerciseTemplateId": "2b11624b-ae1b-4d89-9f89-ebc6e5af41dd",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": 11.339822735890994, "reps": 6, "distance": null, "duration": null, "customMetric": null}
+        ]
+      },
+      {
+        "name": "1-leg deadlift curl press on BOSU",
+        "index": 4,
+        "exerciseTemplateId": "a1a89cb7-2199-478b-b4c1-6bdf8f16c7f9",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null}
+        ]
+      },
+      {
+        "name": "1-leg deadlift curl press on BOSU",
+        "index": 5,
+        "exerciseTemplateId": "a1a89cb7-2199-478b-b4c1-6bdf8f16c7f9",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null}
+        ]
+      },
+      {
+        "name": "Front Raise (Dumbbell)",
+        "index": 6,
+        "exerciseTemplateId": "8293E554",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": 18.14371637742559, "reps": 6, "distance": null, "duration": 0, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": 18.14371637742559, "reps": 6, "distance": null, "duration": 0, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": 18.14371637742559, "reps": 6, "distance": null, "duration": 0, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": 18.14371637742559, "reps": 5, "distance": null, "duration": 0, "customMetric": null}
+        ]
+      },
+      {
+        "name": "Rowing Machine",
+        "index": 7,
+        "exerciseTemplateId": "0222DB42",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "warmup", "weight": null, "reps": null, "distance": 500, "duration": 110, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": 0, "duration": 0, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": 0, "duration": 0, "customMetric": null}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ea74ef23-e602-4431-a7c2-4b4ad453caa2",
+    "title": "EMOM 3",
+    "folderId": 323809,
+    "createdAt": "2025-01-26T17:34:45.950Z",
+    "updatedAt": "2025-10-06T17:31:48.350Z",
+    "exercises": [
+      {
+        "name": "Man Maker Cleans",
+        "index": 0,
+        "exerciseTemplateId": "d4700a48-6f5f-4d0f-9ce2-e89021cf8bc3",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": 27.215574566138386, "reps": 4, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": 27.215574566138386, "reps": 4, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": 27.215574566138386, "reps": 4, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": 27.215574566138386, "reps": 4, "distance": null, "duration": null, "customMetric": null}
+        ]
+      },
+      {
+        "name": "Pull Up",
+        "index": 1,
+        "exerciseTemplateId": "1B2B1E7C",
+        "notes": null,
+        "restSeconds": 0,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": null, "reps": 5, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": null, "reps": 5, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": null, "reps": 5, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": null, "reps": 5, "distance": null, "duration": null, "customMetric": null}
+        ]
+      },
+      {
+        "name": "Deadlift (Dumbbell)",
+        "index": 2,
+        "exerciseTemplateId": "5F4E6DD3",
+        "notes": null,
+        "restSeconds": 0,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": 27.215574566138386, "reps": 10, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": 27.215574566138386, "reps": 10, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": 27.215574566138386, "reps": 10, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": 27.215574566138386, "reps": 10, "distance": null, "duration": null, "customMetric": null}
+        ]
+      },
+      {
+        "name": "Rear Delt Reverse Fly (Dumbbell)",
+        "index": 3,
+        "exerciseTemplateId": "E5988A0A",
+        "notes": null,
+        "restSeconds": 60,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": 10.886229826455354, "reps": 10, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": 10.886229826455354, "reps": 10, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": 10.886229826455354, "reps": 10, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": 10.886229826455354, "reps": 10, "distance": null, "duration": null, "customMetric": null}
+        ]
+      },
+      {
+        "name": "Mountain Climber",
+        "index": 4,
+        "exerciseTemplateId": "F49E31D6",
+        "notes": null,
+        "restSeconds": 0,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": 0, "reps": 50, "distance": null, "duration": 0, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": 0, "reps": 50, "distance": null, "duration": 0, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": 0, "reps": 50, "distance": null, "duration": 0, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": 0, "reps": 50, "distance": null, "duration": 0, "customMetric": null}
+        ]
+      },
+      {
+        "name": "Floor Press (Dumbbell)",
+        "index": 5,
+        "exerciseTemplateId": "756EE329",
+        "notes": null,
+        "restSeconds": 0,
+        "sets": [
+          {"index": 0, "type": "normal", "weight": 27.215574566138386, "reps": 10, "distance": null, "duration": null, "customMetric": null},
+          {"index": 1, "type": "normal", "weight": 27.215574566138386, "reps": 10, "distance": null, "duration": null, "customMetric": null},
+          {"index": 2, "type": "normal", "weight": 27.215574566138386, "reps": 10, "distance": null, "duration": null, "customMetric": null},
+          {"index": 3, "type": "normal", "weight": 27.215574566138386, "reps": 10, "distance": null, "duration": null, "customMetric": null}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "7a93c54e-384d-47fc-8dfb-eefd6f563228",
+    "title": "HIIT Strength B1: Anterior Chain",
+    "folderId": 1431580,
+    "createdAt": "2025-06-27T18:12:01.349Z",
+    "updatedAt": "2026-01-03T20:10:54.369Z",
+    "exercises": [
+      {"name": "Rowing Machine", "index": 0, "exerciseTemplateId": "0222DB42", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": 500, "duration": 125, "customMetric": null}]},
+      {"name": "Incline Bench Press (Dumbbell)", "index": 1, "exerciseTemplateId": "07B38369", "notes": null, "restSeconds": 0, "sets": [{"index": 0, "type": "warmup", "weight": 40.82336184920758, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 63.50300732098956, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 58.96707822663317, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 54.43114913227677, "reps": 6, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Goblet Squat", "index": 2, "exerciseTemplateId": "3D0C7C75", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 31.75150366049478, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 31.75150366049478, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 36.28743275485118, "reps": 6, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Rest", "index": 3, "exerciseTemplateId": "1a5c23fd-1da2-4502-9b4e-1a5eb3af19db", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 4, "customMetric": null}]},
+      {"name": "Cable Core Palloff Press", "index": 4, "exerciseTemplateId": "CC55119B", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 26.081592292549285, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 22.67964547178199, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 22.67964547178199, "reps": 10, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Hack Squat (Machine)", "index": 5, "exerciseTemplateId": "1E42FD5F", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "warmup", "weight": 40.82336184920758, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 104.32636917019714, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 113.39822735890993, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 127.00601464197912, "reps": 6, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "HIIT Neutral Grip DB Front Raise", "index": 6, "exerciseTemplateId": "1d10ec3f-827a-4023-9d73-72118da4c52a", "notes": null, "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 2, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}]},
+      {"name": "HIIT DB Step Ups", "index": 7, "exerciseTemplateId": "3ad40643-6db8-44fa-9048-1d8e7bd875b7", "notes": "Alternating legs", "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 2, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}]},
+      {"name": "HIIT Bent Over Reverse Ys", "index": 8, "exerciseTemplateId": "91a070e1-0d52-4151-86c6-560bbdb862f3", "notes": null, "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": 0, "customMetric": null}, {"index": 1, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": 0, "customMetric": null}, {"index": 2, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": 0, "customMetric": null}]},
+      {"name": "Incline Bench Press (Dumbbell)", "index": 9, "exerciseTemplateId": "07B38369", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 63.50300732098956, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 63.50300732098956, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 63.50300732098956, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 63.50300732098956, "reps": 4, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Goblet Squat", "index": 10, "exerciseTemplateId": "3D0C7C75", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 36.28743275485118, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 38.55539730202938, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 40.82336184920758, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Rest", "index": 11, "exerciseTemplateId": "1a5c23fd-1da2-4502-9b4e-1a5eb3af19db", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 120, "customMetric": null}]},
+      {"name": "HIIT Speedskater Jumps", "index": 12, "exerciseTemplateId": "7fd860e4-a933-4825-8402-1f3c58334788", "notes": null, "restSeconds": 15, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}]},
+      {"name": "HIIT Jump Lunge", "index": 13, "exerciseTemplateId": "ae93b8e7-05da-48df-8994-596ac46db4b3", "notes": null, "restSeconds": 15, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}]},
+      {"name": "Chinnies", "index": 14, "exerciseTemplateId": "1d45a923-0cde-46f1-817a-a48d41a68d47", "notes": null, "restSeconds": 15, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": 20, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": 14, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Oblique Crunch", "index": 15, "exerciseTemplateId": "DBE341AA", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": 40, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": 20, "distance": null, "duration": null, "customMetric": null}]}
+    ]
+  },
+  {
+    "id": "62246892-83cc-4f08-a382-8966b8ac2a5c",
+    "title": "HIIT Strength B: Anterior Chain",
+    "folderId": 1431580,
+    "createdAt": "2025-02-15T16:16:21.189Z",
+    "updatedAt": "2025-12-29T21:53:22.833Z",
+    "exercises": [
+      {"name": "Rowing Machine", "index": 0, "exerciseTemplateId": "0222DB42", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "warmup", "weight": null, "reps": null, "distance": 500, "duration": 109, "customMetric": null}]},
+      {"name": "Incline Bench Press (Dumbbell)", "index": 1, "exerciseTemplateId": "07B38369", "notes": null, "restSeconds": 0, "sets": [{"index": 0, "type": "warmup", "weight": 40.82336184920758, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 68.03893641534596, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 72.57486550970236, "reps": 4, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Goblet Squat", "index": 2, "exerciseTemplateId": "3D0C7C75", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "warmup", "weight": 20.41168092460379, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 38.55539730202938, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 45.35929094356398, "reps": 4, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Rest", "index": 3, "exerciseTemplateId": "1a5c23fd-1da2-4502-9b4e-1a5eb3af19db", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 4, "customMetric": null}]},
+      {"name": "Cable Fly Crossovers", "index": 4, "exerciseTemplateId": "651F844C", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 22.67964547178199, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 31.75150366049478, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 31.75150366049478, "reps": 4, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Hack Squat", "index": 5, "exerciseTemplateId": "AC5A4C58", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 100, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 100, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Rest", "index": 6, "exerciseTemplateId": "1a5c23fd-1da2-4502-9b4e-1a5eb3af19db", "notes": null, "restSeconds": 0, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 120, "customMetric": null}]},
+      {"name": "HIIT Neutral Grip DB Front Raise", "index": 7, "exerciseTemplateId": "1d10ec3f-827a-4023-9d73-72118da4c52a", "notes": null, "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 2, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}]},
+      {"name": "HIIT DB Step Ups", "index": 8, "exerciseTemplateId": "3ad40643-6db8-44fa-9048-1d8e7bd875b7", "notes": "Alternating legs", "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 2, "type": "normal", "weight": 22.67964547178199, "reps": null, "distance": null, "duration": 40, "customMetric": null}]},
+      {"name": "HIIT DB Punches", "index": 9, "exerciseTemplateId": "2f9dcd12-b057-41b5-bbce-b437e75c3eb2", "notes": null, "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 9.071858188712795, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": 9.071858188712795, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 2, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": 0, "customMetric": null}, {"index": 3, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": 0, "customMetric": null}, {"index": 4, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": 0, "customMetric": null}, {"index": 5, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": 0, "customMetric": null}]},
+      {"name": "HIIT Mountain Climber", "index": 10, "exerciseTemplateId": "93a8b6fb-0a0e-4c6f-a351-7c7a659384dd", "notes": null, "restSeconds": 15, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 40, "customMetric": null}]},
+      {"name": "Incline Bench Press (Dumbbell)", "index": 11, "exerciseTemplateId": "07B38369", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 63.50300732098956, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 68.03893641534596, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 68.03893641534596, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 63.50300732098956, "reps": 4, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Hack Squat", "index": 12, "exerciseTemplateId": "AC5A4C58", "notes": null, "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 88.45061733994974, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 92.98654643430615, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 97.52247552866254, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 92.98654643430615, "reps": 4, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Rest", "index": 13, "exerciseTemplateId": "1a5c23fd-1da2-4502-9b4e-1a5eb3af19db", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 120, "customMetric": null}]},
+      {"name": "Cable Fly Crossovers", "index": 14, "exerciseTemplateId": "651F844C", "notes": null, "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 27.215574566138386, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 31.75150366049478, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 36.28743275485118, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 0, "reps": 0, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Goblet Squat", "index": 15, "exerciseTemplateId": "3D0C7C75", "notes": null, "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 38.55539730202938, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 40.82336184920758, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 40.82336184920758, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "HIIT Speedskater Jumps", "index": 16, "exerciseTemplateId": "7fd860e4-a933-4825-8402-1f3c58334788", "notes": null, "restSeconds": 15, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}]},
+      {"name": "HIIT Medicine Ball Chest throws", "index": 17, "exerciseTemplateId": "3555e302-db6e-4047-a3a4-4bc7723553c9", "notes": null, "restSeconds": 15, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}]},
+      {"name": "HIIT Jump Lunge", "index": 18, "exerciseTemplateId": "ae93b8e7-05da-48df-8994-596ac46db4b3", "notes": null, "restSeconds": 15, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}]}
+    ]
+  },
+  {
+    "id": "d17a7041-fe1d-4be5-afb8-ab72c1aac029",
+    "title": "HIIT Strength A: Posterior Chain Power",
+    "folderId": 1431580,
+    "createdAt": "2025-01-28T13:17:34.351Z",
+    "updatedAt": "2025-12-31T16:36:11.775Z",
+    "exercises": [
+      {"name": "Rowing Machine", "index": 0, "exerciseTemplateId": "0222DB42", "notes": "250m", "restSeconds": 60, "sets": [{"index": 0, "type": "warmup", "weight": null, "reps": null, "distance": 500, "duration": 109, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": 250, "duration": 56, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": 250, "duration": 56, "customMetric": null}]},
+      {"name": "Deadlift (Dumbbell)", "index": 1, "exerciseTemplateId": "5F4E6DD3", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "warmup", "weight": 40.82336184920758, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 63.50300732098956, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 68.03893641534596, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 58.96707822663317, "reps": 6, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Bent Over Row (Dumbbell)", "index": 2, "exerciseTemplateId": "23E92538", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "warmup", "weight": 40.82336184920758, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 63.50300732098956, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 68.03893641534596, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 58.96707822663317, "reps": 6, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Rear Delt Reverse Fly (Dumbbell)", "index": 3, "exerciseTemplateId": "E5988A0A", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "warmup", "weight": 9.071858188712795, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 13.607787283069193, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 18.14371637742559, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Triceps Extension (Dumbbell)", "index": 4, "exerciseTemplateId": "3765684D", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "warmup", "weight": 13.607787283069193, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 24.947610018960187, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 29.483539113316585, "reps": 3, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Romanian Deadlift (Dumbbell)", "index": 5, "exerciseTemplateId": "72CFFAD5", "notes": null, "restSeconds": 0, "sets": [{"index": 0, "type": "warmup", "weight": 40.82336184920758, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 63.50300732098956, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 68.03893641534596, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 49.895220037920375, "reps": 6, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "HIIT KB Swings", "index": 6, "exerciseTemplateId": "c26d33c3-0eba-40c4-90e2-cfc09e98d5ab", "notes": null, "restSeconds": 0, "sets": [{"index": 0, "type": "normal", "weight": 20.41168092460379, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": 20.41168092460379, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 2, "type": "normal", "weight": 18.14371637742559, "reps": null, "distance": null, "duration": 40, "customMetric": null}]},
+      {"name": "HIIT Racked KB March", "index": 7, "exerciseTemplateId": "eb143d7a-7ff9-4cf4-9efb-2d6bc86b06fb", "notes": null, "restSeconds": 0, "sets": [{"index": 0, "type": "normal", "weight": 20.41168092460379, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": 20.41168092460379, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 2, "type": "normal", "weight": 20.41168092460379, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 3, "type": "normal", "weight": 20.41168092460379, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 4, "type": "normal", "weight": 18.14371637742559, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 5, "type": "normal", "weight": 18.14371637742559, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 6, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": 0, "customMetric": null}]},
+      {"name": "HIIT Alt'g KB CLean", "index": 8, "exerciseTemplateId": "cd4c395e-c913-43ce-8b5a-ceb7d9abb05b", "notes": null, "restSeconds": 0, "sets": [{"index": 0, "type": "normal", "weight": 20.41168092460379, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": 20.41168092460379, "reps": null, "distance": null, "duration": 41, "customMetric": null}, {"index": 2, "type": "normal", "weight": 18.14371637742559, "reps": null, "distance": null, "duration": 40, "customMetric": null}]},
+      {"name": "Rest", "index": 9, "exerciseTemplateId": "1a5c23fd-1da2-4502-9b4e-1a5eb3af19db", "notes": null, "restSeconds": 0, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 34, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 23, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 35, "customMetric": null}]},
+      {"name": "Deadlift (Barbell)", "index": 10, "exerciseTemplateId": "C6272009", "notes": null, "restSeconds": 30, "sets": [{"index": 0, "type": "normal", "weight": 61.235042773811365, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 61.235042773811365, "reps": 5, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Bent Over Row (Barbell)", "index": 11, "exerciseTemplateId": "55E6546F", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 61.235042773811365, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 61.235042773811365, "reps": 6, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Face Pull", "index": 12, "exerciseTemplateId": "BE640BA0", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 29.483539113316585, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 36.28743275485118, "reps": 6, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Romanian Deadlift (Dumbbell)", "index": 13, "exerciseTemplateId": "72CFFAD5", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 36.28743275485118, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 36.28743275485118, "reps": 6, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Rowing Machine", "index": 14, "exerciseTemplateId": "0222DB42", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": 0, "duration": 0, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": 0, "duration": 0, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": 0, "duration": 0, "customMetric": null}, {"index": 3, "type": "normal", "weight": null, "reps": null, "distance": 0, "duration": 0, "customMetric": null}]}
+    ]
+  },
+  {
+    "id": "4f8a0143-209d-4199-8406-d755b6688f7a",
+    "title": "HIIT Strength C: Full Body",
+    "folderId": 1431580,
+    "createdAt": "2026-01-03T20:15:54.029Z",
+    "updatedAt": "2026-01-19T14:09:36.631Z",
+    "exercises": [
+      {"name": "Rowing Machine", "index": 0, "exerciseTemplateId": "0222DB42", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": 500, "duration": 108, "customMetric": null}]},
+      {"name": "Incline Bench Press (Dumbbell)", "index": 1, "exerciseTemplateId": "07B38369", "notes": null, "restSeconds": 0, "sets": [{"index": 0, "type": "warmup", "weight": 40.82336184920758, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 68.03893641534596, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 72.57486550970236, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 77.11079460405875, "reps": 3, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Goblet Squat", "index": 2, "exerciseTemplateId": "3D0C7C75", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 36.28743275485118, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 40.82336184920758, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 45.35929094356398, "reps": 5, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Rest", "index": 3, "exerciseTemplateId": "1a5c23fd-1da2-4502-9b4e-1a5eb3af19db", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 120, "customMetric": null}]},
+      {"name": "Pull Up", "index": 4, "exerciseTemplateId": "1B2B1E7C", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": null, "reps": 5, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Single Leg Romanian Deadlift (Dumbbell)", "index": 5, "exerciseTemplateId": "937292AB", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "warmup", "weight": 24.947610018960187, "reps": 16, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 31.75150366049478, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 34.01946820767298, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 40.82336184920758, "reps": 10, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "HIIT DB Up And Arounds", "index": 6, "exerciseTemplateId": "9b13d622-98b0-40fd-8b32-dccd372d16ab", "notes": null, "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 9.071858188712795, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": 9.071858188712795, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 2, "type": "normal", "weight": 9.071858188712795, "reps": null, "distance": null, "duration": 40, "customMetric": null}]},
+      {"name": "HIIT DB Step Ups", "index": 7, "exerciseTemplateId": "3ad40643-6db8-44fa-9048-1d8e7bd875b7", "notes": "Alternating legs", "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 2, "type": "normal", "weight": 13.607787283069193, "reps": null, "distance": null, "duration": 40, "customMetric": null}]},
+      {"name": "HIIT Bent Over Reverse Ys", "index": 8, "exerciseTemplateId": "91a070e1-0d52-4151-86c6-560bbdb862f3", "notes": null, "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 9.071858188712795, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": 9.071858188712795, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 2, "type": "normal", "weight": 9.071858188712795, "reps": null, "distance": null, "duration": 35, "customMetric": null}]},
+      {"name": "Incline Bench Press (Dumbbell)", "index": 9, "exerciseTemplateId": "07B38369", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 63.50300732098956, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 63.50300732098956, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 63.50300732098956, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 63.50300732098956, "reps": 4, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Goblet Squat", "index": 10, "exerciseTemplateId": "3D0C7C75", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 36.28743275485118, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 38.55539730202938, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 40.82336184920758, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Rest", "index": 11, "exerciseTemplateId": "1a5c23fd-1da2-4502-9b4e-1a5eb3af19db", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 120, "customMetric": null}]},
+      {"name": "HIIT Speedskater Jumps", "index": 12, "exerciseTemplateId": "7fd860e4-a933-4825-8402-1f3c58334788", "notes": null, "restSeconds": 15, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}]},
+      {"name": "HIIT Jump Lunge", "index": 13, "exerciseTemplateId": "ae93b8e7-05da-48df-8994-596ac46db4b3", "notes": null, "restSeconds": 15, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}]},
+      {"name": "Chinnies", "index": 14, "exerciseTemplateId": "1d45a923-0cde-46f1-817a-a48d41a68d47", "notes": null, "restSeconds": 15, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": 20, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": 14, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Oblique Crunch", "index": 15, "exerciseTemplateId": "DBE341AA", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": 40, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": 20, "distance": null, "duration": null, "customMetric": null}]}
+    ]
+  },
+  {
+    "id": "d1e94b10-d7cd-4c54-8a8c-2c3654c2f4e5",
+    "title": "HIIT Strength Full Body 2",
+    "folderId": 1431580,
+    "createdAt": "2026-01-20T17:29:32.292Z",
+    "updatedAt": "2026-01-20T18:16:33.730Z",
+    "exercises": [
+      {"name": "Rowing Machine", "index": 0, "exerciseTemplateId": "0222DB42", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": 500, "duration": 108, "customMetric": null}]},
+      {"name": "Cable Fly Crossovers", "index": 1, "exerciseTemplateId": "651F844C", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 31.75150366049478, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 34.01946820767298, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 36.28743275485118, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 39.00899021146502, "reps": 5, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Bulgarian Split Squat", "index": 2, "exerciseTemplateId": "B5D3A742", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 22.67964547178199, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 31.75150366049478, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 36.28743275485118, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 40.82336184920758, "reps": 10, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Chin Up", "index": 3, "exerciseTemplateId": "29083183", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Romanian Deadlift (Dumbbell)", "index": 4, "exerciseTemplateId": "72CFFAD5", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 63.50300732098956, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 72.57486550970236, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 81.64672369841516, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "HIIT Neutral Grip DB Front Raise", "index": 5, "exerciseTemplateId": "1d10ec3f-827a-4023-9d73-72118da4c52a", "notes": null, "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 9.071858188712795, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": 9.071858188712795, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 2, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": 0, "customMetric": null}]},
+      {"name": "HIIT Mountain Climber", "index": 6, "exerciseTemplateId": "93a8b6fb-0a0e-4c6f-a351-7c7a659384dd", "notes": null, "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 0, "customMetric": null}]},
+      {"name": "HIIT Alternating DB Rows", "index": 7, "exerciseTemplateId": "1e560881-05eb-4be5-934f-5adf53340adf", "notes": null, "restSeconds": 20, "sets": [{"index": 0, "type": "normal", "weight": 18.14371637742559, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 1, "type": "normal", "weight": 18.14371637742559, "reps": null, "distance": null, "duration": 40, "customMetric": null}, {"index": 2, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": 0, "customMetric": null}]},
+      {"name": "Incline Bench Press (Dumbbell)", "index": 8, "exerciseTemplateId": "07B38369", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 63.50300732098956, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 63.50300732098956, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 63.50300732098956, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 63.50300732098956, "reps": 4, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Goblet Squat", "index": 9, "exerciseTemplateId": "3D0C7C75", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 36.28743275485118, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 38.55539730202938, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 40.82336184920758, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 0, "reps": null, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Rest", "index": 10, "exerciseTemplateId": "1a5c23fd-1da2-4502-9b4e-1a5eb3af19db", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 120, "customMetric": null}]},
+      {"name": "HIIT Speedskater Jumps", "index": 11, "exerciseTemplateId": "7fd860e4-a933-4825-8402-1f3c58334788", "notes": null, "restSeconds": 15, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}]},
+      {"name": "HIIT Jump Lunge", "index": 12, "exerciseTemplateId": "ae93b8e7-05da-48df-8994-596ac46db4b3", "notes": null, "restSeconds": 15, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 30, "customMetric": null}]},
+      {"name": "Chinnies", "index": 13, "exerciseTemplateId": "1d45a923-0cde-46f1-817a-a48d41a68d47", "notes": null, "restSeconds": 15, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": 20, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": 14, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Oblique Crunch", "index": 14, "exerciseTemplateId": "DBE341AA", "notes": null, "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": 40, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": 20, "distance": null, "duration": null, "customMetric": null}]}
+    ]
+  },
+  {
+    "id": "3262feaf-e1dd-45de-a4e1-c7d71248ec23",
+    "title": "3. Legs and Abs",
+    "folderId": 1431583,
+    "createdAt": "2024-05-18T13:07:33.704Z",
+    "updatedAt": "2025-08-15T18:49:30.161Z",
+    "exercises": [
+      {"name": "Hack Squat (Machine)", "index": 0, "exerciseTemplateId": "1E42FD5F", "notes": "", "restSeconds": 120, "sets": [{"index": 0, "type": "normal", "weight": 204.1168092460379, "reps": 5, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Seated Leg Curl (Machine)", "index": 1, "exerciseTemplateId": "11A123F3", "notes": "", "restSeconds": 90, "sets": [{"index": 0, "type": "warmup", "weight": 31.75150366049478, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 52.16318458509857, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 58.96707822663317, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 65.77097186816776, "reps": 5, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Leg Extension (Machine)", "index": 2, "exerciseTemplateId": "75A4F6C4", "notes": "", "restSeconds": 90, "sets": [{"index": 0, "type": "warmup", "weight": 22.67964547178199, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 45.35929094356398, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 54.43114913227677, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 58.96707822663317, "reps": 5, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Standing Calf Raise (Smith)", "index": 3, "exerciseTemplateId": "AA52E8D2", "notes": "", "restSeconds": 90, "sets": [{"index": 0, "type": "warmup", "weight": 40.82336184920758, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 145.14973101940473, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 163.29344739683032, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 167.8293764911867, "reps": 5, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Plank", "index": 4, "exerciseTemplateId": "C6C9B8A0", "notes": "", "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 61, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 67, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": 61, "customMetric": null}]},
+      {"name": "Crunch", "index": 5, "exerciseTemplateId": "DCF3B31B", "notes": "", "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": null, "reps": 30, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": null, "reps": 30, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": null, "reps": 30, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "kettle bell 1 leg arounds", "index": 6, "exerciseTemplateId": "3c16690c-b678-40c8-b5d7-1bbbba25046a", "notes": "", "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 24.040424200088907, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 24.040424200088907, "reps": 10, "distance": null, "duration": null, "customMetric": null}]}
+    ]
+  },
+  {
+    "id": "1b343277-c7f5-44d1-a99d-74af2a9f20f3",
+    "title": "2. Back and Biceps",
+    "folderId": 1431583,
+    "createdAt": "2024-05-18T13:07:31.156Z",
+    "updatedAt": "2025-08-15T18:49:24.992Z",
+    "exercises": [
+      {"name": "Seated Cable Row - V Grip (Cable)", "index": 0, "exerciseTemplateId": "0393F233", "notes": "", "restSeconds": 60, "sets": [{"index": 0, "type": "warmup", "weight": 52.16318458509857, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 86.18265279277155, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 99.79044007584075, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 106.59433371737533, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 4, "type": "normal", "weight": 104.77996207963278, "reps": 5, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Hammer Curl (Dumbbell)", "index": 1, "exerciseTemplateId": "7E3BC8B6", "notes": "", "restSeconds": 90, "sets": [{"index": 0, "type": "normal", "weight": 40.82336184920758, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 40.82336184920758, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 45.35929094356398, "reps": 4, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": null, "reps": null, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Back Extension (Weighted Hyperextension)", "index": 2, "exerciseTemplateId": "091737FA", "notes": "", "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 20.41168092460379, "reps": 12, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 20.41168092460379, "reps": 12, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 20.41168092460379, "reps": 12, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Lat Pulldown (Cable)", "index": 3, "exerciseTemplateId": "6A6C31A5", "notes": "", "restSeconds": 90, "sets": [{"index": 0, "type": "warmup", "weight": 58.96707822663317, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 86.18265279277155, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 92.98654643430615, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 99.79044007584075, "reps": 3, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Rear Delt Reverse Fly (Machine)", "index": 4, "exerciseTemplateId": "D8281C62", "notes": "", "restSeconds": 90, "sets": [{"index": 0, "type": "warmup", "weight": 22.67964547178199, "reps": 10, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 31.75150366049478, "reps": 8, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 40.82336184920758, "reps": 6, "distance": null, "duration": null, "customMetric": null}, {"index": 3, "type": "normal", "weight": 45.35929094356398, "reps": 6, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Bicep Curl (Barbell)", "index": 5, "exerciseTemplateId": "A5AC6449", "notes": "", "restSeconds": 90, "sets": [{"index": 0, "type": "normal", "weight": 40.82336184920758, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 36.28743275485118, "reps": 5, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 36.28743275485118, "reps": 5, "distance": null, "duration": null, "customMetric": null}]},
+      {"name": "Crunch (Weighted)", "index": 6, "exerciseTemplateId": "D928C232", "notes": "", "restSeconds": 60, "sets": [{"index": 0, "type": "normal", "weight": 20.41168092460379, "reps": 20, "distance": null, "duration": null, "customMetric": null}, {"index": 1, "type": "normal", "weight": 20.41168092460379, "reps": 15, "distance": null, "duration": null, "customMetric": null}, {"index": 2, "type": "normal", "weight": 20.41168092460379, "reps": 15, "distance": null, "duration": null, "customMetric": null}]}
+    ]
+  }
+]
