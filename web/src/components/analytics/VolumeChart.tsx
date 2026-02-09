@@ -10,6 +10,15 @@ interface VolumeChartProps {
 }
 
 export default function VolumeChart({ data }: VolumeChartProps) {
+  if (!data.muscle_groups || data.muscle_groups.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <p>No weekly volume data available yet.</p>
+        <p className="text-sm mt-1">Complete workouts to start tracking volume by muscle group.</p>
+      </div>
+    )
+  }
+
   const chartData = data.muscle_groups.map((mg) => ({
     name: mg.name,
     sets: mg.total_sets,

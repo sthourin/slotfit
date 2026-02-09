@@ -10,21 +10,27 @@ This script:
 Usage:
     cd backend
     python scripts/hevy_import/import_hevy_workouts.py
-    
+
     # Dry run (no database changes):
     python scripts/hevy_import/import_hevy_workouts.py --dry-run
-    
+
     # Verbose output:
     python scripts/hevy_import/import_hevy_workouts.py --verbose
 """
 import asyncio
 import json
 import sys
+import io
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from difflib import SequenceMatcher
 import argparse
+
+# Fix Windows console encoding for emoji/unicode
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -42,13 +48,58 @@ from app.models.exercise import DifficultyLevel
 
 
 # Hevy exercise name normalization patterns
+# Hevy name -> Slotfit name (exact matches override fuzzy matching)
 NAME_NORMALIZATIONS = {
-    # Hevy name -> Slotfit name (exact matches first)
     "Pull Up": "Pull-up",
-    "Chin Up": "Chin-up", 
+    "Chin Up": "Chin-up",
     "Push Up": "Push-up",
     "V Up": "V-up",
-    # Add more as needed
+    "Face Pulls": "Face Pull",
+    "Tire Flips": "Tire Flip",
+    "Single-arm Cable Front Raise": "Single Arm Cable Front Raise",
+    "Low Cable Fly Crossovers": "Cable Fly Crossovers",
+    "Hanging Knee Raise": "Bar Hanging Knee Raise",
+    "Hanging Leg Raise": "Bar Hanging Leg Raise",
+}
+
+# Exercises that should NOT be fuzzy-matched (create as new instead)
+# These get wrong fuzzy matches due to similar names but different exercises
+FORCE_CREATE_NEW = {
+    "Bench Press (Dumbbell)",        # wrongly matches Incline Bench Press (Dumbbell)
+    "Bench Press (Barbell)",         # should be its own exercise
+    "Bent Over Row (Barbell)",       # wrongly matches Dumbbell variant
+    "Bicep Curl (Cable)",            # wrongly matches Barbell variant
+    "Bicep Curl (Dumbbell)",         # wrongly matches Barbell variant
+    "Bulgarian Split Squat",         # wrongly matches Tire Bulgarian Split Squat
+    "Chest Press (Machine)",         # wrongly matches Leg Press (Machine)!
+    "Chest Supported Reverse Fly (Dumbbell)",  # wrongly matches Y Raise
+    "Chest Supported T",             # wrongly matches Ws
+    "DB Push Press",                 # wrongly matches HIIT DB Push Press
+    "DB Up And Arounds",             # wrongly matches HIIT variant
+    "Deadlift (Barbell)",            # wrongly matches Dumbbell variant
+    "Decline Bench Press (Dumbbell)",  # wrongly matches Incline
+    "HIIT Box Step Ups",             # wrongly matches HIIT DB Step Ups
+    "HIIT Cable Punches",            # wrongly matches HIIT DB Punches
+    "HIIT Kettlebell Swings",        # wrongly matches Kettlebell Swing
+    "HIIT Mountain Climber",         # wrongly matches Ring Mountain Climber
+    "Incline Chest Press (Machine)", # wrongly matches Iso-Lateral
+    "Incline Push Ups",              # wrongly matches Tire Incline Push Up
+    "Kettlebell Clean",              # wrongly matches Dead Clean
+    "Mountain Climber",              # wrongly matches Ring variant
+    "Rear Delt Reverse Fly (Machine)",  # wrongly matches Dumbbell variant
+    "Seated Cable Row - Bar Grip",   # wrongly matches V Grip
+    "Seated Calf Raise",             # wrongly matches Barbell variant
+    "Side Plank",                    # wrongly matches Ring variant
+    "Single Arm Cable Row",          # wrongly matches Shotgun Row
+    "Single Arm Landmine Press (Barbell)",  # wrongly matches Z Press
+    "Single Arm Overhead Carry",     # wrongly matches Barbell variant
+    "Single Arm Tricep Extension (Dumbbell)",  # wrongly matches generic
+    "Single Leg Glute Bridge",       # wrongly matches Bodyweight variant
+    "Standing Calf Raise (Smith)",   # wrongly matches Machine variant
+    "Triceps Extension (Barbell)",   # wrongly matches Dumbbell variant
+    "Triceps Extension (Cable)",     # wrongly matches Dumbbell variant
+    "Triceps Rope Pushdown",         # wrongly matches generic Pushdown
+    "1-leg deadlift curl press on BOSU",  # wrongly matches different exercise
 }
 
 # Equipment keywords to help identify equipment
@@ -86,23 +137,32 @@ def find_best_match(hevy_name: str, slotfit_exercises: Dict[str, int], threshold
     Find the best matching Slotfit exercise for a Hevy exercise name.
     Returns (slotfit_name, exercise_id, similarity_score) or None if no match above threshold.
     """
+    # Skip fuzzy matching for exercises known to get wrong matches
+    if hevy_name in FORCE_CREATE_NEW:
+        # Still check for exact match after normalization
+        normalized_hevy = normalize_exercise_name(hevy_name).lower()
+        for slotfit_name, exercise_id in slotfit_exercises.items():
+            if slotfit_name.lower() == normalized_hevy:
+                return (slotfit_name, exercise_id, 1.0)
+        return None
+
     normalized_hevy = normalize_exercise_name(hevy_name).lower()
-    
+
     # Check for exact match first (case-insensitive)
     for slotfit_name, exercise_id in slotfit_exercises.items():
         if slotfit_name.lower() == normalized_hevy:
             return (slotfit_name, exercise_id, 1.0)
-    
+
     # Find best fuzzy match
     best_match = None
     best_score = 0.0
-    
+
     for slotfit_name, exercise_id in slotfit_exercises.items():
         score = similarity_score(normalized_hevy, slotfit_name)
         if score > best_score and score >= threshold:
             best_score = score
             best_match = (slotfit_name, exercise_id, score)
-    
+
     return best_match
 
 
@@ -401,6 +461,8 @@ async def main():
     parser.add_argument("--dry-run", action="store_true", help="Don't make any database changes")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument("--data-file", default=None, help="Path to Hevy data JSON file")
+    parser.add_argument("--device-id", default="hevy-import-device", help="Device ID for the import user (default: hevy-import-device)")
+    parser.add_argument("--clear-previous", action="store_true", help="Delete all previous workouts for this device ID before importing")
     args = parser.parse_args()
     
     # Load Hevy data
@@ -429,8 +491,26 @@ async def main():
     async with async_session() as session:
         try:
             # Get or create import user
-            print("\nSetting up import user...")
-            user = await get_or_create_import_user(session, "hevy-import-device")
+            print(f"\nSetting up import user (device_id={args.device_id})...")
+            user = await get_or_create_import_user(session, args.device_id)
+
+            # Clear previous imports if requested
+            if args.clear_previous and not args.dry_run:
+                print("\nClearing previous workouts for this user...")
+                old_workouts = await session.execute(
+                    select(WorkoutSession).where(WorkoutSession.user_id == user.id)
+                )
+                old_count = 0
+                for old_ws in old_workouts.scalars().all():
+                    await session.delete(old_ws)
+                    old_count += 1
+                await session.flush()
+                print(f"  Deleted {old_count} previous workouts (cascade deletes exercises/sets)")
+            elif args.clear_previous and args.dry_run:
+                old_count_result = await session.execute(
+                    select(func.count(WorkoutSession.id)).where(WorkoutSession.user_id == user.id)
+                )
+                print(f"\n[DRY RUN] Would delete {old_count_result.scalar()} previous workouts")
             
             # Build exercise mapping (and create missing exercises)
             print("\nBuilding exercise mapping...")
