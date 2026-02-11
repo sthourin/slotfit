@@ -171,24 +171,33 @@ export default function WorkoutSummary({
 
   if (variant === 'inline') {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-start justify-between mb-4">
+      <details className="bg-white rounded-lg shadow-sm group">
+        <summary className="p-6 cursor-pointer list-none flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Last Workout Summary</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Completed on {workout.completed_at ? new Date(workout.completed_at).toLocaleString() : 'N/A'}
+              {workout.completed_at ? new Date(workout.completed_at).toLocaleString() : 'N/A'}
+              {' '}&middot; {formatDuration(duration)} &middot; {totalSets} sets &middot; {totalVolume.toLocaleString()} lbs
             </p>
           </div>
+          <svg
+            className="w-5 h-5 text-gray-400 transition-transform group-open:rotate-180"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </summary>
+        <div className="px-6 pb-6">
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-3 text-gray-600">Loading summary...</p>
+            </div>
+          ) : (
+            summaryContent
+          )}
         </div>
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-3 text-gray-600">Loading summary...</p>
-          </div>
-        ) : (
-          summaryContent
-        )}
-      </div>
+      </details>
     )
   }
 

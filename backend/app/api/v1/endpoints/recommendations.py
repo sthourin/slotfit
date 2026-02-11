@@ -2,10 +2,10 @@
 AI Exercise Recommendation API endpoints
 """
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
@@ -14,6 +14,7 @@ from app.core.logging import get_logger
 from app.models.user import User
 from app.models.workout import WorkoutSession, WorkoutExercise, WorkoutState
 from app.models.routine import RoutineTemplate, RoutineSlot
+from app.models.exercise import Exercise
 from app.services.ai.service import AIRecommendationService
 from app.services.ai.base import RecommendationResponse
 from app.schemas.recommendation import NextWorkoutSuggestionResponse
@@ -35,7 +36,7 @@ async def get_user_workout_history(
     - exercise_frequency: Dict mapping exercise_id to count
     - last_performed: Dict mapping exercise_id to last performed date
     """
-    cutoff_date = datetime.now(UTC) - timedelta(days=days_back)
+    cutoff_date = datetime.utcnow() - timedelta(days=days_back)
     
     # Query recent workout sessions
     sessions_query = select(WorkoutSession).where(
@@ -57,8 +58,8 @@ async def get_user_workout_history(
     
     for session in sessions:
         # Load workout exercises with exercise relationship
-        await db.refresh(session, ["workout_exercises"])
-        for we in session.workout_exercises:
+        await db.refresh(session, ["exercises"])
+        for we in session.exercises:
             exercise_id = we.exercise_id
             if exercise_id:
                 recent_exercises.append(exercise_id)
@@ -182,44 +183,127 @@ async def get_recommendations(
         raise HTTPException(status_code=500, detail="Failed to get recommendations")
 
 
+async def get_training_summary(
+    db: AsyncSession, user_id: int, planned_sessions: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Compute aggregated training summary for AI prompt context.
+    Returns sets/reps per muscle group for 7d and 30d windows,
+    plus days since each muscle group was last trained,
+    and schedule variability info.
+    """
+    now = datetime.utcnow()
+    seven_days_ago = now - timedelta(days=7)
+    thirty_days_ago = now - timedelta(days=30)
+
+    # Session counts per week (last 4 weeks) for variability calculation
+    weekly_result = await db.execute(text("""
+        SELECT
+            COUNT(*) FILTER (WHERE completed_at >= :w1) as week_1,
+            COUNT(*) FILTER (WHERE completed_at >= :w2 AND completed_at < :w1) as week_2,
+            COUNT(*) FILTER (WHERE completed_at >= :w3 AND completed_at < :w2) as week_3,
+            COUNT(*) FILTER (WHERE completed_at >= :w4 AND completed_at < :w3) as week_4
+        FROM workout_sessions
+        WHERE user_id = :user_id
+          AND completed_at IS NOT NULL
+          AND completed_at >= :w4
+    """), {
+        "user_id": user_id,
+        "w1": now - timedelta(days=7),
+        "w2": now - timedelta(days=14),
+        "w3": now - timedelta(days=21),
+        "w4": now - timedelta(days=28),
+    })
+    weekly_row = weekly_result.fetchone()
+    weekly_counts = [weekly_row[i] for i in range(4)] if weekly_row else [0, 0, 0, 0]
+    sessions_7d = weekly_counts[0]
+    sessions_30d = sum(weekly_counts)
+    avg_per_week = round(sessions_30d / 4, 1)
+
+    # Determine schedule pattern
+    non_zero_weeks = [w for w in weekly_counts if w > 0]
+    if len(non_zero_weeks) >= 2:
+        spread = max(non_zero_weeks) - min(non_zero_weeks)
+        schedule_pattern = "irregular" if spread >= 2 else "consistent"
+    else:
+        schedule_pattern = "irregular"
+
+    # Volume by muscle group (sets + reps) for both 7d and 30d, with last_trained date
+    volume_result = await db.execute(text("""
+        SELECT
+            mg.name as muscle_group,
+            COUNT(ws.id) FILTER (WHERE wses.completed_at >= :seven_days) as sets_7d,
+            COALESCE(SUM(ws.reps) FILTER (WHERE wses.completed_at >= :seven_days), 0) as reps_7d,
+            COUNT(ws.id) as sets_30d,
+            COALESCE(SUM(ws.reps), 0) as reps_30d,
+            MAX(wses.completed_at) as last_trained
+        FROM workout_sessions wses
+        JOIN workout_exercises we ON we.workout_session_id = wses.id
+        JOIN workout_sets ws ON ws.workout_exercise_id = we.id
+        JOIN exercise_muscle_groups emg ON emg.exercise_id = we.exercise_id
+        JOIN muscle_groups mg ON mg.id = emg.muscle_group_id
+        WHERE wses.user_id = :user_id
+          AND wses.completed_at IS NOT NULL
+          AND wses.completed_at >= :thirty_days
+          AND emg.role = 'target'
+          AND mg.level = 1
+        GROUP BY mg.name
+        ORDER BY sets_30d DESC
+    """), {"user_id": user_id, "seven_days": seven_days_ago, "thirty_days": thirty_days_ago})
+
+    muscle_groups = []
+    for row in volume_result.fetchall():
+        days_since = (now - row.last_trained).days if row.last_trained else None
+        muscle_groups.append({
+            "name": row.muscle_group,
+            "sets_7d": row.sets_7d,
+            "reps_7d": int(row.reps_7d),
+            "sets_30d": row.sets_30d,
+            "reps_30d": int(row.reps_30d),
+            "days_since_trained": days_since,
+        })
+
+    return {
+        "sessions_7d": sessions_7d,
+        "sessions_30d": sessions_30d,
+        "avg_sessions_per_week": avg_per_week,
+        "weekly_counts": weekly_counts,
+        "schedule_pattern": schedule_pattern,
+        "planned_sessions": planned_sessions,
+        "muscle_groups": muscle_groups,
+    }
+
+
 @router.post("/next-workout", response_model=NextWorkoutSuggestionResponse)
 async def get_next_workout_suggestion(
+    planned_sessions: Optional[int] = Query(
+        None, ge=1, le=7,
+        description="How many sessions the user plans this week (1-7). If omitted, inferred from history.",
+    ),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get AI-powered next workout suggestion based on user history"""
+    """Get AI-powered next workout suggestion based on user history and planned schedule"""
     service = AIRecommendationService(db)
 
-    user_workout_history = await get_user_workout_history(db, current_user.id)
-    recent_workouts = await get_recent_completed_workouts(db, current_user.id, limit=10)
+    training_summary = await get_training_summary(db, current_user.id, planned_sessions)
     routine_options = await get_routine_options(db, current_user.id)
 
-    # Build summary for AI prompt
-    routine_usage: Dict[int, int] = {}
-    last_completed_by_routine: Dict[int, Any] = {}
-    recent_sessions: List[Dict[str, Any]] = []
-
-    for session in recent_workouts:
-        if session.routine_template_id:
-            routine_usage[session.routine_template_id] = routine_usage.get(session.routine_template_id, 0) + 1
-            if session.routine_template_id not in last_completed_by_routine:
-                last_completed_by_routine[session.routine_template_id] = session.completed_at
-        recent_sessions.append({
-            "id": session.id,
-            "routine_template_id": session.routine_template_id,
-            "completed_at": session.completed_at,
-        })
-
-    workout_history = {
-        "recent_sessions": recent_sessions,
-        "routine_usage": routine_usage,
-        "last_completed_by_routine": last_completed_by_routine,
-        "exercise_history": user_workout_history or {},
-    }
+    # Get exercise names for AI prompt grounding (user's exercises + popular ones)
+    user_ex_query = (
+        select(Exercise.name)
+        .join(WorkoutExercise, WorkoutExercise.exercise_id == Exercise.id)
+        .join(WorkoutSession, WorkoutSession.id == WorkoutExercise.workout_session_id)
+        .where(WorkoutSession.user_id == current_user.id)
+        .distinct()
+    )
+    user_ex_result = await db.execute(user_ex_query)
+    user_exercise_names = sorted({row[0] for row in user_ex_result.fetchall()})
+    training_summary["available_exercise_names"] = user_exercise_names
 
     try:
         suggestion = await service.get_next_workout_suggestion(
-            workout_history=workout_history,
+            workout_history=training_summary,
             routine_options=routine_options,
         )
         return suggestion

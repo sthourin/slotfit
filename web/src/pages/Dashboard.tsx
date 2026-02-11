@@ -6,12 +6,14 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { workoutApi, type WorkoutSession } from '../services/workouts'
 import { recommendationApi, type NextWorkoutSuggestion } from '../services/recommendations'
+import { useWorkoutStore } from '../stores/workoutStore'
 import WorkoutCard from '../components/history/WorkoutCard'
 import WorkoutDetail from '../components/history/WorkoutDetail'
 import WorkoutSummary from '../components/workout/WorkoutSummary'
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { loadWorkout } = useWorkoutStore()
   const [workouts, setWorkouts] = useState<WorkoutSession[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutSession | null>(null)
@@ -20,6 +22,8 @@ export default function Dashboard() {
   const [suggestion, setSuggestion] = useState<NextWorkoutSuggestion | null>(null)
   const [suggestionLoading, setSuggestionLoading] = useState(false)
   const [suggestionError, setSuggestionError] = useState<string | null>(null)
+  const [plannedSessions, setPlannedSessions] = useState<number | undefined>(undefined)
+  const [startingWorkout, setStartingWorkout] = useState(false)
 
   useEffect(() => {
     loadWorkouts()
@@ -42,11 +46,11 @@ export default function Dashboard() {
     }
   }
 
-  const loadSuggestion = async () => {
+  const loadSuggestion = async (sessions?: number) => {
     setSuggestionLoading(true)
     setSuggestionError(null)
     try {
-      const response = await recommendationApi.getNextWorkoutSuggestion()
+      const response = await recommendationApi.getNextWorkoutSuggestion(sessions ?? plannedSessions)
       setSuggestion(response)
     } catch (err) {
       console.error('Failed to load next workout suggestion:', err)
@@ -86,11 +90,29 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Next Workout Suggestion</h2>
             <button
-              onClick={loadSuggestion}
+              onClick={() => loadSuggestion()}
               className="text-sm text-blue-600 hover:text-blue-700"
             >
               Refresh
             </button>
+          </div>
+
+          <div className="flex items-center gap-3 mb-4">
+            <label className="text-sm text-gray-600">Sessions this week:</label>
+            <select
+              value={plannedSessions ?? ''}
+              onChange={(e) => {
+                const val = e.target.value ? Number(e.target.value) : undefined
+                setPlannedSessions(val)
+                loadSuggestion(val)
+              }}
+              className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+            >
+              <option value="">Auto (from history)</option>
+              {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                <option key={n} value={n}>{n} session{n > 1 ? 's' : ''}</option>
+              ))}
+            </select>
           </div>
 
           {suggestionLoading ? (
@@ -128,14 +150,45 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
-              {suggestion.suggested_routine_id && (
+              {(suggestion.provider || suggestion.model) && (
+                <div className="text-xs text-gray-400">
+                  {suggestion.provider && <span>Provider: {suggestion.provider}</span>}
+                  {suggestion.provider && suggestion.model && <span> &middot; </span>}
+                  {suggestion.model && <span>Model: {suggestion.model}</span>}
+                </div>
+              )}
+              {suggestion.prompt && (
+                <details className="text-xs">
+                  <summary className="text-gray-400 cursor-pointer hover:text-gray-600">
+                    View prompt
+                  </summary>
+                  <pre className="mt-2 p-3 bg-gray-50 rounded border text-gray-600 whitespace-pre-wrap overflow-x-auto max-h-64 overflow-y-auto">
+                    {suggestion.prompt}
+                  </pre>
+                </details>
+              )}
+              {suggestion.suggested_routine_id && suggestion.suggested_exercises.length > 0 && (
                 <button
-                  onClick={() =>
-                    navigate(`/workout/start?routineId=${suggestion.suggested_routine_id}`)
-                  }
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  disabled={startingWorkout}
+                  onClick={async () => {
+                    setStartingWorkout(true)
+                    try {
+                      const workout = await workoutApi.startFromSuggestion({
+                        routine_id: suggestion.suggested_routine_id!,
+                        exercise_names: suggestion.suggested_exercises,
+                      })
+                      await loadWorkout(workout.id)
+                      navigate('/workout')
+                    } catch (err) {
+                      console.error('Failed to start suggested workout:', err)
+                      setSuggestionError('Failed to start workout. Please try again.')
+                    } finally {
+                      setStartingWorkout(false)
+                    }
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors"
                 >
-                  Start Suggested Workout
+                  {startingWorkout ? 'Starting...' : 'Start Suggested Workout'}
                 </button>
               )}
             </div>

@@ -113,3 +113,10 @@ class AddExerciseToWorkoutRequest(BaseModel):
     """Request schema for adding an exercise to a workout slot"""
     routine_slot_id: int  # The routine slot ID (maps to slot_id in WorkoutExercise)
     exercise_id: int
+
+
+class StartFromSuggestionRequest(BaseModel):
+    """Request schema for starting a workout from an AI suggestion"""
+    routine_id: int
+    exercise_names: List[str]
+    equipment_profile_id: Optional[int] = None

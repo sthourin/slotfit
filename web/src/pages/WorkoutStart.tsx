@@ -229,7 +229,8 @@ export default function WorkoutStart() {
     }
   }
 
-  const canStart = selectedRoutineId && selectedRoutine && slotExercises.length > 0
+  const hasSlots = selectedRoutine && selectedRoutine.slots.length > 0
+  const canStart = selectedRoutineId && selectedRoutine
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -261,27 +262,40 @@ export default function WorkoutStart() {
         {selectedRoutineId && selectedRoutine && (
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <h2 className="text-xl font-semibold mb-4">3. Pre-fill Exercises (Optional)</h2>
-            <div className="space-y-4">
-              <button
-                onClick={() => setShowQuickFillModal(true)}
-                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Quick-Fill with AI Recommendations
-              </button>
+            {hasSlots ? (
+              <div className="space-y-4">
+                <button
+                  onClick={() => setShowQuickFillModal(true)}
+                  className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Quick-Fill with AI Recommendations
+                </button>
 
-              {lastWorkout && (
-                <LastWorkoutOption
-                  lastWorkout={lastWorkout}
-                  onCopy={handleCopyLastWorkout}
-                  loading={loadingLastWorkout}
-                />
-              )}
-            </div>
+                {lastWorkout && (
+                  <LastWorkoutOption
+                    lastWorkout={lastWorkout}
+                    onCopy={handleCopyLastWorkout}
+                    loading={loadingLastWorkout}
+                  />
+                )}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4">
+                This routine has no slots configured. You can{' '}
+                <button
+                  onClick={() => navigate(`/routines/${selectedRoutineId}`)}
+                  className="text-blue-600 hover:text-blue-700 underline"
+                >
+                  add slots in the Routine Designer
+                </button>{' '}
+                or start without pre-filled exercises.
+              </div>
+            )}
           </div>
         )}
 
         {/* Step 4: Review Slot Exercises */}
-        {selectedRoutine && slotExercises.length > 0 && (
+        {selectedRoutine && hasSlots && slotExercises.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <h2 className="text-xl font-semibold mb-4">4. Review Exercises</h2>
             <div className="space-y-3">

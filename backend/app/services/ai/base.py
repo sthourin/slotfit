@@ -39,6 +39,8 @@ class WorkoutSuggestion(BaseModel):
     rationale: str
     suggested_exercises: List[str] = []
     provider: Optional[str] = None
+    model: Optional[str] = None
+    prompt: Optional[str] = None
 
 
 class AIProvider(ABC):

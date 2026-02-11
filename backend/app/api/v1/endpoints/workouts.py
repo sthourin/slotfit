@@ -2,7 +2,7 @@
 Workout Session API endpoints
 """
 from typing import List
-from datetime import datetime, UTC
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -10,7 +10,9 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import WorkoutSession, WorkoutExercise, WorkoutSet, Exercise, RoutineSlot
+from app.core.logging import get_logger
+from app.models import WorkoutSession, WorkoutExercise, WorkoutSet, Exercise, RoutineSlot, RoutineTemplate, MuscleGroup
+from app.models.exercise import exercise_muscle_groups
 from app.models.workout import WorkoutState, SlotState
 from app.models.user import User
 from app.schemas.workout import (
@@ -19,12 +21,15 @@ from app.schemas.workout import (
     WorkoutSessionResponse,
     WorkoutSessionListResponse,
     AddExerciseToWorkoutRequest,
+    StartFromSuggestionRequest,
     WorkoutExerciseResponse,
     WorkoutExerciseUpdate,
     WorkoutSetCreate,
     WorkoutSetUpdate,
     WorkoutSetResponse,
 )
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -199,7 +204,7 @@ async def start_workout(
         )
     
     workout.state = WorkoutState.ACTIVE
-    workout.started_at = datetime.now(UTC)
+    workout.started_at = datetime.utcnow()
     workout.paused_at = None
     
     await db.commit()
@@ -242,7 +247,7 @@ async def pause_workout(
         )
     
     workout.state = WorkoutState.PAUSED
-    workout.paused_at = datetime.now(UTC)
+    workout.paused_at = datetime.utcnow()
     
     await db.commit()
     await db.refresh(workout)
@@ -284,7 +289,7 @@ async def complete_workout(
         )
     
     workout.state = WorkoutState.COMPLETED
-    workout.completed_at = datetime.now(UTC)
+    workout.completed_at = datetime.utcnow()
     workout.paused_at = None
     
     await db.commit()
@@ -609,5 +614,111 @@ async def delete_workout_set(
     
     await db.delete(workout_set)
     await db.commit()
-    
+
     return None
+
+
+@router.post("/start-from-suggestion", response_model=WorkoutSessionResponse)
+async def start_workout_from_suggestion(
+    request: StartFromSuggestionRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Start a workout from an AI suggestion.
+
+    Resolves exercise names to exercises, creates slots on the routine
+    if it has none, then creates and starts the workout with pre-filled exercises.
+    """
+    # 1. Verify routine belongs to user
+    routine_query = select(RoutineTemplate).where(
+        RoutineTemplate.id == request.routine_id,
+        RoutineTemplate.user_id == current_user.id,
+    ).options(selectinload(RoutineTemplate.slots))
+    routine_result = await db.execute(routine_query)
+    routine = routine_result.scalar_one_or_none()
+    if not routine:
+        raise HTTPException(status_code=404, detail="Routine not found")
+
+    # 2. Resolve exercise names to Exercise records (exact → substring → keyword → fuzzy)
+    from app.services.exercise_resolver import ExerciseResolver
+    resolver = ExerciseResolver(db)
+    resolved_exercises = await resolver.resolve_many(request.exercise_names)
+
+    if not resolved_exercises:
+        raise HTTPException(status_code=400, detail="No exercises could be resolved from the suggestion")
+
+    # 3. Get target muscle groups for each exercise
+    exercise_muscle_map: dict[int, list[int]] = {}
+    for exercise in resolved_exercises:
+        mg_query = select(exercise_muscle_groups.c.muscle_group_id).where(
+            exercise_muscle_groups.c.exercise_id == exercise.id,
+            exercise_muscle_groups.c.role == "target",
+        )
+        mg_result = await db.execute(mg_query)
+        mg_ids = [row[0] for row in mg_result.fetchall()]
+        exercise_muscle_map[exercise.id] = mg_ids
+
+    # 4. Create slots on the routine if it has none
+    existing_slots = routine.slots
+    if len(existing_slots) == 0:
+        # Pre-load muscle group names for slot naming
+        all_mg_ids = {mg_id for ids in exercise_muscle_map.values() for mg_id in ids}
+        mg_names: dict[int, str] = {}
+        if all_mg_ids:
+            mg_query = select(MuscleGroup.id, MuscleGroup.name).where(MuscleGroup.id.in_(all_mg_ids))
+            mg_result = await db.execute(mg_query)
+            mg_names = {row[0]: row[1] for row in mg_result.fetchall()}
+
+        new_slots = []
+        for i, exercise in enumerate(resolved_exercises):
+            mg_ids = exercise_muscle_map.get(exercise.id, [])
+            # Name slot after target muscle group (slot-based concept), fallback to exercise name
+            slot_name = mg_names.get(mg_ids[0], exercise.name) if mg_ids else exercise.name
+            slot = RoutineSlot(
+                routine_template_id=routine.id,
+                name=slot_name,
+                order=i + 1,
+                primary_muscle_group_id=mg_ids[0] if mg_ids else None,
+                muscle_group_ids=mg_ids,
+                selected_exercise_id=exercise.id,
+            )
+            db.add(slot)
+            new_slots.append(slot)
+        await db.flush()  # Get IDs for the new slots
+        slot_exercise_pairs = list(zip(new_slots, resolved_exercises))
+    else:
+        # Routine already has slots — match exercises to existing slots by order
+        slot_exercise_pairs = list(zip(existing_slots, resolved_exercises))
+
+    # 5. Create workout session in ACTIVE state
+    workout = WorkoutSession(
+        routine_template_id=routine.id,
+        user_id=current_user.id,
+        state=WorkoutState.ACTIVE,
+        started_at=datetime.utcnow(),
+    )
+    db.add(workout)
+    await db.flush()
+
+    # 6. Add exercises to workout linked to slots
+    for slot, exercise in slot_exercise_pairs:
+        we = WorkoutExercise(
+            workout_session_id=workout.id,
+            slot_id=slot.id,
+            exercise_id=exercise.id,
+            slot_state=SlotState.NOT_STARTED,
+        )
+        db.add(we)
+
+    await db.commit()
+
+    # 7. Reload and return full workout with exercises
+    final_query = select(WorkoutSession).where(
+        WorkoutSession.id == workout.id
+    ).options(
+        selectinload(WorkoutSession.exercises).selectinload(WorkoutExercise.sets),
+        selectinload(WorkoutSession.tags),
+    )
+    final_result = await db.execute(final_query)
+    return final_result.scalar_one()

@@ -34,6 +34,9 @@ yarn-error.log*
 .env.local
 .env.*.local
 
+# Claude Code (contains API keys)
+.claude/mcp.json
+
 # IDE
 .vscode/
 .idea/

@@ -133,7 +133,10 @@ class ClaudeProvider(AIProvider):
             )
 
             response_text = message.content[0].text
-            return self._parse_next_workout_response(response_text, routine_options)
+            suggestion = self._parse_next_workout_response(response_text, routine_options)
+            suggestion.model = self.model
+            suggestion.prompt = prompt
+            return suggestion
         except Exception as e:
             logger.warning(f"Claude API call failed: {e}", exc_info=True)
             raise
@@ -162,21 +165,85 @@ class ClaudeProvider(AIProvider):
         workout_history: Dict[str, Any],
         routine_options: List[Dict[str, Any]],
     ) -> str:
-        """Create prompt for next workout suggestion"""
+        """Create prompt for next workout suggestion using compact training summary"""
+        # Format muscle group volume table
+        mg_lines = []
+        for mg in workout_history.get("muscle_groups", []):
+            days = mg["days_since_trained"]
+            days_str = f"{days}d ago" if days is not None else "never"
+            mg_lines.append(
+                f"  {mg['name']}: {mg['sets_7d']} sets/{mg['reps_7d']} reps (7d) | "
+                f"{mg['sets_30d']} sets/{mg['reps_30d']} reps (30d) | last trained: {days_str}"
+            )
+        volume_text = "\n".join(mg_lines) if mg_lines else "  No training data available"
+
+        # Format routine options
+        routine_lines = []
+        for r in routine_options:
+            tags = ", ".join(r.get("tag_names", [])) if r.get("tag_names") else ""
+            tag_str = f" [{tags}]" if tags else ""
+            routine_lines.append(
+                f"  - {r['name']} (id: {r['id']}, type: {r.get('routine_type', 'N/A')}, "
+                f"style: {r.get('workout_style', 'N/A')}, slots: {r.get('slot_count', 0)}){tag_str}"
+            )
+        routines_text = "\n".join(routine_lines) if routine_lines else "  No routines configured"
+
+        sessions_7d = workout_history.get("sessions_7d", 0)
+        sessions_30d = workout_history.get("sessions_30d", 0)
+        avg_per_week = workout_history.get("avg_sessions_per_week", 0)
+
+        # Build schedule context section
+        weekly_counts = workout_history.get("weekly_counts", [])
+        schedule_pattern = workout_history.get("schedule_pattern", "unknown")
+        planned_sessions = workout_history.get("planned_sessions")
+
+        weekly_str = ", ".join(str(w) for w in weekly_counts) if weekly_counts else "no data"
+        schedule_text = (
+            f"SCHEDULE CONTEXT:\n"
+            f"  Historical average: ~{avg_per_week} sessions/week ({schedule_pattern} pattern: {weekly_str} over last 4 weeks)\n"
+        )
+        if planned_sessions is not None:
+            schedule_text += f"  Planned sessions this week: {planned_sessions}\n"
+            if planned_sessions <= 3:
+                schedule_text += "  -> With limited sessions, prefer full-body routines that maximize muscle group coverage.\n"
+            else:
+                schedule_text += "  -> With more sessions available, split routines can be effective for focused volume.\n"
+        else:
+            if avg_per_week <= 3:
+                schedule_text += "  -> Training frequency is low; prefer full-body routines for balanced coverage.\n"
+            else:
+                schedule_text += "  -> Training frequency supports split routines for focused volume.\n"
+
+        # Build exercise database section for name grounding
+        exercise_names = workout_history.get("available_exercise_names", [])
+        if exercise_names:
+            exercise_db_text = (
+                "EXERCISE DATABASE (you MUST choose suggested_exercises from this list, using exact names):\n"
+                f"  {', '.join(exercise_names)}\n\n"
+            )
+        else:
+            exercise_db_text = ""
+
         return (
-            "You are a workout coach. Use the user's history and available routines to suggest the next workout.\n"
-            "Prefer balance across muscle groups and movement patterns. Output ONLY valid JSON.\n\n"
-            "Workout history (recent sessions, exercise frequency, last performed):\n"
-            f"{json.dumps(workout_history, default=str)}\n\n"
-            "Available routines:\n"
-            f"{json.dumps(routine_options, default=str)}\n\n"
+            "You are a workout coach. Based on the training summary below, suggest the best next workout.\n"
+            "Consider muscle group recovery (48-72h between direct work), training balance, frequency, and schedule.\n"
+            "Output ONLY valid JSON.\n\n"
+            f"TRAINING FREQUENCY:\n"
+            f"  {sessions_7d} sessions in last 7 days, {sessions_30d} in last 30 days\n\n"
+            f"{schedule_text}\n"
+            f"VOLUME BY MUSCLE GROUP (sets/reps over 7 days and 30 days, with recovery status):\n"
+            f"{volume_text}\n\n"
+            f"AVAILABLE ROUTINES:\n"
+            f"{routines_text}\n\n"
+            f"{exercise_db_text}"
+            "Suggest the next workout prioritizing undertrained muscle groups, adequate recovery, and the user's schedule.\n"
             "Return JSON with fields:\n"
             "{\n"
             '  "suggested_routine_id": number | null,\n'
             '  "suggested_routine_name": string | null,\n'
-            '  "focus": string | null,\n'
-            '  "rationale": string,\n'
-            '  "suggested_exercises": [string]\n'
+            '  "focus": string describing the workout focus (e.g. "Lower Body Strength", "Pull Day"),\n'
+            '  "rationale": string explaining why based on the training data,\n'
+            '  "suggested_exercises": [string] list of 4-8 exercise names from the EXERCISE DATABASE above\n'
             "}\n"
         )
 

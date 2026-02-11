@@ -234,4 +234,17 @@ export const workoutApi = {
   ): Promise<void> => {
     await apiClient.delete(`/workouts/${workoutId}/exercises/${exerciseId}/sets/${setId}`)
   },
+
+  /**
+   * Start a workout from an AI suggestion.
+   * Creates slots on the routine if needed, then starts the workout with pre-filled exercises.
+   */
+  startFromSuggestion: async (data: {
+    routine_id: number
+    exercise_names: string[]
+    equipment_profile_id?: number
+  }): Promise<WorkoutSession> => {
+    const response = await apiClient.post<WorkoutSession>('/workouts/start-from-suggestion', data)
+    return response.data
+  },
 }

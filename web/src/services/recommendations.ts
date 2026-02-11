@@ -42,6 +42,8 @@ export interface NextWorkoutSuggestion {
   rationale: string
   suggested_exercises: string[]
   provider?: string | null
+  model?: string | null
+  prompt?: string | null
 }
 
 export interface RecommendationParams {
@@ -84,8 +86,12 @@ export const recommendationApi = {
   /**
    * Get AI-powered next workout suggestion
    */
-  getNextWorkoutSuggestion: async (): Promise<NextWorkoutSuggestion> => {
-    const response = await apiClient.post<NextWorkoutSuggestion>('/recommendations/next-workout')
+  getNextWorkoutSuggestion: async (plannedSessions?: number): Promise<NextWorkoutSuggestion> => {
+    const params: Record<string, number> = {}
+    if (plannedSessions !== undefined) {
+      params.planned_sessions = plannedSessions
+    }
+    const response = await apiClient.post<NextWorkoutSuggestion>('/recommendations/next-workout', null, { params })
     return response.data
   },
 }
