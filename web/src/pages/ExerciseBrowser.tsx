@@ -3,12 +3,14 @@
  * Browse and search exercises
  */
 import { useState, useEffect } from 'react'
-import { exerciseApi, Exercise } from '../services/exercises'
-import { equipmentApi, Equipment } from '../services/equipment'
+import { exerciseApi, type Exercise } from '../services/exercises'
+import { equipmentApi, type Equipment } from '../services/equipment'
 import { type Tag } from '../services/tags'
 import { TagInput } from '../components/TagInput'
 import { TagDisplay } from '../components/TagDisplay'
-import { EmptyState } from '../components/ui'
+import { EmptyState, ConfirmDialog } from '../components/ui'
+import ExerciseFormModal from '../components/ExerciseFormModal'
+import { useUIStore } from '../stores/uiStore'
 
 export default function ExerciseBrowser() {
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -19,6 +21,10 @@ export default function ExerciseBrowser() {
   const [selectedTags, setSelectedTags] = useState<Tag[]>([])
   const [page, setPage] = useState(1)
   const pageSize = 20
+  const [showFormModal, setShowFormModal] = useState(false)
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<Exercise | null>(null)
+  const { showToast } = useUIStore()
 
   useEffect(() => {
     loadExercises()
@@ -60,7 +66,15 @@ export default function ExerciseBrowser() {
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Exercise Browser</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Exercise Browser</h1>
+        <button
+          onClick={() => { setEditingExercise(null); setShowFormModal(true) }}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          + Add Exercise
+        </button>
+      </div>
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
@@ -183,6 +197,20 @@ export default function ExerciseBrowser() {
                   Watch Demo →
                 </a>
               )}
+              <div className="mt-3 pt-2 border-t border-gray-100 flex gap-3">
+                <button
+                  onClick={() => { setEditingExercise(exercise); setShowFormModal(true) }}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => setDeleteConfirm(exercise)}
+                  className="text-xs text-red-600 hover:text-red-800"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -206,6 +234,41 @@ export default function ExerciseBrowser() {
           Next
         </button>
       </div>
+
+      {/* Exercise Form Modal */}
+      {showFormModal && (
+        <ExerciseFormModal
+          exercise={editingExercise}
+          onClose={() => setShowFormModal(false)}
+          onSaved={() => loadExercises()}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={deleteConfirm !== null}
+        title="Delete Exercise"
+        message={`Are you sure you want to delete "${deleteConfirm?.name}"? This cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => {
+          if (!deleteConfirm) return
+          const toDelete = deleteConfirm
+          setDeleteConfirm(null)
+          exerciseApi.delete(toDelete.id)
+            .then(() => {
+              showToast('success', 'Exercise deleted')
+              loadExercises()
+            })
+            .catch((err: unknown) => {
+              const message =
+                (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+                'Failed to delete exercise'
+              showToast('error', message)
+            })
+        }}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   )
 }

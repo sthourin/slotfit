@@ -16,6 +16,9 @@ SlotFit is a workout planning app with a "slot-based" approach. Users create rou
 
 ## Quick Commands
 
+### Prerequisites
+**Before starting any servers**, ensure Docker Desktop is running — the PostgreSQL database runs in a Docker container.
+
 ### Backend
 ```bash
 # PREFERRED: Use restart script to avoid stale server issues

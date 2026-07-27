@@ -1,7 +1,7 @@
 """
 AI Exercise Recommendation API endpoints
 """
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +21,11 @@ from app.schemas.recommendation import NextWorkoutSuggestionResponse
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+# Module-level cache for next-workout suggestions (survives across requests)
+# Key: (user_id, planned_sessions), Value: (response, cached_at)
+_suggestion_cache: Dict[Tuple[int, Optional[int]], Tuple[NextWorkoutSuggestionResponse, datetime]] = {}
+_SUGGESTION_CACHE_TTL = timedelta(minutes=30)
 
 
 async def get_user_workout_history(
@@ -280,10 +285,25 @@ async def get_next_workout_suggestion(
         None, ge=1, le=7,
         description="How many sessions the user plans this week (1-7). If omitted, inferred from history.",
     ),
+    refresh: bool = Query(
+        False,
+        description="Force a fresh AI call, bypassing cache.",
+    ),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get AI-powered next workout suggestion based on user history and planned schedule"""
+    cache_key = (current_user.id, planned_sessions)
+
+    # Return cached suggestion if fresh and not forcing refresh
+    if not refresh and cache_key in _suggestion_cache:
+        cached_response, cached_at = _suggestion_cache[cache_key]
+        if datetime.utcnow() - cached_at < _SUGGESTION_CACHE_TTL:
+            logger.debug(f"Returning cached suggestion for user {current_user.id}")
+            return cached_response
+        else:
+            del _suggestion_cache[cache_key]
+
     service = AIRecommendationService(db)
 
     training_summary = await get_training_summary(db, current_user.id, planned_sessions)
@@ -306,6 +326,8 @@ async def get_next_workout_suggestion(
             workout_history=training_summary,
             routine_options=routine_options,
         )
+        # Cache the result
+        _suggestion_cache[cache_key] = (suggestion, datetime.utcnow())
         return suggestion
     except Exception:
         logger.error("Error getting next workout suggestion", exc_info=True)

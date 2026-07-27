@@ -67,16 +67,80 @@ class Exercise(ExerciseBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class MuscleGroupAssignment(BaseModel):
+    """Muscle group with its role for exercise create/update"""
+    muscle_group_id: int
+    role: str = "target"  # "target", "secondary", "tertiary"
+
+
 class ExerciseCreate(BaseModel):
     name: str
     description: Optional[str] = None
     difficulty: Optional[DifficultyLevel] = None
+    exercise_classification: Optional[str] = None
+    primary_equipment_id: Optional[int] = None
+    secondary_equipment_id: Optional[int] = None
+    primary_equipment_count: int = 1
+    secondary_equipment_count: int = 0
+    posture: Optional[str] = None
+    movement_pattern_1: Optional[str] = None
+    movement_pattern_2: Optional[str] = None
+    movement_pattern_3: Optional[str] = None
+    plane_of_motion_1: Optional[str] = None
+    plane_of_motion_2: Optional[str] = None
+    plane_of_motion_3: Optional[str] = None
+    body_region: Optional[str] = None
+    force_type: Optional[str] = None
+    mechanics: Optional[str] = None
+    laterality: Optional[str] = None
+    is_combination: Optional[str] = None
+    short_demo_url: Optional[str] = None
+    in_depth_url: Optional[str] = None
+    instructions: Optional[str] = None
+    base_exercise_id: Optional[int] = None
+    variant_type: Optional[str] = None
+    default_sets: Optional[int] = None
+    default_reps: Optional[int] = None
+    default_weight: Optional[float] = None
+    default_time_seconds: Optional[int] = None
+    default_rest_seconds: Optional[int] = None
+    muscle_groups: Optional[List[MuscleGroupAssignment]] = None
+    tag_ids: Optional[List[int]] = None
 
 
 class ExerciseUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     difficulty: Optional[DifficultyLevel] = None
+    exercise_classification: Optional[str] = None
+    primary_equipment_id: Optional[int] = None
+    secondary_equipment_id: Optional[int] = None
+    primary_equipment_count: Optional[int] = None
+    secondary_equipment_count: Optional[int] = None
+    posture: Optional[str] = None
+    movement_pattern_1: Optional[str] = None
+    movement_pattern_2: Optional[str] = None
+    movement_pattern_3: Optional[str] = None
+    plane_of_motion_1: Optional[str] = None
+    plane_of_motion_2: Optional[str] = None
+    plane_of_motion_3: Optional[str] = None
+    body_region: Optional[str] = None
+    force_type: Optional[str] = None
+    mechanics: Optional[str] = None
+    laterality: Optional[str] = None
+    is_combination: Optional[str] = None
+    short_demo_url: Optional[str] = None
+    in_depth_url: Optional[str] = None
+    instructions: Optional[str] = None
+    base_exercise_id: Optional[int] = None
+    variant_type: Optional[str] = None
+    default_sets: Optional[int] = None
+    default_reps: Optional[int] = None
+    default_weight: Optional[float] = None
+    default_time_seconds: Optional[int] = None
+    default_rest_seconds: Optional[int] = None
+    muscle_groups: Optional[List[MuscleGroupAssignment]] = None
+    tag_ids: Optional[List[int]] = None
 
 
 class ExerciseDuplicate(BaseModel):

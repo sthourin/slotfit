@@ -46,11 +46,11 @@ export default function Dashboard() {
     }
   }
 
-  const loadSuggestion = async (sessions?: number) => {
+  const loadSuggestion = async (sessions?: number, refresh?: boolean) => {
     setSuggestionLoading(true)
     setSuggestionError(null)
     try {
-      const response = await recommendationApi.getNextWorkoutSuggestion(sessions ?? plannedSessions)
+      const response = await recommendationApi.getNextWorkoutSuggestion(sessions ?? plannedSessions, refresh)
       setSuggestion(response)
     } catch (err) {
       console.error('Failed to load next workout suggestion:', err)
@@ -90,7 +90,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Next Workout Suggestion</h2>
             <button
-              onClick={() => loadSuggestion()}
+              onClick={() => loadSuggestion(undefined, true)}
               className="text-sm text-blue-600 hover:text-blue-700"
             >
               Refresh
@@ -104,7 +104,7 @@ export default function Dashboard() {
               onChange={(e) => {
                 const val = e.target.value ? Number(e.target.value) : undefined
                 setPlannedSessions(val)
-                loadSuggestion(val)
+                loadSuggestion(val, true)
               }}
               className="border border-gray-300 rounded-md px-2 py-1 text-sm"
             >

@@ -1,8 +1,8 @@
 {
-  "export_date": "2026-02-09",
+  "export_date": "2026-02-25",
   "date_range": {
     "start": "2023-05-15",
-    "end": "2026-02-08"
+    "end": "2026-02-22"
   },
   "workouts": [
     {
@@ -47224,6 +47224,1312 @@
               "reps": null,
               "rpe": null,
               "duration_sec": 30,
+              "distance_m": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "hevy_id": "1091e697-adea-4ea5-b0dc-e2966e44d313",
+      "title": "HIIT Strength: No Grip Rehab 2",
+      "started_at": "2026-02-13T13:20:18+00:00",
+      "completed_at": "2026-02-13T13:55:03+00:00",
+      "exercises": [
+        {
+          "name": "Squat (Bodyweight)",
+          "hevy_template_id": "9694DA61",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Walking Lunge",
+          "hevy_template_id": "32HKJ34K",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Glute Bridge",
+          "hevy_template_id": "CDA23948",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "High Knees",
+          "hevy_template_id": "150E076B",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": null,
+              "reps": 40,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Arm Circles",
+          "hevy_template_id": "2ce69444-9e06-4e3b-aef4-acad45d84552",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 40,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Jump Rope (Reps)",
+          "hevy_template_id": "db507072-58b3-4cde-a3fb-f2bd8933c4db",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 100,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Rear Delt Reverse Fly (Machine)",
+          "hevy_template_id": "D8281C62",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 13.607787283069193,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 40.82336184920758,
+              "reps": 5,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 49.895220037920375,
+              "reps": 5,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 58.96707822663317,
+              "reps": 5,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "HIIT Mountain Climber",
+          "hevy_template_id": "93a8b6fb-0a0e-4c6f-a351-7c7a659384dd",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": null,
+              "rpe": null,
+              "duration_sec": 33,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": null,
+              "rpe": null,
+              "duration_sec": 32,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": null,
+              "rpe": null,
+              "duration_sec": 33,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Iso-Lateral Chest Press (Machine)",
+          "hevy_template_id": "24706DCD",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 43.99851221525706,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 66.67815768703905,
+              "reps": 5,
+              "rpe": 7.5,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 71.21408678139544,
+              "reps": 5,
+              "rpe": 9.5,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Jump Squat",
+          "hevy_template_id": "70D4EBBF",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Triceps Extension (Dumbbell)",
+          "hevy_template_id": "3765684D",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 22.67964547178199,
+              "reps": 6,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 27.215574566138386,
+              "reps": 6,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Pistol Squat",
+          "hevy_template_id": "3FF6A22E",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 6,
+              "rpe": 9.5,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 6,
+              "rpe": 9.5,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "hevy_id": "1b950431-a3b8-4a76-8c8e-ab5c45e0cf5d",
+      "title": "HIIT Strength: No Grip Rehab",
+      "started_at": "2026-02-17T16:53:44+00:00",
+      "completed_at": "2026-02-17T17:38:10+00:00",
+      "exercises": [
+        {
+          "name": "Stair Machine (Steps)",
+          "hevy_template_id": "4377A52C",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": null,
+              "reps": null,
+              "rpe": null,
+              "duration_sec": 300,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Incline Bench Press (Dumbbell)",
+          "hevy_template_id": "07B38369",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 40.82336184920758,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 63.50300732098956,
+              "reps": 5,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 72.57486550970236,
+              "reps": 5,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 72.57486550970236,
+              "reps": 5,
+              "rpe": 7.5,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Leg Press Wide Stance (Machine)",
+          "hevy_template_id": "168ab314-dc92-4c71-a352-9e61ecb7c476",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 122.47008554762273,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 204.1168092460379,
+              "reps": 5,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 244.94017109524546,
+              "reps": 5,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 267.61981656702744,
+              "reps": 5,
+              "rpe": 7.5,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Leg Extension (Machine)",
+          "hevy_template_id": "75A4F6C4",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 31.75150366049478,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 49.895220037920375,
+              "reps": 6,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 58.96707822663317,
+              "reps": 5,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 68.03893641534596,
+              "reps": 5,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Seated Leg Curl (Machine)",
+          "hevy_template_id": "11A123F3",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 31.75150366049478,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 49.895220037920375,
+              "reps": 6,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 58.96707822663317,
+              "reps": 5,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 68.03893641534596,
+              "reps": 5,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Push Up",
+          "hevy_template_id": "392887AA",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 12,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 12,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Back Extension (Weighted Hyperextension)",
+          "hevy_template_id": "091737FA",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 0.45359290943563974,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 20.41168092460379,
+              "reps": 10,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 20.41168092460379,
+              "reps": 10,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "hevy_id": "0d1ac456-537a-4bb2-9b18-f50ebb886a34",
+      "title": "HIIT Strength: No Grip Rehab 2",
+      "started_at": "2026-02-18T17:24:38+00:00",
+      "completed_at": "2026-02-18T18:13:01+00:00",
+      "exercises": [
+        {
+          "name": "Squat (Bodyweight)",
+          "hevy_template_id": "9694DA61",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Walking Lunge",
+          "hevy_template_id": "32HKJ34K",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Glute Bridge",
+          "hevy_template_id": "CDA23948",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "High Knees",
+          "hevy_template_id": "150E076B",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": null,
+              "reps": 40,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Arm Circles",
+          "hevy_template_id": "2ce69444-9e06-4e3b-aef4-acad45d84552",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 40,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Jump Rope (Reps)",
+          "hevy_template_id": "db507072-58b3-4cde-a3fb-f2bd8933c4db",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 35,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Rear Delt Reverse Fly (Machine)",
+          "hevy_template_id": "D8281C62",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 22.67964547178199,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 49.895220037920375,
+              "reps": 5,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 54.43114913227677,
+              "reps": 5,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 58.96707822663317,
+              "reps": 5,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "HIIT Mountain Climber",
+          "hevy_template_id": "93a8b6fb-0a0e-4c6f-a351-7c7a659384dd",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": null,
+              "rpe": null,
+              "duration_sec": 33,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": null,
+              "rpe": null,
+              "duration_sec": 32,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": null,
+              "rpe": null,
+              "duration_sec": 30,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Chest Fly (Machine)",
+          "hevy_template_id": "78683336",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 31.75150366049478,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 49.895220037920375,
+              "reps": 5,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 58.96707822663317,
+              "reps": 5,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 68.03893641534596,
+              "reps": 5,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Jump Squat",
+          "hevy_template_id": "70D4EBBF",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": 7.5,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Hack Squat (Machine)",
+          "hevy_template_id": "1E42FD5F",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 40.82336184920758,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 81.64672369841516,
+              "reps": 6,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 104.32636917019714,
+              "reps": 5,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "hevy_id": "08ac2ff5-ee92-49f4-bb37-e8aac14ddc01",
+      "title": "Full Body 1",
+      "started_at": "2026-02-20T20:16:40+00:00",
+      "completed_at": "2026-02-20T21:18:33+00:00",
+      "exercises": [
+        {
+          "name": "Squat (Barbell)",
+          "hevy_template_id": "D04AC939",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 20.41168092460379,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "warmup",
+              "weight_kg": 61.235042773811365,
+              "reps": 6,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 102.05840462301894,
+              "reps": 3,
+              "rpe": 9,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 102.05840462301894,
+              "reps": 3,
+              "rpe": 8.5,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 5,
+              "type": "normal",
+              "weight_kg": 102.05840462301894,
+              "reps": 4,
+              "rpe": 9.5,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Iso-Lateral Chest Press (Machine)",
+          "hevy_template_id": "24706DCD",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 43.99851221525706,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 66.67815768703905,
+              "reps": 6,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 71.21408678139544,
+              "reps": 5,
+              "rpe": 10,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 71.21408678139544,
+              "reps": 5,
+              "rpe": 10,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Pullover (Dumbbell)",
+          "hevy_template_id": "67280085",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 20.41168092460379,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 31.75150366049478,
+              "reps": 6,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 31.75150366049478,
+              "reps": 6,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 31.75150366049478,
+              "reps": 6,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Low Cable Fly Crossovers",
+          "hevy_template_id": "293483AD",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 27.215574566138386,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 36.28743275485118,
+              "reps": 6,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 45.35929094356398,
+              "reps": 6,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 54.43114913227677,
+              "reps": 5,
+              "rpe": 7.5,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "hevy_id": "d874a736-1f64-4901-aa60-31a8aae49c13",
+      "title": "HIIT Strength: No Grip Rehab 2 (copy)",
+      "started_at": "2026-02-22T19:55:41+00:00",
+      "completed_at": "2026-02-22T20:37:22+00:00",
+      "exercises": [
+        {
+          "name": "Rear Delt Reverse Fly (Machine)",
+          "hevy_template_id": "D8281C62",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 27.215574566138386,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 54.43114913227677,
+              "reps": 5,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 58.96707822663317,
+              "reps": 5,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 63.50300732098956,
+              "reps": 5,
+              "rpe": 10,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "HIIT Mountain Climber",
+          "hevy_template_id": "93a8b6fb-0a0e-4c6f-a351-7c7a659384dd",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": null,
+              "rpe": null,
+              "duration_sec": 32,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": null,
+              "rpe": null,
+              "duration_sec": 31,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": null,
+              "rpe": null,
+              "duration_sec": 33,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Chest Fly (Machine)",
+          "hevy_template_id": "78683336",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 31.75150366049478,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 54.43114913227677,
+              "reps": 6,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 63.50300732098956,
+              "reps": 6,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 72.57486550970236,
+              "reps": 6,
+              "rpe": 8,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Jumping Lunge",
+          "hevy_template_id": "5CC07A1F",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": 7.5,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Smith Machine Deficit Lunge",
+          "hevy_template_id": "1ec08bb3-f115-429a-baa8-fd0b929f4c4b",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "warmup",
+              "weight_kg": 20.41168092460379,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": 43.091326396385774,
+              "reps": 10,
+              "rpe": 6,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": 43.091326396385774,
+              "reps": 10,
+              "rpe": 7,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 4,
+              "type": "normal",
+              "weight_kg": 43.091326396385774,
+              "reps": 10,
+              "rpe": 7.5,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Plank Jacks",
+          "hevy_template_id": "c3d28aee-688d-45a7-87ef-83ada8064fdc",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 30,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 30,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 3,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 30,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Crunch",
+          "hevy_template_id": "DCF3B31B",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            },
+            {
+              "set_number": 2,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 10,
+              "rpe": null,
+              "duration_sec": null,
+              "distance_m": null
+            }
+          ]
+        },
+        {
+          "name": "Chinnies",
+          "hevy_template_id": "1d45a923-0cde-46f1-817a-a48d41a68d47",
+          "notes": "",
+          "sets": [
+            {
+              "set_number": 1,
+              "type": "normal",
+              "weight_kg": null,
+              "reps": 20,
+              "rpe": null,
+              "duration_sec": null,
               "distance_m": null
             }
           ]

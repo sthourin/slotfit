@@ -11,8 +11,16 @@ from datetime import datetime
 from app.core.database import get_db
 from app.core.logging import get_logger
 from app.models import Exercise, MuscleGroup, Equipment, WorkoutExercise
-from app.schemas.exercise import Exercise as ExerciseSchema, ExerciseListResponse, ExerciseDuplicate
+from app.models.exercise import exercise_muscle_groups
+from app.schemas.exercise import (
+    Exercise as ExerciseSchema,
+    ExerciseListResponse,
+    ExerciseDuplicate,
+    ExerciseCreate as ExerciseCreateSchema,
+    ExerciseUpdate as ExerciseUpdateSchema,
+)
 from fastapi import HTTPException
+from sqlalchemy import insert, delete as sa_delete
 
 logger = get_logger(__name__)
 
@@ -810,6 +818,205 @@ async def duplicate_exercise(
     variant = variant_result.scalar_one()
     
     return ExerciseSchema.model_validate(variant)
+
+
+@router.post("/", response_model=ExerciseSchema, status_code=201)
+async def create_exercise(
+    exercise_data: ExerciseCreateSchema,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new exercise"""
+    # Check name uniqueness
+    existing = await db.execute(select(Exercise).where(Exercise.name == exercise_data.name))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail=f"Exercise with name '{exercise_data.name}' already exists")
+
+    # Validate equipment IDs
+    if exercise_data.primary_equipment_id:
+        equip = await db.get(Equipment, exercise_data.primary_equipment_id)
+        if not equip:
+            raise HTTPException(status_code=400, detail="Primary equipment not found")
+    if exercise_data.secondary_equipment_id:
+        equip = await db.get(Equipment, exercise_data.secondary_equipment_id)
+        if not equip:
+            raise HTTPException(status_code=400, detail="Secondary equipment not found")
+
+    # Create exercise
+    scalar_data = exercise_data.model_dump(exclude={"muscle_groups", "tag_ids"})
+    scalar_data["is_custom"] = "True"
+    exercise = Exercise(**scalar_data)
+    db.add(exercise)
+    await db.flush()
+
+    # Insert muscle group associations
+    if exercise_data.muscle_groups:
+        for mg_assignment in exercise_data.muscle_groups:
+            mg = await db.get(MuscleGroup, mg_assignment.muscle_group_id)
+            if not mg:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Muscle group ID {mg_assignment.muscle_group_id} not found",
+                )
+            await db.execute(
+                insert(exercise_muscle_groups).values(
+                    exercise_id=exercise.id,
+                    muscle_group_id=mg_assignment.muscle_group_id,
+                    role=mg_assignment.role,
+                )
+            )
+
+    # Handle tag associations
+    if exercise_data.tag_ids:
+        from app.models.tag import Tag
+        for tag_id in exercise_data.tag_ids:
+            tag = await db.get(Tag, tag_id)
+            if tag:
+                exercise.tags.append(tag)
+
+    await db.commit()
+
+    # Reload with relationships
+    result = await db.execute(
+        select(Exercise).where(Exercise.id == exercise.id).options(
+            selectinload(Exercise.primary_equipment),
+            selectinload(Exercise.secondary_equipment),
+            selectinload(Exercise.muscle_groups),
+            selectinload(Exercise.tags),
+        )
+    )
+    exercise = result.scalar_one()
+    return ExerciseSchema.model_validate(exercise)
+
+
+@router.put("/{exercise_id}", response_model=ExerciseSchema)
+async def update_exercise(
+    exercise_id: int,
+    exercise_data: ExerciseUpdateSchema,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update an existing exercise"""
+    # Load exercise
+    result = await db.execute(
+        select(Exercise).where(Exercise.id == exercise_id).options(
+            selectinload(Exercise.muscle_groups),
+            selectinload(Exercise.tags),
+        )
+    )
+    exercise = result.scalar_one_or_none()
+    if not exercise:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+
+    # Check name uniqueness if changed
+    if exercise_data.name is not None and exercise_data.name != exercise.name:
+        existing = await db.execute(
+            select(Exercise).where(Exercise.name == exercise_data.name, Exercise.id != exercise_id)
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Exercise with name '{exercise_data.name}' already exists",
+            )
+
+    # Update scalar fields
+    update_data = exercise_data.model_dump(exclude_unset=True, exclude={"muscle_groups", "tag_ids"})
+    for field, value in update_data.items():
+        setattr(exercise, field, value)
+
+    # Update muscle groups if provided
+    if exercise_data.muscle_groups is not None:
+        # Delete old associations
+        await db.execute(
+            sa_delete(exercise_muscle_groups).where(
+                exercise_muscle_groups.c.exercise_id == exercise_id
+            )
+        )
+        # Insert new
+        for mg_assignment in exercise_data.muscle_groups:
+            mg = await db.get(MuscleGroup, mg_assignment.muscle_group_id)
+            if not mg:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Muscle group ID {mg_assignment.muscle_group_id} not found",
+                )
+            await db.execute(
+                insert(exercise_muscle_groups).values(
+                    exercise_id=exercise_id,
+                    muscle_group_id=mg_assignment.muscle_group_id,
+                    role=mg_assignment.role,
+                )
+            )
+
+    # Update tags if provided
+    if exercise_data.tag_ids is not None:
+        from app.models.tag import Tag
+        exercise.tags.clear()
+        for tag_id in exercise_data.tag_ids:
+            tag = await db.get(Tag, tag_id)
+            if tag:
+                exercise.tags.append(tag)
+
+    await db.commit()
+    db.expire_all()
+
+    # Reload with relationships
+    result = await db.execute(
+        select(Exercise).where(Exercise.id == exercise_id).options(
+            selectinload(Exercise.primary_equipment),
+            selectinload(Exercise.secondary_equipment),
+            selectinload(Exercise.muscle_groups),
+            selectinload(Exercise.tags),
+        )
+    )
+    exercise = result.scalar_one()
+    return ExerciseSchema.model_validate(exercise)
+
+
+@router.delete("/{exercise_id}", status_code=204)
+async def delete_exercise(
+    exercise_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete an exercise"""
+    exercise = await db.get(Exercise, exercise_id)
+    if not exercise:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+
+    # Check if used in workouts
+    workout_count = await db.execute(
+        select(func.count()).select_from(WorkoutExercise).where(
+            WorkoutExercise.exercise_id == exercise_id
+        )
+    )
+    count = workout_count.scalar()
+    if count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete '{exercise.name}' because it is used in {count} workout(s)",
+        )
+
+    # Check if has variants
+    variant_count = await db.execute(
+        select(func.count()).select_from(Exercise).where(
+            Exercise.base_exercise_id == exercise_id
+        )
+    )
+    v_count = variant_count.scalar()
+    if v_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete '{exercise.name}' because it has {v_count} variant(s). Delete variants first.",
+        )
+
+    # Clean up junction tables
+    await db.execute(
+        sa_delete(exercise_muscle_groups).where(
+            exercise_muscle_groups.c.exercise_id == exercise_id
+        )
+    )
+
+    await db.delete(exercise)
+    await db.commit()
+    return None
 
 
 @router.get("/{exercise_id}", response_model=ExerciseSchema)

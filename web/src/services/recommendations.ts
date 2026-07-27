@@ -86,10 +86,13 @@ export const recommendationApi = {
   /**
    * Get AI-powered next workout suggestion
    */
-  getNextWorkoutSuggestion: async (plannedSessions?: number): Promise<NextWorkoutSuggestion> => {
-    const params: Record<string, number> = {}
+  getNextWorkoutSuggestion: async (plannedSessions?: number, refresh?: boolean): Promise<NextWorkoutSuggestion> => {
+    const params: Record<string, number | boolean> = {}
     if (plannedSessions !== undefined) {
       params.planned_sessions = plannedSessions
+    }
+    if (refresh) {
+      params.refresh = true
     }
     const response = await apiClient.post<NextWorkoutSuggestion>('/recommendations/next-workout', null, { params })
     return response.data

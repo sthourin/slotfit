@@ -265,7 +265,15 @@ async def create_exercise(
     equipment_mapping: Dict[str, int],
     verbose: bool = False
 ) -> Exercise:
-    """Create a new exercise in Slotfit"""
+    """Create a new exercise in Slotfit, or return existing one if it already exists"""
+    # Check if exercise already exists (handles partial previous imports)
+    result = await session.execute(select(Exercise).where(Exercise.name == name))
+    existing = result.scalar_one_or_none()
+    if existing:
+        if verbose:
+            print(f"    Exercise already exists: {name} (id={existing.id})")
+        return existing
+
     # Infer properties from name
     equipment_name = extract_equipment_from_name(name)
     equipment_id = equipment_mapping.get(equipment_name) if equipment_name else None

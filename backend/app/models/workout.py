@@ -89,9 +89,9 @@ class WorkoutExercise(Base):
     __tablename__ = "workout_exercises"
 
     id = Column(Integer, primary_key=True, index=True)
-    workout_session_id = Column(Integer, ForeignKey("workout_sessions.id"), nullable=False)
+    workout_session_id = Column(Integer, ForeignKey("workout_sessions.id"), nullable=False, index=True)
     slot_id = Column(Integer, ForeignKey("routine_slots.id"), nullable=True)  # Can be null if slot deleted
-    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False, index=True)
     
     # Slot state
     slot_state = Column(SQLEnum(SlotState), default=SlotState.NOT_STARTED, nullable=False)
@@ -132,7 +132,7 @@ class WorkoutSet(Base):
     __tablename__ = "workout_sets"
 
     id = Column(Integer, primary_key=True, index=True)
-    workout_exercise_id = Column(Integer, ForeignKey("workout_exercises.id"), nullable=False)
+    workout_exercise_id = Column(Integer, ForeignKey("workout_exercises.id"), nullable=False, index=True)
     set_number = Column(Integer, nullable=False)
     reps = Column(Integer, nullable=True)
     weight = Column(Float, nullable=True)  # In units specified by WorkoutExercise.weight_unit

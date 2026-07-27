@@ -45,6 +45,11 @@ export interface ExerciseListResponse {
   page_size: number
 }
 
+export interface MuscleGroupAssignment {
+  muscle_group_id: number
+  role: 'target' | 'secondary' | 'tertiary'
+}
+
 export interface ExerciseCreate {
   name: string
   description?: string | null
@@ -56,7 +61,8 @@ export interface ExerciseCreate {
   secondary_equipment_id?: number | null
   primary_equipment_count?: number
   secondary_equipment_count?: number
-  muscle_group_ids?: number[]
+  muscle_groups?: MuscleGroupAssignment[]
+  tag_ids?: number[]
   posture?: string | null
   movement_pattern_1?: string | null
   movement_pattern_2?: string | null
@@ -65,6 +71,9 @@ export interface ExerciseCreate {
   force_type?: string | null
   mechanics?: string | null
   laterality?: string | null
+  is_combination?: string | null
+  instructions?: string | null
+  base_exercise_id?: number | null
   variant_type?: string | null
   default_sets?: number | null
   default_reps?: number | null
@@ -84,7 +93,8 @@ export interface ExerciseUpdate {
   secondary_equipment_id?: number | null
   primary_equipment_count?: number
   secondary_equipment_count?: number
-  muscle_group_ids?: number[]
+  muscle_groups?: MuscleGroupAssignment[]
+  tag_ids?: number[]
   posture?: string | null
   movement_pattern_1?: string | null
   movement_pattern_2?: string | null
@@ -93,6 +103,9 @@ export interface ExerciseUpdate {
   force_type?: string | null
   mechanics?: string | null
   laterality?: string | null
+  is_combination?: string | null
+  instructions?: string | null
+  base_exercise_id?: number | null
   variant_type?: string | null
   default_sets?: number | null
   default_reps?: number | null

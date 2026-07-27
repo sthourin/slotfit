@@ -225,7 +225,10 @@ class ClaudeProvider(AIProvider):
             exercise_db_text = ""
 
         return (
-            "You are a workout coach. Based on the training summary below, suggest the best next workout.\n"
+            "You are a Certified Athletic Trainer (ATC) with CSCS experience at the professional athletics level. "
+            "Program training based on volume, periodization, and recovery principles. "
+            "Apply your ATC background to flag contraindicated exercises for any active injuries.\n"
+            "Based on the training summary below, suggest the best next workout.\n"
             "Consider muscle group recovery (48-72h between direct work), training balance, frequency, and schedule.\n"
             "Output ONLY valid JSON.\n\n"
             f"TRAINING FREQUENCY:\n"

@@ -184,3 +184,169 @@ async def test_filter_bodyweight_exercises(client_with_data):
     # All exercises should have bodyweight as primary equipment
     for exercise in data["exercises"]:
         assert exercise.get("primary_equipment", {}).get("id") == bodyweight_eq["id"]
+
+
+# ---- CRUD Tests ----
+
+
+@pytest.mark.asyncio
+async def test_create_exercise(client_with_data):
+    """Test creating a new exercise"""
+    client, seed_data = client_with_data
+
+    # Get a muscle group ID for association
+    mg_response = await client.get("/api/v1/muscle-groups/")
+    muscle_groups = mg_response.json()["muscle_groups"]
+    chest_mg = next(mg for mg in muscle_groups if mg["name"] == "Chest")
+
+    create_data = {
+        "name": "Test Custom Exercise",
+        "description": "A test exercise",
+        "difficulty": "Intermediate",
+        "body_region": "Upper Body",
+        "force_type": "Push",
+        "mechanics": "Compound",
+        "laterality": "Bilateral",
+        "muscle_groups": [
+            {"muscle_group_id": chest_mg["id"], "role": "target"},
+        ],
+    }
+
+    response = await client.post("/api/v1/exercises/", json=create_data)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["name"] == "Test Custom Exercise"
+    assert data["difficulty"] == "Intermediate"
+    assert data["body_region"] == "Upper Body"
+    assert data["is_custom"] is True
+    assert len(data["muscle_groups"]) >= 1
+
+
+@pytest.mark.asyncio
+async def test_create_exercise_duplicate_name(client_with_data):
+    """Test creating exercise with duplicate name fails"""
+    client, seed_data = client_with_data
+
+    # Get an existing exercise name
+    list_response = await client.get("/api/v1/exercises/?limit=1")
+    existing_name = list_response.json()["exercises"][0]["name"]
+
+    create_data = {
+        "name": existing_name,
+    }
+
+    response = await client.post("/api/v1/exercises/", json=create_data)
+    assert response.status_code == 400
+    assert "already exists" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_update_exercise(client_with_data):
+    """Test updating an exercise"""
+    client, seed_data = client_with_data
+
+    # Create an exercise first
+    create_response = await client.post(
+        "/api/v1/exercises/",
+        json={"name": "Exercise To Update", "difficulty": "Easy"},
+    )
+    assert create_response.status_code == 201
+    exercise_id = create_response.json()["id"]
+
+    # Update it
+    update_data = {
+        "name": "Updated Exercise Name",
+        "difficulty": "Advanced",
+        "body_region": "Core",
+    }
+    response = await client.put(f"/api/v1/exercises/{exercise_id}", json=update_data)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Updated Exercise Name"
+    assert data["difficulty"] == "Advanced"
+    assert data["body_region"] == "Core"
+
+
+@pytest.mark.asyncio
+async def test_update_exercise_muscle_groups(client_with_data):
+    """Test updating exercise muscle group associations"""
+    client, seed_data = client_with_data
+
+    # Get muscle groups
+    mg_response = await client.get("/api/v1/muscle-groups/")
+    muscle_groups = mg_response.json()["muscle_groups"]
+    chest_mg = next(mg for mg in muscle_groups if mg["name"] == "Chest")
+    back_mg = next(mg for mg in muscle_groups if mg["name"] == "Back")
+
+    # Create exercise with Chest
+    create_response = await client.post(
+        "/api/v1/exercises/",
+        json={
+            "name": "MG Update Test",
+            "muscle_groups": [{"muscle_group_id": chest_mg["id"], "role": "target"}],
+        },
+    )
+    assert create_response.status_code == 201
+    exercise_id = create_response.json()["id"]
+
+    # Update to Back
+    response = await client.put(
+        f"/api/v1/exercises/{exercise_id}",
+        json={
+            "muscle_groups": [{"muscle_group_id": back_mg["id"], "role": "target"}],
+        },
+    )
+    assert response.status_code == 200
+    mg_names = [mg["name"] for mg in response.json()["muscle_groups"]]
+    assert "Back" in mg_names
+
+
+@pytest.mark.asyncio
+async def test_delete_exercise(client_with_data):
+    """Test deleting an exercise"""
+    client, seed_data = client_with_data
+
+    # Create an exercise to delete
+    create_response = await client.post(
+        "/api/v1/exercises/",
+        json={"name": "Exercise To Delete"},
+    )
+    assert create_response.status_code == 201
+    exercise_id = create_response.json()["id"]
+
+    # Delete it
+    response = await client.delete(f"/api/v1/exercises/{exercise_id}")
+    assert response.status_code == 204
+
+    # Verify it's gone
+    get_response = await client.get(f"/api/v1/exercises/{exercise_id}")
+    assert get_response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_exercise_with_variants(client_with_data, device_id: str):
+    """Test that deleting a base exercise with variants is blocked"""
+    client, seed_data = client_with_data
+    headers = {"X-Device-ID": device_id}
+    await client.get("/api/v1/users/me", headers=headers)
+
+    # Create a base exercise
+    base_response = await client.post(
+        "/api/v1/exercises/",
+        json={"name": "Base For Variant Test"},
+    )
+    assert base_response.status_code == 201
+    base_id = base_response.json()["id"]
+
+    # Create a variant
+    variant_response = await client.post(
+        f"/api/v1/exercises/{base_id}/duplicate",
+        json={"variant_type": "HIIT"},
+        headers=headers,
+    )
+    assert variant_response.status_code == 201
+
+    # Try to delete the base — should be blocked
+    response = await client.delete(f"/api/v1/exercises/{base_id}")
+    assert response.status_code == 400
+    assert "variant" in response.json()["detail"].lower()
