@@ -1795,7 +1795,8 @@ Add Injury Modal
 ## Phase 4: Web Workout Execution
 
 ### Task 4.1: Workout Start Flow
-**Status**: [ ] Not Started
+**Status**: [x] Complete
+**Verified**: 2026-07-27 via Playwright e2e (docs/verification/feature-matrix.md). Quick-fill and copy-last-workout modals exist but are not yet covered by automated tests.
 
 **Files to create:**
 - `web/src/pages/WorkoutStart.tsx`
@@ -1814,7 +1815,8 @@ Add Injury Modal
 ---
 
 ### Task 4.2: Active Workout Interface
-**Status**: [ ] Not Started
+**Status**: [x] Complete
+**Verified**: 2026-07-27 via Playwright e2e (docs/verification/feature-matrix.md). Set logging, slot lifecycle, and completion verified; rest timer renders but behavior not yet asserted.
 
 **Files to create:**
 - `web/src/pages/Workout.tsx`
@@ -1839,7 +1841,8 @@ Add Injury Modal
 ---
 
 ### Task 4.3: Slot Navigation & Keyboard Shortcuts
-**Status**: [ ] Not Started
+**Status**: [~] Implemented, partially verified
+**Verified**: 2026-07-27. Hooks and shortcut help UI exist and load; multi-slot navigation and skip not yet exercised by automated tests (single-slot e2e routine). See docs/verification/feature-matrix.md.
 
 **Files to create:**
 - `web/src/hooks/useKeyboardShortcuts.ts`
@@ -1855,7 +1858,8 @@ Add Injury Modal
 ---
 
 ### Task 4.4: Exercise Selection Modal
-**Status**: [ ] Not Started
+**Status**: [x] Complete
+**Verified**: 2026-07-27 via Playwright e2e + API (docs/verification/feature-matrix.md). Search-tab selection verified in e2e; recommendations + Why Not verified via API after fixing a P0 (recommendations 500 with workout history).
 
 **Files to create:**
 - `web/src/components/workout/ExerciseSelector.tsx`
@@ -1873,7 +1877,8 @@ Add Injury Modal
 ---
 
 ### Task 4.5: Workout Completion
-**Status**: [ ] Not Started
+**Status**: [x] Complete
+**Verified**: 2026-07-27 via Playwright e2e (docs/verification/feature-matrix.md). Summary modal verified; PR notification not yet asserted (e2e logs unweighted sets).
 
 **Files to create:**
 - `web/src/components/workout/WorkoutSummary.tsx`
@@ -1891,7 +1896,8 @@ Add Injury Modal
 ## Phase 5: Analytics & History
 
 ### Task 5.1: Workout History Page
-**Status**: [ ] Not Started
+**Status**: [x] Complete
+**Verified**: 2026-07-27 via Playwright e2e (docs/verification/feature-matrix.md). Page renders without errors; detail-view automation deferred.
 
 **Files to create:**
 - `web/src/pages/WorkoutHistory.tsx`
@@ -1901,7 +1907,8 @@ Add Injury Modal
 ---
 
 ### Task 5.2: Analytics Dashboard
-**Status**: [ ] Not Started
+**Status**: [x] Complete
+**Verified**: 2026-07-27 via Playwright e2e (docs/verification/feature-matrix.md) after fixing a P0: SlotPerformance crashed the page due to an API/frontend field-name mismatch.
 
 **Files to create:**
 - `web/src/pages/Analytics.tsx`
@@ -1915,7 +1922,8 @@ Add Injury Modal
 ---
 
 ### Task 5.3: Personal Records Page
-**Status**: [ ] Not Started
+**Status**: [x] Complete
+**Verified**: 2026-07-27 via Playwright e2e (docs/verification/feature-matrix.md). Page renders without errors; with-data behavior not yet asserted.
 
 **Files to create:**
 - `web/src/pages/PersonalRecords.tsx`
