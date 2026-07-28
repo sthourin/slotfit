@@ -16,7 +16,7 @@ Status values: Working, Broken, Missing, Untested. Severity: P0, P1, P2 (see Pha
 
 | Flow | Status | Severity | Notes |
 | --- | --- | --- | --- |
-| App shell and navigation | Untested | - | |
+| App shell and navigation | Working | - | e2e: app-shell.spec.ts (nav links, device id generation) |
 | Settings: device user auto-created | Untested | - | Working at API level; UI untested |
 | Settings: edit display name persists | Untested | - | |
 | Settings: equipment profile CRUD | Untested | - | |
