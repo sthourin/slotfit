@@ -21,7 +21,7 @@ Status values: Working, Broken, Missing, Untested. Severity: P0, P1, P2 (see Pha
 | Settings: edit display name persists | Working | - | e2e: settings.spec.ts; persists across reload |
 | Settings: equipment profile CRUD | Working | - | API-level: create/rename/set-default/delete verified; UI modal automation deferred (P2) |
 | Settings: injuries add/heal | Working | - | API-level: 12 injury types listed, add + mark-healed verified; UI modal automation deferred (P2) |
-| Exercise browser: list and search | Untested | - | |
+| Exercise browser: list and search | Working | - | e2e: exercise-browser.spec.ts; list renders, search narrows to Bench Press |
 | Routine designer: create routine with slots | Untested | - | |
 | Routine designer: save to backend | Untested | - | |
 | Workout start: select routine and equipment profile | Untested | - | |
