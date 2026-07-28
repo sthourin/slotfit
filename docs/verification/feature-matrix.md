@@ -39,10 +39,10 @@ Status values: Working, Broken, Missing, Untested. Severity: P0, P1, P2 (see Pha
 
 | Decision | Status | Notes |
 | --- | --- | --- |
-| Workout resume banner on app load | Untested | |
-| Save-as-new-routine prompt at completion | Untested | |
-| Bodyweight exercises always available | Untested | |
-| Injury filtering with not-medical-advice disclaimer | Untested | |
+| Workout resume banner on app load | Missing | No banner UI exists. Foundation present: workoutStore persists draft/active workouts to localStorage. Phase 1 backlog (P1) |
+| Save-as-new-routine prompt at completion | Missing | No trace of the Save as New / Update Original / Don't Save prompt in web/src. Phase 1 backlog (P1) |
+| Bodyweight exercises always available | Broken | Rule is implemented (fallback_provider checks primary_equipment_id IS NULL) but matches ZERO exercises: the CSV import assigns bodyweight exercises equipment id 2 ("Bodyweight", 201 exercises). Bodyweight is filtered out unless the profile includes that equipment. Phase 1 backlog (P1): either treat "Bodyweight" equipment as always available or import those rows with NULL equipment |
+| Injury filtering with not-medical-advice disclaimer | Working | Disclaimer present in AddInjuryModal (with acknowledgment checkbox) and InjuriesSection banner; injury CRUD verified at API level (Task 4) |
 
 ## Defect Backlog (deferred to Phase 1)
 
@@ -54,6 +54,9 @@ Status values: Working, Broken, Missing, Untested. Severity: P0, P1, P2 (see Pha
 | Multi-slot navigation/skip unautomated | P2 | Active workout | Add multi-slot e2e routine in Phase 1 |
 | PR detection untested | P2 | Workout completion | Log weighted sets in e2e and assert PR notification in Phase 1 |
 | npm run build fails: 4 pre-existing TS errors (ProgressionChart, VolumeChart recharts Formatter typing; RoutineHeader select value typing) | P1 | Web build | Blocks production deploy; must fix in Phase 1 before Phase 3 |
+| Bodyweight-always-available rule matches zero exercises (data uses "Bodyweight" equipment id 2, not NULL) | P1 | Recommendations | Decide fix approach in Phase 1: special-case the Bodyweight equipment or import with NULL |
+| Workout resume banner missing (CLAUDE.md design decision) | P1 | App shell | Store persistence exists; add banner UI in Phase 1 |
+| Save-as-new-routine prompt missing (CLAUDE.md design decision) | P1 | Workout completion | Implement in Phase 1 |
 | Slot-performance API returns most_used_exercise_id but no exercise name; UI shows "Exercise #id" | P2 | Analytics | Backend should join exercise name |
 | e2e database accumulates data across runs (duplicate E2E Push Day routines) | P2 | Test infra | Add Playwright global setup to reset slotfit_e2e schema per run |
 
