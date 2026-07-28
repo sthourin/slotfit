@@ -57,6 +57,9 @@ Status values: Working, Broken, Missing, Untested. Severity: P0, P1, P2 (see Pha
 | Bodyweight-always-available rule matches zero exercises (data uses "Bodyweight" equipment id 2, not NULL) | P1 | Recommendations | Decide fix approach in Phase 1: special-case the Bodyweight equipment or import with NULL |
 | Workout resume banner missing (CLAUDE.md design decision) | P1 | App shell | Store persistence exists; add banner UI in Phase 1 |
 | Save-as-new-routine prompt missing (CLAUDE.md design decision) | P1 | Workout completion | Implement in Phase 1 |
+| Completed workouts show 0 sets / 0/0 exercises in History; sets logged in UI may never persist to backend | P1 | Workout data | Investigate workoutStore sync on complete; copy-last-workout and pre-fill depend on this (ui-design-review.md item 3) |
+| Route changes do not reset scroll; nav can be hidden after navigation | P1 | App shell | Add ScrollRestoration (ui-design-review.md item 2) |
+| Timestamps render in UTC with raw formatting | P2 | History | Localize + date-fns formatting (ui-design-review.md item 4) |
 | Slot-performance API returns most_used_exercise_id but no exercise name; UI shows "Exercise #id" | P2 | Analytics | Backend should join exercise name |
 | e2e database accumulates data across runs (duplicate E2E Push Day routines) | P2 | Test infra | Add Playwright global setup to reset slotfit_e2e schema per run |
 
