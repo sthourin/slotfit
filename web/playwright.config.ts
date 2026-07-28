@@ -24,7 +24,13 @@ export default defineConfig({
       url: 'http://localhost:8000/docs',
       reuseExistingServer: true,
       timeout: 60_000,
-      env: { DATABASE_URL: process.env.E2E_DATABASE_URL },
+      env: {
+        DATABASE_URL: process.env.E2E_DATABASE_URL,
+        // Force the deterministic rule-based recommendation provider in e2e:
+        // blank keys prevent Claude/Gemini calls (and quota usage) during tests
+        ANTHROPIC_API_KEY: '',
+        GEMINI_API_KEY: '',
+      },
     },
     {
       command: 'npm run dev',

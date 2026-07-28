@@ -24,13 +24,13 @@ Status values: Working, Broken, Missing, Untested. Severity: P0, P1, P2 (see Pha
 | Exercise browser: list and search | Working | - | e2e: exercise-browser.spec.ts; list renders, search narrows to Bench Press |
 | Routine designer: create routine with slots | Working | - | e2e: routine-designer.spec.ts; create + add slot |
 | Routine designer: save to backend | Working | - | e2e: routine-designer.spec.ts; POST /routines 2xx, ID displayed |
-| Workout start: select routine and equipment profile | Untested | - | |
-| Workout start: quick-fill / copy last workout | Untested | - | |
-| Active workout: set logging | Untested | - | |
-| Active workout: rest timer | Untested | - | |
-| Active workout: slot navigation and skip | Untested | - | |
-| Active workout: exercise selection + AI recommendations + Why Not | Untested | - | |
-| Workout completion: summary, volume, PR detection | Untested | - | |
+| Workout start: select routine and equipment profile | Working | - | e2e: workout-critical-path.spec.ts; routine selection + start verified (equipment profile defaulting untested with no profile present) |
+| Workout start: quick-fill / copy last workout | Untested | - | Modal flows not yet automated; backlog |
+| Active workout: set logging | Working | - | e2e: add set via SetTracker verified |
+| Active workout: rest timer | Untested | - | Renders during in_progress slot; behavior not asserted; backlog |
+| Active workout: slot navigation and skip | Untested | - | Test routine has a single slot; multi-slot navigation not exercised; backlog |
+| Active workout: exercise selection + AI recommendations + Why Not | Working | - | e2e: search tab select verified; recommendations + Why Not (9 entries, diverse reasons) verified via API after P0 fix (see below) |
+| Workout completion: summary, volume, PR detection | Working | - | e2e: complete → 2xx → "Workout Complete" summary modal; PR detection untested (no weights logged); backlog |
 | History: list and detail | Untested | - | |
 | Analytics: charts render with data | Untested | - | |
 | Personal records page | Untested | - | |
@@ -49,3 +49,13 @@ Status values: Working, Broken, Missing, Untested. Severity: P0, P1, P2 (see Pha
 | Defect | Severity | Flow | Notes |
 | --- | --- | --- | --- |
 | Exercise count discrepancy (3,240 imported vs 3,244 documented) | P2 | Data seeding | Verify CSV row expectations |
+| Quick-fill / copy-last-workout modals unautomated | P2 | Workout start | Add e2e coverage in Phase 1 |
+| Rest timer behavior unasserted | P2 | Active workout | Add e2e coverage in Phase 1 |
+| Multi-slot navigation/skip unautomated | P2 | Active workout | Add multi-slot e2e routine in Phase 1 |
+| PR detection untested | P2 | Workout completion | Log weighted sets in e2e and assert PR notification in Phase 1 |
+
+## Fixed During Phase 0
+
+| Defect | Severity | Fix |
+| --- | --- | --- |
+| Recommendations endpoint 500s (KeyError 'workout_exercises') for any user with a completed workout in the last 30 days | P0 | Renamed relationship access to 'exercises' in recommendations.py; regression test added (test_get_recommendations_with_completed_workout_history) |

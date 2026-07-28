@@ -54,9 +54,9 @@ async def get_user_workout_history(
     last_performed = {}
     
     for session in sessions:
-        # Load workout exercises with exercise relationship
-        await db.refresh(session, ["workout_exercises"])
-        for we in session.workout_exercises:
+        # Load workout exercises (relationship attribute is 'exercises')
+        await db.refresh(session, ["exercises"])
+        for we in session.exercises:
             exercise_id = we.exercise_id
             if exercise_id:
                 recent_exercises.append(exercise_id)
