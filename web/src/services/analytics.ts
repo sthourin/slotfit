@@ -19,11 +19,13 @@ export interface WeeklyVolumeResponse {
 export interface SlotPerformanceMetric {
   slot_id: number
   slot_name: string | null
+  slot_order: number
+  total_workouts: number
+  completed_count: number
+  skipped_count: number
   completion_rate: number // 0.0-1.0
-  average_sets: number
+  avg_sets_per_workout: number
   most_used_exercise_id: number | null
-  most_used_exercise_name: string | null
-  times_performed: number
 }
 
 export interface SlotPerformanceResponse {

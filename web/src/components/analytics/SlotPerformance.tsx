@@ -27,12 +27,12 @@ export default function SlotPerformance({ data }: SlotPerformanceProps) {
                 {slot.slot_name || `Slot ${slot.slot_id}`}
               </h4>
               <p className="text-sm text-gray-600">
-                Performed {slot.times_performed} time{slot.times_performed !== 1 ? 's' : ''}
+                Performed {slot.total_workouts} time{slot.total_workouts !== 1 ? 's' : ''}
               </p>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-blue-600">
-                {(slot.completion_rate * 100).toFixed(0)}%
+                {((slot.completion_rate ?? 0) * 100).toFixed(0)}%
               </div>
               <div className="text-xs text-gray-500">Completion Rate</div>
             </div>
@@ -41,12 +41,14 @@ export default function SlotPerformance({ data }: SlotPerformanceProps) {
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div>
               <div className="text-sm text-gray-600">Average Sets</div>
-              <div className="text-lg font-semibold">{slot.average_sets.toFixed(1)}</div>
+              <div className="text-lg font-semibold">
+                {(slot.avg_sets_per_workout ?? 0).toFixed(1)}
+              </div>
             </div>
             <div>
               <div className="text-sm text-gray-600">Most Used Exercise</div>
               <div className="text-lg font-semibold">
-                {slot.most_used_exercise_name || 'N/A'}
+                {slot.most_used_exercise_id ? `Exercise #${slot.most_used_exercise_id}` : 'N/A'}
               </div>
             </div>
           </div>
@@ -56,7 +58,7 @@ export default function SlotPerformance({ data }: SlotPerformanceProps) {
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className="bg-blue-600 h-2 rounded-full transition-all"
-                style={{ width: `${slot.completion_rate * 100}%` }}
+                style={{ width: `${(slot.completion_rate ?? 0) * 100}%` }}
               />
             </div>
           </div>

@@ -31,9 +31,9 @@ Status values: Working, Broken, Missing, Untested. Severity: P0, P1, P2 (see Pha
 | Active workout: slot navigation and skip | Untested | - | Test routine has a single slot; multi-slot navigation not exercised; backlog |
 | Active workout: exercise selection + AI recommendations + Why Not | Working | - | e2e: search tab select verified; recommendations + Why Not (9 entries, diverse reasons) verified via API after P0 fix (see below) |
 | Workout completion: summary, volume, PR detection | Working | - | e2e: complete → 2xx → "Workout Complete" summary modal; PR detection untested (no weights logged); backlog |
-| History: list and detail | Untested | - | |
-| Analytics: charts render with data | Untested | - | |
-| Personal records page | Untested | - | |
+| History: list and detail | Working | - | e2e: read-pages.spec.ts; renders without console errors (detail view automation deferred, P2) |
+| Analytics: charts render with data | Working | - | e2e: read-pages.spec.ts; page renders with routine data after SlotPerformance fix (see Fixed) |
+| Personal records page | Working | - | e2e: read-pages.spec.ts; renders without console errors |
 
 ## CLAUDE.md Design Decisions
 
@@ -53,9 +53,13 @@ Status values: Working, Broken, Missing, Untested. Severity: P0, P1, P2 (see Pha
 | Rest timer behavior unasserted | P2 | Active workout | Add e2e coverage in Phase 1 |
 | Multi-slot navigation/skip unautomated | P2 | Active workout | Add multi-slot e2e routine in Phase 1 |
 | PR detection untested | P2 | Workout completion | Log weighted sets in e2e and assert PR notification in Phase 1 |
+| npm run build fails: 4 pre-existing TS errors (ProgressionChart, VolumeChart recharts Formatter typing; RoutineHeader select value typing) | P1 | Web build | Blocks production deploy; must fix in Phase 1 before Phase 3 |
+| Slot-performance API returns most_used_exercise_id but no exercise name; UI shows "Exercise #id" | P2 | Analytics | Backend should join exercise name |
+| e2e database accumulates data across runs (duplicate E2E Push Day routines) | P2 | Test infra | Add Playwright global setup to reset slotfit_e2e schema per run |
 
 ## Fixed During Phase 0
 
 | Defect | Severity | Fix |
 | --- | --- | --- |
 | Recommendations endpoint 500s (KeyError 'workout_exercises') for any user with a completed workout in the last 30 days | P0 | Renamed relationship access to 'exercises' in recommendations.py; regression test added (test_get_recommendations_with_completed_workout_history) |
+| Analytics page crashes blank (undefined.toFixed in SlotPerformance) for any user with a routine | P0 | Frontend SlotPerformanceMetric interface matched to actual API fields (avg_sets_per_workout, total_workouts); numeric guards added; covered by read-pages.spec.ts |
