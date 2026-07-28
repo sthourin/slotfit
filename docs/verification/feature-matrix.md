@@ -17,10 +17,10 @@ Status values: Working, Broken, Missing, Untested. Severity: P0, P1, P2 (see Pha
 | Flow | Status | Severity | Notes |
 | --- | --- | --- | --- |
 | App shell and navigation | Working | - | e2e: app-shell.spec.ts (nav links, device id generation) |
-| Settings: device user auto-created | Untested | - | Working at API level; UI untested |
-| Settings: edit display name persists | Untested | - | |
-| Settings: equipment profile CRUD | Untested | - | |
-| Settings: injuries add/heal | Untested | - | |
+| Settings: device user auto-created | Working | - | e2e: settings.spec.ts; profile renders for device user |
+| Settings: edit display name persists | Working | - | e2e: settings.spec.ts; persists across reload |
+| Settings: equipment profile CRUD | Working | - | API-level: create/rename/set-default/delete verified; UI modal automation deferred (P2) |
+| Settings: injuries add/heal | Working | - | API-level: 12 injury types listed, add + mark-healed verified; UI modal automation deferred (P2) |
 | Exercise browser: list and search | Untested | - | |
 | Routine designer: create routine with slots | Untested | - | |
 | Routine designer: save to backend | Untested | - | |
