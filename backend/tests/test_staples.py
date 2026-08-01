@@ -98,15 +98,17 @@ async def test_preferences_api(client_with_data, device_id):
 @pytest.mark.asyncio
 async def test_staples_preferences_route_ordering(client_with_data, device_id):
     """
-    Regression test: /preferences must be declared before /{staple_id} routes.
-    This test pins the route ordering — if /preferences matches /{staple_id} first,
-    it will fail with 422 (invalid staple_id) instead of 200 with a list.
+    Guard test: pins the route surface for future changes.
+    Currently, /preferences and /{staple_id} routes do not collide (GET lacks /{id},
+    DELETE and PATCH shapes don't overlap). This test ensures GET /preferences always
+    returns 200 with a list as a canary for future route changes that might introduce
+    ambiguity.
     """
     client, seed = client_with_data
     headers = {"X-Device-ID": device_id}
     await client.get("/api/v1/users/me", headers=headers)
 
-    # GET /api/v1/staples/preferences must return 200, not 422
+    # GET /api/v1/staples/preferences must return 200 with a list
     response = await client.get("/api/v1/staples/preferences", headers=headers)
     assert response.status_code == 200
     assert isinstance(response.json(), list)
@@ -143,3 +145,83 @@ async def test_staples_cross_user_isolation(client_with_data, device_id):
     # User 1 can still see their own staple
     listed = (await client.get("/api/v1/staples/", headers=headers_user1)).json()
     assert any(s["id"] == staple_id for s in listed)
+
+
+@pytest.mark.asyncio
+async def test_staples_cross_user_same_exercise_201(client_with_data, device_id):
+    """
+    Test that two different users can each staple the SAME exercise without conflict.
+    The duplicate check is scoped to (user_id, exercise_id), so user A can have
+    exercise X as a staple, and user B can independently add exercise X as their staple.
+    """
+    client, seed = client_with_data
+    headers_user1 = {"X-Device-ID": device_id}
+    headers_user2 = {"X-Device-ID": "other-device-456"}
+
+    # User 1 authenticates and gets an exercise
+    await client.get("/api/v1/users/me", headers=headers_user1)
+    exercises = (await client.get("/api/v1/exercises/?limit=1", headers=headers_user1)).json()
+    exercise = exercises["exercises"][0] if isinstance(exercises, dict) else exercises[0]
+    exercise_id = exercise["id"]
+
+    # User 1 staples the exercise (201)
+    created_user1 = await client.post("/api/v1/staples/", json={"exercise_id": exercise_id}, headers=headers_user1)
+    assert created_user1.status_code == 201
+    staple_user1_id = created_user1.json()["id"]
+
+    # User 2 authenticates and staples the SAME exercise (should also be 201, not 409)
+    await client.get("/api/v1/users/me", headers=headers_user2)
+    created_user2 = await client.post("/api/v1/staples/", json={"exercise_id": exercise_id}, headers=headers_user2)
+    assert created_user2.status_code == 201
+    staple_user2_id = created_user2.json()["id"]
+
+    # Both users see their own staple in their lists, different IDs
+    assert staple_user1_id != staple_user2_id
+    listed_user1 = (await client.get("/api/v1/staples/", headers=headers_user1)).json()
+    listed_user2 = (await client.get("/api/v1/staples/", headers=headers_user2)).json()
+
+    assert any(s["id"] == staple_user1_id for s in listed_user1)
+    assert any(s["id"] == staple_user2_id for s in listed_user2)
+
+
+@pytest.mark.asyncio
+async def test_staples_no_pattern_mapping_404(client_with_data, device_id):
+    """
+    Test that creating a staple for an exercise with no ExercisePatternMap returns 404.
+    This covers exercises that either don't exist or aren't yet mapped to a pattern.
+    """
+    client, seed = client_with_data
+    headers = {"X-Device-ID": device_id}
+    await client.get("/api/v1/users/me", headers=headers)
+
+    # Use a very large exercise_id that likely doesn't exist and has no pattern mapping
+    nonexistent_exercise_id = 999999
+
+    response = await client.post("/api/v1/staples/", json={"exercise_id": nonexistent_exercise_id}, headers=headers)
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_staples_last_performed_never_performed(client_with_data, device_id):
+    """
+    Test that a staple for a never-performed exercise returns last_performed: null.
+    The brief requires last_performed to be None when the exercise has never been performed.
+    """
+    client, seed = client_with_data
+    headers = {"X-Device-ID": device_id}
+    await client.get("/api/v1/users/me", headers=headers)
+
+    exercises = (await client.get("/api/v1/exercises/?limit=1", headers=headers)).json()
+    exercise = exercises["exercises"][0] if isinstance(exercises, dict) else exercises[0]
+    exercise_id = exercise["id"]
+
+    # Create the staple
+    created = await client.post("/api/v1/staples/", json={"exercise_id": exercise_id}, headers=headers)
+    assert created.status_code == 201
+
+    # Get the staple from the list
+    listed = (await client.get("/api/v1/staples/", headers=headers)).json()
+    staple = next(s for s in listed if s["exercise_id"] == exercise_id)
+
+    # For a never-performed exercise, last_performed should be None
+    assert staple["last_performed"] is None

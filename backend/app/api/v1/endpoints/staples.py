@@ -164,7 +164,9 @@ async def create_staple(
         )
     ).scalar_one_or_none()
     if mapping is None:
-        raise HTTPException(status_code=404, detail="Exercise has no pattern mapping")
+        raise HTTPException(
+            status_code=404, detail="Exercise not found or has no pattern mapping"
+        )
 
     staple = StapleExercise(
         user_id=user.id, pattern_id=mapping.pattern_id, exercise_id=data.exercise_id
