@@ -21,6 +21,9 @@ from app.models.injury import InjuryType, MovementRestriction, UserInjury
 from app.models.user import User
 from app.models.movement_pattern import MovementPattern, ExercisePatternMap
 from app.models.day_plan import DayPlan, PatternGoal
+from app.models.training_session import (
+    TrainingSession, SupersetRound, RoundEntry, EntrySet, SessionState
+)
 
 __all__ = [
     "Base",
@@ -48,4 +51,9 @@ __all__ = [
     "ExercisePatternMap",
     "DayPlan",
     "PatternGoal",
+    "TrainingSession",
+    "SupersetRound",
+    "RoundEntry",
+    "EntrySet",
+    "SessionState",
 ]
