@@ -253,15 +253,45 @@ async def _filter_cards(
 
 
 def _diverse_limit(rejected: list[dict], limit: int = 10) -> list[dict]:
-    """Cap why-not entries at `limit` with diverse reason types."""
+    """Cap why-not entries at `limit`, spread across reason types.
+
+    Diversity comes first: an even slice per reason type, so no single reason
+    can crowd out the others. The result is then topped up round-robin from
+    whatever each type has left, so an uneven spread of reasons doesn't
+    short-change the list the user reads. Never exceeds `limit` and never
+    repeats an entry.
+    """
     by_reason: dict[str, list[dict]] = defaultdict(list)
     for entry in rejected:
         by_reason[entry["reason"].split("(")[0]].append(entry)
+
+    buckets = list(by_reason.values())
+    per_type = max(1, limit // max(1, len(buckets)))
+    taken = [0] * len(buckets)
     diverse: list[dict] = []
-    per_type = max(1, limit // max(1, len(by_reason)))
-    for entries in by_reason.values():
-        diverse.extend(entries[:per_type])
-    return diverse[:limit]
+
+    # Pass 1: even slice per reason type.
+    for index, entries in enumerate(buckets):
+        for entry in entries[:per_type]:
+            if len(diverse) >= limit:
+                return diverse
+            diverse.append(entry)
+            taken[index] += 1
+
+    # Pass 2: round-robin top-up from what each type still has.
+    while len(diverse) < limit:
+        progressed = False
+        for index, entries in enumerate(buckets):
+            if taken[index] >= len(entries):
+                continue
+            diverse.append(entries[taken[index]])
+            taken[index] += 1
+            progressed = True
+            if len(diverse) >= limit:
+                return diverse
+        if not progressed:
+            break
+    return diverse
 
 
 async def _session_context(db: AsyncSession, user_id: int, session_id: int):
@@ -316,17 +346,21 @@ def _goal_covered(goal: PatternGoal, sets_by_pattern: dict[int, int]) -> bool:
 
 
 async def _staples_with_exercises(
-    db: AsyncSession, user_id: int, pattern_ids: list[int]
+    db: AsyncSession, user_id: int, pattern_ids: list[int] | None
 ):
-    """Active staples for the given patterns, with Exercise rows loaded."""
+    """Active staples, with Exercise rows loaded.
+
+    pattern_ids=None means every pattern - used by the free-form fallback,
+    which has no goals to narrow the set down to.
+    """
+    query = select(StapleExercise).where(
+        StapleExercise.user_id == user_id,
+        StapleExercise.is_active == True,  # noqa: E712
+    )
+    if pattern_ids is not None:
+        query = query.where(StapleExercise.pattern_id.in_(pattern_ids))
     result = await db.execute(
-        select(StapleExercise)
-        .where(
-            StapleExercise.user_id == user_id,
-            StapleExercise.is_active == True,  # noqa: E712
-            StapleExercise.pattern_id.in_(pattern_ids),
-        )
-        .options(
+        query.options(
             selectinload(StapleExercise.exercise).selectinload(Exercise.muscle_groups),
             selectinload(StapleExercise.exercise).selectinload(
                 Exercise.primary_equipment
@@ -338,26 +372,48 @@ async def _staples_with_exercises(
 
 
 async def anchor_suggestions(db: AsyncSession, user_id: int, session_id: int) -> dict:
-    """Staples grouped by the session's pattern goals, uncovered required goals first."""
+    """Staples grouped by the session's pattern goals, uncovered required goals first.
+
+    A free-form session - no day plan, or a day plan with no pattern goals -
+    has no coverage to chase, so it falls back to every pattern the user has
+    active staples for, in taxonomy display order, all reported uncovered.
+    """
     session, goals, sets_by_pattern, rep_ranges = await _session_context(
         db, user_id, session_id
     )
 
-    ordered_goals = sorted(
-        goals,
-        key=lambda g: (_goal_covered(g, sets_by_pattern), not g.required),
-    )
-    staples = await _staples_with_exercises(
-        db, user_id, [g.pattern_id for g in ordered_goals]
-    )
+    if goals:
+        ordered_goals = sorted(
+            goals,
+            key=lambda g: (_goal_covered(g, sets_by_pattern), not g.required),
+        )
+        staples = await _staples_with_exercises(
+            db, user_id, [g.pattern_id for g in ordered_goals]
+        )
+        ordered_patterns = [
+            (g.pattern_id, _goal_covered(g, sets_by_pattern)) for g in ordered_goals
+        ]
+    else:
+        staples = await _staples_with_exercises(db, user_id, None)
+        patterns_seen: dict[int, MovementPattern] = {}
+        for staple in staples:
+            patterns_seen.setdefault(staple.pattern_id, staple.pattern)
+        ordered_patterns = [
+            (pattern_id, False)
+            for pattern_id, pattern in sorted(
+                patterns_seen.items(),
+                key=lambda item: (item[1].display_order, item[1].id),
+            )
+        ]
+
     staples_by_pattern: dict[int, list] = defaultdict(list)
     for staple in staples:
         staples_by_pattern[staple.pattern_id].append(staple)
 
     groups = []
     all_rejected: list[dict] = []
-    for goal in ordered_goals:
-        pattern_staples = staples_by_pattern.get(goal.pattern_id, [])
+    for pattern_id, covered in ordered_patterns:
+        pattern_staples = staples_by_pattern.get(pattern_id, [])
         if not pattern_staples:
             continue
         pattern = pattern_staples[0].pattern
@@ -375,7 +431,7 @@ async def anchor_suggestions(db: AsyncSession, user_id: int, session_id: int) ->
                     "slug": pattern.slug,
                     "name": pattern.name,
                 },
-                "covered": _goal_covered(goal, sets_by_pattern),
+                "covered": covered,
                 "staples": cards,
             }
         )

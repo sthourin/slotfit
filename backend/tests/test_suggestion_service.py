@@ -11,7 +11,9 @@ from app.models import (
 )
 from app.models.exercise import exercise_muscle_groups
 from app.services.pattern_taxonomy import seed_movement_patterns, seed_exercise_pattern_map
-from app.services.suggestion_service import anchor_suggestions, partner_suggestions
+from app.services.suggestion_service import (
+    anchor_suggestions, partner_suggestions, _diverse_limit,
+)
 
 
 async def _pattern(db, slug):
@@ -79,6 +81,90 @@ async def test_anchor_groups_uncovered_goals_first(test_db):
         assert group["covered"] is False
         names = [c["exercise_name"] for c in group["staples"]]
         assert "Barbell Bench Press" not in names  # blacklisted
+
+
+@pytest.mark.asyncio
+async def test_anchor_freeform_session_falls_back_to_all_staple_patterns(test_db):
+    """No day plan means no coverage to chase - offer every staple pattern."""
+    user, session, d = await _setup(test_db)
+    plank = Exercise(name="Plank", movement_pattern_1="Isometric Hold",
+                     mechanics="Compound", primary_equipment_id=None)
+    test_db.add(plank)
+    await test_db.flush()
+    await seed_exercise_pattern_map(test_db)
+    core = await _pattern(test_db, "core")
+    test_db.add(StapleExercise(user_id=user.id, pattern_id=core.id, exercise_id=plank.id))
+
+    free = TrainingSession(user_id=user.id, day_plan_id=None,
+                           state=SessionState.ACTIVE, started_at=datetime(2026, 7, 29, 9))
+    test_db.add(free)
+    await test_db.commit()
+
+    result = await anchor_suggestions(test_db, user.id, free.id)
+
+    slugs = [g["pattern"]["slug"] for g in result["groups"]]
+    # Every pattern the user has an active staple for, none of them covered
+    assert slugs == ["horizontal_pull", "horizontal_push", "core"]  # display_order
+    for group in result["groups"]:
+        assert group["covered"] is False
+        assert group["staples"]
+    names = {c["exercise_name"] for g in result["groups"] for c in g["staples"]}
+    assert names == {"Seated Cable Row", "Dumbbell Bench Press", "Push Up", "Plank"}
+    # Filters still apply on the fallback path
+    assert "Barbell Bench Press" not in names
+    assert [n["exercise_name"] for n in result["not_recommended"]] == ["Barbell Bench Press"]
+
+
+@pytest.mark.asyncio
+async def test_anchor_goal_ordering_unchanged_when_a_goal_is_covered(test_db):
+    """The goal-driven path is untouched: uncovered goals still sort first."""
+    user, session, d = await _setup(test_db)
+    # Log 3 completed horizontal_pull sets in THIS session -> that goal is covered
+    rnd = SupersetRound(session_id=session.id, order=1)
+    entry = RoundEntry(position=1, exercise_id=d["row"].id, pattern_id=d["hp"].id)
+    for n in range(1, 4):
+        entry.sets.append(EntrySet(set_number=n, weight=100.0, reps=10))
+    rnd.entries.append(entry)
+    test_db.add(rnd)
+    await test_db.commit()
+
+    result = await anchor_suggestions(test_db, user.id, session.id)
+
+    assert [g["pattern"]["slug"] for g in result["groups"]] == [
+        "horizontal_push",  # uncovered -> first
+        "horizontal_pull",  # covered -> last
+    ]
+    assert [g["covered"] for g in result["groups"]] == [False, True]
+
+
+def test_diverse_limit_fills_the_cap_across_uneven_reason_types():
+    """Diversity first, then top up - don't return 6 when 10 are available."""
+    rejected = [
+        {"exercise_name": f"Blacklisted {i}",
+         "reason": "Marked never (blacklisted in your preferences)"}
+        for i in range(12)
+    ]
+    rejected.append({
+        "exercise_name": "Overhead Press",
+        "reason": "May aggravate Rotator Cuff Injury "
+                  "(not medical advice - consult a healthcare professional)",
+    })
+
+    result = _diverse_limit(rejected)
+
+    assert len(result) == 10  # cap filled, not the 6 the even slice alone gives
+    assert len({e["reason"].split("(")[0] for e in result}) == 2  # still diverse
+    assert len({e["exercise_name"] for e in result}) == 10  # no duplicates
+
+
+def test_diverse_limit_never_exceeds_the_cap_or_pads_short_input():
+    single_type = [
+        {"exercise_name": f"E{i}", "reason": "Equipment not in your current profile"}
+        for i in range(25)
+    ]
+    assert len(_diverse_limit(single_type)) == 10
+    assert _diverse_limit([]) == []
+    assert len(_diverse_limit(single_type[:3])) == 3
 
 
 @pytest.mark.asyncio
