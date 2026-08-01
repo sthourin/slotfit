@@ -82,44 +82,53 @@ async def times_performed_map(db: AsyncSession, user_id: int) -> dict[int, int]:
 
 
 async def exercise_set_history(
-    db: AsyncSession, user_id: int, exercise_id: int, limit_sessions: int = 5
+    db: AsyncSession, user_id: int, exercise_id: int, limit_sessions: int = 5,
+    since: datetime | None = None,
 ) -> list[dict]:
     """Per-session set history for one exercise, newest first.
 
+    since: when provided, only sessions completed on or after this datetime
+    are considered - filtered at the query level so a caller windowing by
+    date isn't at the mercy of limit_sessions truncating before reaching
+    the window's true edge. When None (default), behavior is unchanged.
+
     Returns: [{"performed_at": datetime, "sets": [(weight, reps), ...]}]
     """
-    legacy_rows = (
-        await db.execute(
-            select(
-                WorkoutSession.id, WorkoutSession.completed_at,
-                WorkoutSet.weight, WorkoutSet.reps, WorkoutSet.set_number,
-            )
-            .join(WorkoutExercise, WorkoutExercise.workout_session_id == WorkoutSession.id)
-            .join(WorkoutSet, WorkoutSet.workout_exercise_id == WorkoutExercise.id)
-            .where(
-                WorkoutSession.user_id == user_id,
-                WorkoutSession.state == WorkoutState.COMPLETED,
-                WorkoutExercise.exercise_id == exercise_id,
-            )
+    legacy_query = (
+        select(
+            WorkoutSession.id, WorkoutSession.completed_at,
+            WorkoutSet.weight, WorkoutSet.reps, WorkoutSet.set_number,
         )
-    ).all()
-    new_rows = (
-        await db.execute(
-            select(
-                TrainingSession.id, TrainingSession.completed_at,
-                EntrySet.weight, EntrySet.reps, EntrySet.set_number,
-            )
-            .join(SupersetRound, SupersetRound.session_id == TrainingSession.id)
-            .join(RoundEntry, RoundEntry.round_id == SupersetRound.id)
-            .join(EntrySet, EntrySet.entry_id == RoundEntry.id)
-            .where(
-                TrainingSession.user_id == user_id,
-                TrainingSession.state == SessionState.COMPLETED,
-                RoundEntry.exercise_id == exercise_id,
-                EntrySet.completed == True,  # noqa: E712
-            )
+        .join(WorkoutExercise, WorkoutExercise.workout_session_id == WorkoutSession.id)
+        .join(WorkoutSet, WorkoutSet.workout_exercise_id == WorkoutExercise.id)
+        .where(
+            WorkoutSession.user_id == user_id,
+            WorkoutSession.state == WorkoutState.COMPLETED,
+            WorkoutExercise.exercise_id == exercise_id,
         )
-    ).all()
+    )
+    if since is not None:
+        legacy_query = legacy_query.where(WorkoutSession.completed_at >= since)
+    legacy_rows = (await db.execute(legacy_query)).all()
+
+    new_query = (
+        select(
+            TrainingSession.id, TrainingSession.completed_at,
+            EntrySet.weight, EntrySet.reps, EntrySet.set_number,
+        )
+        .join(SupersetRound, SupersetRound.session_id == TrainingSession.id)
+        .join(RoundEntry, RoundEntry.round_id == SupersetRound.id)
+        .join(EntrySet, EntrySet.entry_id == RoundEntry.id)
+        .where(
+            TrainingSession.user_id == user_id,
+            TrainingSession.state == SessionState.COMPLETED,
+            RoundEntry.exercise_id == exercise_id,
+            EntrySet.completed == True,  # noqa: E712
+        )
+    )
+    if since is not None:
+        new_query = new_query.where(TrainingSession.completed_at >= since)
+    new_rows = (await db.execute(new_query)).all()
 
     # Keyed by (generation, session_id) - not by completed_at - so two
     # distinct sessions that happen to share an identical completed_at

@@ -9,7 +9,25 @@ from app.models import (
     TrainingSession, SupersetRound, RoundEntry, EntrySet, SessionState,
 )
 from app.services.pattern_taxonomy import seed_movement_patterns
-from app.services.progression_service import estimate_1rm, next_target, pattern_trend
+from app.services.progression_service import (
+    estimate_1rm, next_target, compute_entry_target, pattern_trend,
+)
+
+
+def _monday_weeks_ago(weeks_back: int) -> date:
+    """Monday of the week `weeks_back` weeks before the current week.
+
+    Anchoring fixture dates to date.today() (rather than a hardcoded
+    calendar date) keeps these tests true no matter when they run, since
+    pattern_trend's window filtering is itself date.today()-relative.
+    """
+    today = date.today()
+    this_monday = today - timedelta(days=today.weekday())
+    return this_monday - timedelta(weeks=weeks_back)
+
+
+def _dt(d: date, hour: int = 9) -> datetime:
+    return datetime.combine(d, datetime.min.time()) + timedelta(hours=hour)
 
 
 def test_estimate_1rm_epley():
@@ -65,17 +83,10 @@ async def test_pattern_trend_normalizes_across_staples(test_db):
     test_db.add(StapleExercise(user_id=user.id, pattern_id=hp.id, exercise_id=row.id))
     await test_db.commit()
 
-    # Anchor fixture dates relative to "today" (Monday-aligned) so the test
-    # stays true no matter when it runs, rather than pinning it to a
-    # hardcoded 2026-01 calendar date that a date.today()-based cutoff would
-    # eventually age out of. Older week: 100x10 (e1RM 133.3, baseline ->
-    # index 1.0). Newer week: 110x10 (index 1.1).
-    today = date.today()
-    this_monday = today - timedelta(days=today.weekday())
-    week_older = this_monday - timedelta(weeks=4)
-    week_newer = this_monday - timedelta(weeks=2)
-    when_older = datetime.combine(week_older, datetime.min.time()) + timedelta(hours=9)
-    when_newer = datetime.combine(week_newer, datetime.min.time()) + timedelta(hours=9)
+    # Older week: 100x10 (e1RM 133.3, baseline -> index 1.0).
+    # Newer week: 110x10 (index 1.1).
+    when_older = _dt(_monday_weeks_ago(4))
+    when_newer = _dt(_monday_weeks_ago(2))
 
     await _completed_session(test_db, user, row, hp, when_older, 100.0, 10)
     await _completed_session(test_db, user, row, hp, when_newer, 110.0, 10)
@@ -85,3 +96,161 @@ async def test_pattern_trend_normalizes_across_staples(test_db):
     assert trend[0]["index"] == pytest.approx(1.0)
     assert trend[1]["index"] == pytest.approx(1.1, abs=0.001)
     assert trend[0]["week_start"] < trend[1]["week_start"]
+
+
+@pytest.mark.asyncio
+async def test_compute_entry_target_with_history(test_db):
+    await seed_movement_patterns(test_db)
+    user = User(device_id="test-device-12345")
+    row = Exercise(name="Cable Row", movement_pattern_1="Horizontal Pull", mechanics="Compound")
+    test_db.add_all([user, row])
+    await test_db.flush()
+    result = await test_db.execute(select(MovementPattern).where(MovementPattern.slug == "horizontal_pull"))
+    hp = result.scalar_one()
+    await test_db.commit()
+
+    s = TrainingSession(user_id=user.id, state=SessionState.COMPLETED,
+                        started_at=_dt(_monday_weeks_ago(1)), completed_at=_dt(_monday_weeks_ago(1)))
+    r = SupersetRound(order=1)
+    e = RoundEntry(position=1, exercise_id=row.id, pattern_id=hp.id)
+    e.sets.append(EntrySet(set_number=1, weight=120.0, reps=10))
+    e.sets.append(EntrySet(set_number=2, weight=120.0, reps=10))
+    e.sets.append(EntrySet(set_number=3, weight=120.0, reps=10))
+    r.entries.append(e)
+    s.rounds.append(r)
+    test_db.add(s)
+    await test_db.commit()
+
+    target = await compute_entry_target(test_db, user.id, row.id)
+    assert target == {"weight": 120.0, "reps": 11, "sets": 3, "last_summary": "3x10 @ 120"}
+
+
+@pytest.mark.asyncio
+async def test_compute_entry_target_no_history(test_db):
+    await seed_movement_patterns(test_db)
+    user = User(device_id="test-device-12345")
+    row = Exercise(name="Cable Row", movement_pattern_1="Horizontal Pull", mechanics="Compound")
+    test_db.add_all([user, row])
+    await test_db.commit()
+
+    target = await compute_entry_target(test_db, user.id, row.id)
+    assert target is None
+
+
+@pytest.mark.asyncio
+async def test_pattern_trend_averages_across_multiple_staples(test_db):
+    """The whole point of pattern_trend is averaging per-staple indices, each
+    normalized to its OWN baseline. A single-staple fixture can't distinguish
+    correct averaging from a broken implementation - this uses two staples
+    progressing at different rates (+10% and +20%) so the expected weekly
+    index (~1.15) is only reachable by actually averaging both.
+    """
+    await seed_movement_patterns(test_db)
+    user = User(device_id="test-device-12345")
+    row = Exercise(name="Cable Row", movement_pattern_1="Horizontal Pull", mechanics="Compound")
+    csr = Exercise(name="Chest-Supported Row", movement_pattern_1="Horizontal Pull", mechanics="Compound")
+    test_db.add_all([user, row, csr])
+    await test_db.flush()
+    result = await test_db.execute(select(MovementPattern).where(MovementPattern.slug == "horizontal_pull"))
+    hp = result.scalar_one()
+    test_db.add_all([
+        StapleExercise(user_id=user.id, pattern_id=hp.id, exercise_id=row.id),
+        StapleExercise(user_id=user.id, pattern_id=hp.id, exercise_id=csr.id),
+    ])
+    await test_db.commit()
+
+    when_older = _dt(_monday_weeks_ago(4))
+    when_newer = _dt(_monday_weeks_ago(2))
+
+    # Cable Row: 100 -> 110 (+10%, index 1.10)
+    await _completed_session(test_db, user, row, hp, when_older, 100.0, 10)
+    await _completed_session(test_db, user, row, hp, when_newer, 110.0, 10)
+    # Chest-Supported Row: 100 -> 120 (+20%, index 1.20)
+    await _completed_session(test_db, user, csr, hp, when_older, 100.0, 10)
+    await _completed_session(test_db, user, csr, hp, when_newer, 120.0, 10)
+
+    trend = await pattern_trend(test_db, user.id, hp.id, weeks=52)
+    assert len(trend) == 2
+    assert trend[0]["index"] == pytest.approx(1.0)
+    # Average of 1.10 and 1.20, not either rate alone.
+    assert trend[1]["index"] == pytest.approx(1.15, abs=0.001)
+
+
+@pytest.mark.asyncio
+async def test_pattern_trend_excludes_staple_with_no_usable_weights(test_db):
+    """A staple whose every set has weight=None (e.g. a bodyweight staple)
+    contributes no e1RM values at all. It must be silently excluded from the
+    per-week average rather than crashing it (e.g. ZeroDivisionError/KeyError).
+    """
+    await seed_movement_patterns(test_db)
+    user = User(device_id="test-device-12345")
+    row = Exercise(name="Cable Row", movement_pattern_1="Horizontal Pull", mechanics="Compound")
+    inverted_row = Exercise(name="Inverted Row", movement_pattern_1="Horizontal Pull", mechanics="Compound")
+    test_db.add_all([user, row, inverted_row])
+    await test_db.flush()
+    result = await test_db.execute(select(MovementPattern).where(MovementPattern.slug == "horizontal_pull"))
+    hp = result.scalar_one()
+    test_db.add_all([
+        StapleExercise(user_id=user.id, pattern_id=hp.id, exercise_id=row.id),
+        StapleExercise(user_id=user.id, pattern_id=hp.id, exercise_id=inverted_row.id),
+    ])
+    await test_db.commit()
+
+    when_older = _dt(_monday_weeks_ago(4))
+    when_newer = _dt(_monday_weeks_ago(2))
+
+    await _completed_session(test_db, user, row, hp, when_older, 100.0, 10)
+    await _completed_session(test_db, user, row, hp, when_newer, 110.0, 10)
+    # Bodyweight staple: weight always None -> no usable e1RM.
+    await _completed_session(test_db, user, inverted_row, hp, when_older, None, 10)
+    await _completed_session(test_db, user, inverted_row, hp, when_newer, None, 12)
+
+    trend = await pattern_trend(test_db, user.id, hp.id, weeks=52)
+    assert len(trend) == 2
+    # Degenerates to the single usable staple (Cable Row) - no crash.
+    assert trend[0]["index"] == pytest.approx(1.0)
+    assert trend[1]["index"] == pytest.approx(1.1, abs=0.001)
+
+
+@pytest.mark.asyncio
+async def test_pattern_trend_baseline_survives_high_frequency_staple(test_db):
+    """Regression for a real bug: pattern_trend used to cap each staple's
+    fetched history at `limit_sessions=weeks * 3` with no date filter at all.
+    A staple logged more often than ~3x/week (e.g. a warm-up movement done
+    nearly every session) could have its true earliest in-window session
+    evicted by that count cap, silently promoting a later session to be the
+    baseline. Fetching by `since=<cutoff>` instead of guessing a count fixes
+    this.
+
+    Fixture: 5 sessions/week for 3 weeks (15 total) against
+    pattern_trend(weeks=3) - i.e. 15 sessions vs. the old cap of
+    weeks*3 == 9. Under the old count-based approach, the newest 9 of these
+    15 sessions are the 5 from week_newer plus 4 of week_mid's 5, so
+    week_older's entire 5 sessions - despite being inside the 3-week window -
+    are dropped outright: len(trend) would be 2, not 3, and trend[0] would
+    be week_mid (wrongly used as baseline) instead of week_older.
+    """
+    await seed_movement_patterns(test_db)
+    user = User(device_id="test-device-12345")
+    rower = Exercise(name="Rower Warm-Up", movement_pattern_1="Horizontal Pull", mechanics="Compound")
+    test_db.add_all([user, rower])
+    await test_db.flush()
+    result = await test_db.execute(select(MovementPattern).where(MovementPattern.slug == "horizontal_pull"))
+    hp = result.scalar_one()
+    test_db.add(StapleExercise(user_id=user.id, pattern_id=hp.id, exercise_id=rower.id))
+    await test_db.commit()
+
+    week_older = _monday_weeks_ago(3)
+    week_mid = _monday_weeks_ago(2)
+    week_newer = _monday_weeks_ago(1)
+
+    for week_start, base_weight in ((week_older, 100.0), (week_mid, 110.0), (week_newer, 120.0)):
+        for day_offset in range(5):
+            when = datetime.combine(week_start, datetime.min.time()) + timedelta(days=day_offset, hours=9)
+            await _completed_session(test_db, user, rower, hp, when, base_weight + day_offset, 10)
+
+    trend = await pattern_trend(test_db, user.id, hp.id, weeks=3)
+
+    assert len(trend) == 3
+    assert trend[0]["week_start"] == week_older
+    assert trend[0]["index"] == pytest.approx(1.0)
