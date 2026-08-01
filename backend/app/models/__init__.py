@@ -20,6 +20,7 @@ from app.models.weekly_volume import WeeklyVolume
 from app.models.injury import InjuryType, MovementRestriction, UserInjury
 from app.models.user import User
 from app.models.movement_pattern import MovementPattern, ExercisePatternMap
+from app.models.day_plan import DayPlan, PatternGoal
 
 __all__ = [
     "Base",
@@ -45,4 +46,6 @@ __all__ = [
     "User",
     "MovementPattern",
     "ExercisePatternMap",
+    "DayPlan",
+    "PatternGoal",
 ]
