@@ -9,7 +9,7 @@ exercises are reported in a "why not" list.
 """
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,6 +38,14 @@ from app.services.progression_service import compute_entry_target
 WEEKLY_SET_LIMIT = 20
 NOVELTY_STALENESS_DAYS = 90
 SEVERITY_ORDER = {"mild": 0, "moderate": 1, "severe": 2}
+
+# Novelty scan: how many candidate rows to consider, and the coprime
+# multiplier/modulus that shuffle the id space so the scan window is not
+# permanently pinned to the lowest ids. Both prime, so id * stride % modulus
+# visits every residue.
+NOVELTY_SCAN_LIMIT = 200
+NOVELTY_ROTATION_STRIDE = 7919
+NOVELTY_ROTATION_MODULUS = 9973
 
 
 async def _blacklisted_ids(db: AsyncSession, user_id: int) -> set[int]:
@@ -497,7 +505,10 @@ async def partner_suggestions(
         target_pattern_ids = list(dict.fromkeys(neutral_ids + uncovered))
 
     staples = await _staples_with_exercises(db, user_id, target_pattern_ids)
-    exercises = [s.exercise for s in staples]
+    # The anchor is never its own partner. It can reach the target set when it
+    # is neutral (its own pattern is in the neutral list at position 3, or is
+    # an uncovered goal at position 2), so screen it out explicitly.
+    exercises = [s.exercise for s in staples if s.exercise_id != anchor_exercise_id]
     pattern_by_exercise = {s.exercise_id: s.pattern for s in staples}
     staple_ids = {s.exercise_id for s in staples}
     cards, rejected = await _filter_cards(
@@ -505,7 +516,7 @@ async def partner_suggestions(
     )
 
     novelty = await _novelty_candidate(
-        db, user_id, target_pattern_ids, staple_ids, rep_ranges
+        db, user_id, target_pattern_ids, staple_ids | {anchor_exercise_id}, rep_ranges
     )
     return {"candidates": cards, "novelty": novelty, "not_recommended": rejected}
 
@@ -514,16 +525,35 @@ async def _novelty_candidate(
     db: AsyncSession,
     user_id: int,
     pattern_ids: list[int],
-    staple_ids: set[int],
+    exclude_ids: set[int],
     rep_ranges: dict[int, tuple[int, int]],
 ) -> dict | None:
-    """One 'try something new' compound: matches pattern + equipment, not a staple,
-    not blacklisted, not performed in the last NOVELTY_STALENESS_DAYS."""
+    """One 'try something new' compound.
+
+    Matches the target pattern, is not excluded (staples and the anchor
+    itself), and passes the same blacklist, injury, equipment and weekly
+    volume filters the staple candidates do - an unfamiliar exercise for a
+    muscle group already past its weekly limit is worse than a familiar one,
+    not better. Also skips anything performed in the last
+    NOVELTY_STALENESS_DAYS.
+    """
     blacklist = await _blacklisted_ids(db, user_id)
     available = await _available_equipment_ids(db, user_id)
     restrictions = await _injury_restrictions(db, user_id)
+    weekly = await _weekly_sets_by_muscle_group(db, user_id)
 
-    result = await db.execute(
+    # Exclusions that can be expressed in SQL are, so the row cap applies to
+    # genuine candidates rather than being spent on staples and blacklisted
+    # rows. The ordering rotates weekly: deterministic within a week (so the
+    # pick is stable for a user mid-session and for tests), but shifted across
+    # the id space week to week so the same lowest-id row isn't pinned
+    # forever.
+    skip_ids = exclude_ids | blacklist
+    rotation = date.today().isocalendar()[1]
+    order_key = (Exercise.id * NOVELTY_ROTATION_STRIDE + rotation) % (
+        NOVELTY_ROTATION_MODULUS
+    )
+    query = (
         select(Exercise, ExercisePatternMap.pattern_id)
         .join(ExercisePatternMap, ExercisePatternMap.exercise_id == Exercise.id)
         .where(
@@ -534,8 +564,12 @@ async def _novelty_candidate(
             selectinload(Exercise.primary_equipment),
             selectinload(Exercise.muscle_groups),
         )
-        .limit(200)
+        .order_by(order_key, Exercise.id)
+        .limit(NOVELTY_SCAN_LIMIT)
     )
+    if skip_ids:
+        query = query.where(Exercise.id.notin_(skip_ids))
+    result = await db.execute(query)
     rows = result.all()
     if not rows:
         return None
@@ -553,8 +587,6 @@ async def _novelty_candidate(
     }
 
     for exercise, pattern_id in rows:
-        if exercise.id in staple_ids or exercise.id in blacklist:
-            continue
         if _injury_reason(exercise, restrictions):
             continue
         is_bodyweight = exercise.primary_equipment_id is None
@@ -562,6 +594,10 @@ async def _novelty_candidate(
             not is_bodyweight
             and available is not None
             and exercise.primary_equipment_id not in available
+        ):
+            continue
+        if any(
+            weekly.get(mg.id, 0) > WEEKLY_SET_LIMIT for mg in exercise.muscle_groups
         ):
             continue
         last = last_map.get(exercise.id)
