@@ -33,7 +33,10 @@ async def get_pattern_progress(
     result = await db.execute(
         select(MovementPattern)
         .join(StapleExercise, StapleExercise.pattern_id == MovementPattern.id)
-        .where(StapleExercise.user_id == user.id)
+        .where(
+            StapleExercise.user_id == user.id,
+            StapleExercise.is_active == True,  # noqa: E712
+        )
         .distinct()
         .order_by(MovementPattern.display_order)
     )
