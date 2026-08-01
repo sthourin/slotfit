@@ -1,6 +1,6 @@
 """Tests for progression math"""
 import pytest
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import select
 
@@ -65,9 +65,20 @@ async def test_pattern_trend_normalizes_across_staples(test_db):
     test_db.add(StapleExercise(user_id=user.id, pattern_id=hp.id, exercise_id=row.id))
     await test_db.commit()
 
-    # Week 1: 100x10 (e1RM 133.3, baseline -> index 1.0); Week 3: 110x10 (index 1.1)
-    await _completed_session(test_db, user, row, hp, datetime(2026, 1, 5, 9), 100.0, 10)
-    await _completed_session(test_db, user, row, hp, datetime(2026, 1, 19, 9), 110.0, 10)
+    # Anchor fixture dates relative to "today" (Monday-aligned) so the test
+    # stays true no matter when it runs, rather than pinning it to a
+    # hardcoded 2026-01 calendar date that a date.today()-based cutoff would
+    # eventually age out of. Older week: 100x10 (e1RM 133.3, baseline ->
+    # index 1.0). Newer week: 110x10 (index 1.1).
+    today = date.today()
+    this_monday = today - timedelta(days=today.weekday())
+    week_older = this_monday - timedelta(weeks=4)
+    week_newer = this_monday - timedelta(weeks=2)
+    when_older = datetime.combine(week_older, datetime.min.time()) + timedelta(hours=9)
+    when_newer = datetime.combine(week_newer, datetime.min.time()) + timedelta(hours=9)
+
+    await _completed_session(test_db, user, row, hp, when_older, 100.0, 10)
+    await _completed_session(test_db, user, row, hp, when_newer, 110.0, 10)
 
     trend = await pattern_trend(test_db, user.id, hp.id, weeks=52)
     assert len(trend) == 2
