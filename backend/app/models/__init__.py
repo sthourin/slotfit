@@ -24,6 +24,7 @@ from app.models.day_plan import DayPlan, PatternGoal
 from app.models.training_session import (
     TrainingSession, SupersetRound, RoundEntry, EntrySet, SessionState
 )
+from app.models.staple import StapleExercise, ExercisePreference
 
 __all__ = [
     "Base",
@@ -56,4 +57,6 @@ __all__ = [
     "RoundEntry",
     "EntrySet",
     "SessionState",
+    "StapleExercise",
+    "ExercisePreference",
 ]
