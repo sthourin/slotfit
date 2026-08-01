@@ -76,3 +76,101 @@ async def test_incomplete_sessions_are_ignored(test_db):
 
     assert await last_performed_map(test_db, user.id, [ex.id]) == {}
     assert (await times_performed_map(test_db, user.id)).get(ex.id) is None
+
+
+@pytest.mark.asyncio
+async def test_times_performed_counts_sessions_not_rows(test_db):
+    """An exercise repeated across multiple rounds/entries of ONE session
+    must count as 1, not once per row - regression for undercounting bug
+    that would wrongly promote a same-session repeat in staple backfill.
+    """
+    user, ex, hp = await _setup(test_db)
+
+    # New-schema completed session with the exercise repeated in TWO rounds
+    new = TrainingSession(user_id=user.id, state=SessionState.COMPLETED,
+                          started_at=datetime(2026, 2, 1, 9), completed_at=datetime(2026, 2, 1, 10))
+    rnd1 = SupersetRound(order=1)
+    entry1 = RoundEntry(position=1, exercise_id=ex.id, pattern_id=hp.id)
+    entry1.sets.append(EntrySet(set_number=1, weight=110.0, reps=10))
+    rnd1.entries.append(entry1)
+    rnd2 = SupersetRound(order=2)
+    entry2 = RoundEntry(position=1, exercise_id=ex.id, pattern_id=hp.id)
+    entry2.sets.append(EntrySet(set_number=1, weight=115.0, reps=8))
+    rnd2.entries.append(entry2)
+    new.rounds.append(rnd1)
+    new.rounds.append(rnd2)
+    test_db.add(new)
+
+    # Legacy completed session with the exercise repeated as TWO WorkoutExercises
+    legacy = WorkoutSession(user_id=user.id, state=WorkoutState.COMPLETED,
+                            started_at=datetime(2026, 1, 5, 9), completed_at=datetime(2026, 1, 5, 10))
+    we1 = WorkoutExercise(exercise_id=ex.id)
+    we1.sets.append(WorkoutSet(set_number=1, weight=100.0, reps=10))
+    we2 = WorkoutExercise(exercise_id=ex.id)
+    we2.sets.append(WorkoutSet(set_number=1, weight=95.0, reps=12))
+    legacy.exercises.append(we1)
+    legacy.exercises.append(we2)
+    test_db.add(legacy)
+
+    await test_db.commit()
+
+    counts = await times_performed_map(test_db, user.id)
+    # 1 legacy session + 1 new session = 2, NOT 4 rows
+    assert counts[ex.id] == 2
+
+
+@pytest.mark.asyncio
+async def test_exercise_set_history_distinguishes_identical_timestamps(test_db):
+    """Two distinct sessions sharing an identical completed_at must not be
+    merged into a single performance - regression for the by-timestamp
+    grouping bug that undercounted len(history) and interleaved sets.
+    """
+    user, ex, hp = await _setup(test_db)
+    same_time = datetime(2026, 2, 1, 10)
+
+    new1 = TrainingSession(user_id=user.id, state=SessionState.COMPLETED,
+                           started_at=datetime(2026, 2, 1, 9), completed_at=same_time)
+    rnd1 = SupersetRound(order=1)
+    entry1 = RoundEntry(position=1, exercise_id=ex.id, pattern_id=hp.id)
+    entry1.sets.append(EntrySet(set_number=1, weight=110.0, reps=10))
+    rnd1.entries.append(entry1)
+    new1.rounds.append(rnd1)
+    test_db.add(new1)
+
+    new2 = TrainingSession(user_id=user.id, state=SessionState.COMPLETED,
+                           started_at=datetime(2026, 2, 2, 9), completed_at=same_time)
+    rnd2 = SupersetRound(order=1)
+    entry2 = RoundEntry(position=1, exercise_id=ex.id, pattern_id=hp.id)
+    entry2.sets.append(EntrySet(set_number=1, weight=120.0, reps=8))
+    rnd2.entries.append(entry2)
+    new2.rounds.append(rnd2)
+    test_db.add(new2)
+
+    await test_db.commit()
+
+    history = await exercise_set_history(test_db, user.id, ex.id)
+    assert len(history) == 2
+    sets_seen = {tuple(h["sets"]) for h in history}
+    assert sets_seen == {((110.0, 10),), ((120.0, 8),)}
+    assert all(h["performed_at"] == same_time for h in history)
+
+
+@pytest.mark.asyncio
+async def test_none_completed_at_is_consistent_across_maps(test_db):
+    """A COMPLETED session with completed_at=None must be invisible to both
+    map functions identically - regression for the two functions disagreeing
+    on None handling.
+    """
+    user, ex, hp = await _setup(test_db)
+    new = TrainingSession(user_id=user.id, state=SessionState.COMPLETED,
+                          started_at=datetime(2026, 2, 1, 9), completed_at=None)
+    rnd = SupersetRound(order=1)
+    entry = RoundEntry(position=1, exercise_id=ex.id, pattern_id=hp.id)
+    entry.sets.append(EntrySet(set_number=1, weight=110.0, reps=10))
+    rnd.entries.append(entry)
+    new.rounds.append(rnd)
+    test_db.add(new)
+    await test_db.commit()
+
+    assert await last_performed_map(test_db, user.id, [ex.id]) == {}
+    assert (await times_performed_map(test_db, user.id)).get(ex.id) is None
