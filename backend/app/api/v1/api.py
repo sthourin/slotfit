@@ -3,7 +3,7 @@ API v1 router
 """
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import exercises, recommendations, routines, muscle_groups, equipment, equipment_profiles, slot_templates, personal_records, analytics, workouts, injuries, users, patterns, day_plans
+from app.api.v1.endpoints import exercises, recommendations, routines, muscle_groups, equipment, equipment_profiles, slot_templates, personal_records, analytics, workouts, injuries, users, patterns, day_plans, staples
 
 api_router = APIRouter()
 
@@ -22,3 +22,4 @@ api_router.include_router(injuries.router, prefix="", tags=["injuries"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(patterns.router, prefix="/patterns", tags=["patterns"])
 api_router.include_router(day_plans.router, prefix="/day-plans", tags=["day-plans"])
+api_router.include_router(staples.router, prefix="/staples", tags=["staples"])
