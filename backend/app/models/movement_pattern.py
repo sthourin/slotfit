@@ -22,3 +22,19 @@ class MovementPattern(Base):
 
     def __repr__(self):
         return f"<MovementPattern(id={self.id}, slug='{self.slug}')>"
+
+
+class ExercisePatternMap(Base):
+    """Maps each exercise to exactly one curated pattern."""
+    __tablename__ = "exercise_pattern_map"
+
+    id = Column(Integer, primary_key=True, index=True)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"), unique=True, nullable=False, index=True)
+    pattern_id = Column(Integer, ForeignKey("movement_patterns.id"), nullable=False, index=True)
+    is_override = Column(Boolean, default=False, nullable=False)
+
+    exercise = relationship("Exercise")
+    pattern = relationship("MovementPattern")
+
+    def __repr__(self):
+        return f"<ExercisePatternMap(exercise_id={self.exercise_id}, pattern_id={self.pattern_id})>"

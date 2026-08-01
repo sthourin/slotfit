@@ -19,7 +19,7 @@ from app.models.personal_record import PersonalRecord, RecordType
 from app.models.weekly_volume import WeeklyVolume
 from app.models.injury import InjuryType, MovementRestriction, UserInjury
 from app.models.user import User
-from app.models.movement_pattern import MovementPattern
+from app.models.movement_pattern import MovementPattern, ExercisePatternMap
 
 __all__ = [
     "Base",
@@ -44,4 +44,5 @@ __all__ = [
     "UserInjury",
     "User",
     "MovementPattern",
+    "ExercisePatternMap",
 ]
