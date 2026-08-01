@@ -15,6 +15,7 @@ router = APIRouter()
 
 
 async def _get_owned_plan(db: AsyncSession, user: User, plan_id: int) -> DayPlan:
+    """Fetch a day plan if owned by the given user, else raise 404."""
     result = await db.execute(
         select(DayPlan)
         .where(DayPlan.id == plan_id, DayPlan.user_id == user.id)
@@ -30,6 +31,7 @@ async def _get_owned_plan(db: AsyncSession, user: User, plan_id: int) -> DayPlan
 async def list_day_plans(
     db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)
 ):
+    """List all day plans for the current user, ordered by name."""
     result = await db.execute(
         select(DayPlan)
         .where(DayPlan.user_id == user.id)
@@ -45,6 +47,7 @@ async def create_day_plan(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Create a new day plan with goals for the current user."""
     plan = DayPlan(
         user_id=user.id,
         name=data.name,
@@ -65,6 +68,7 @@ async def get_day_plan(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Retrieve a day plan by ID if owned by the current user."""
     return DayPlanResponse.model_validate(await _get_owned_plan(db, user, plan_id))
 
 
@@ -75,6 +79,7 @@ async def update_day_plan(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Update a day plan; goals list replaces all when provided."""
     plan = await _get_owned_plan(db, user, plan_id)
     for field in ("name", "description", "warmup_preferences", "rounds_target"):
         value = getattr(data, field)
@@ -94,6 +99,7 @@ async def delete_day_plan(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Delete a day plan if owned by the current user."""
     plan = await _get_owned_plan(db, user, plan_id)
     await db.delete(plan)
     await db.commit()

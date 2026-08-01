@@ -143,13 +143,29 @@ async def test_user_scoping(client_with_data, device_id):
     }, headers=headers1)
     plan_id = create.json()["id"]
 
-    # User 1 can see the plan
+    # User 1 can see the plan in GET
     get_resp = await client.get(f"/api/v1/day-plans/{plan_id}", headers=headers1)
     assert get_resp.status_code == 200
 
-    # User 2 gets 404
+    # User 1 can see the plan in LIST
+    list_resp = await client.get("/api/v1/day-plans/", headers=headers1)
+    assert list_resp.status_code == 200
+    assert any(p["id"] == plan_id for p in list_resp.json())
+
+    # User 2 gets 404 on GET
     get_resp = await client.get(f"/api/v1/day-plans/{plan_id}", headers=headers2)
     assert get_resp.status_code == 404
+
+    # User 2 cannot see user 1's plan in LIST (should be empty)
+    list_resp = await client.get("/api/v1/day-plans/", headers=headers2)
+    assert list_resp.status_code == 200
+    assert not any(p["id"] == plan_id for p in list_resp.json())
+
+    # User 2 gets 404 on PUT
+    put_resp = await client.put(f"/api/v1/day-plans/{plan_id}", json={
+        "rounds_target": 4,
+    }, headers=headers2)
+    assert put_resp.status_code == 404
 
     # User 2 cannot delete user 1's plan
     delete_resp = await client.delete(f"/api/v1/day-plans/{plan_id}", headers=headers2)
@@ -158,3 +174,43 @@ async def test_user_scoping(client_with_data, device_id):
     # User 1 can still see the plan (verify it wasn't deleted)
     get_resp = await client.get(f"/api/v1/day-plans/{plan_id}", headers=headers1)
     assert get_resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_put_without_goals_preserves_goals(client_with_data, device_id):
+    """Test that PUT without goals key leaves existing goals untouched"""
+    client, _seed = client_with_data
+    headers = {"X-Device-ID": device_id}
+    await client.get("/api/v1/users/me", headers=headers)
+
+    patterns = (await client.get("/api/v1/patterns/", headers=headers)).json()
+    hp = next(p for p in patterns if p["slug"] == "horizontal_pull")
+    vp = next(p for p in patterns if p["slug"] == "vertical_pull")
+
+    # Create a plan with 2 goals
+    create = await client.post("/api/v1/day-plans/", json={
+        "name": "Test Goals Preservation",
+        "warmup_preferences": [],
+        "rounds_target": 3,
+        "goals": [
+            {"pattern_id": hp["id"], "required": True, "target_sets": 6},
+            {"pattern_id": vp["id"], "required": False, "target_sets": 4},
+        ],
+    }, headers=headers)
+    plan_id = create.json()["id"]
+    original_goals = create.json()["goals"]
+    assert len(original_goals) == 2
+
+    # PUT with only rounds_target (no goals key) should preserve goals
+    updated = await client.put(f"/api/v1/day-plans/{plan_id}", json={
+        "rounds_target": 5,
+    }, headers=headers)
+    assert updated.status_code == 200
+    assert updated.json()["rounds_target"] == 5
+    # Goals should be unchanged
+    updated_goals = updated.json()["goals"]
+    assert len(updated_goals) == 2
+    assert updated_goals[0]["pattern_id"] == hp["id"]
+    assert updated_goals[1]["pattern_id"] == vp["id"]
+    assert updated_goals[0]["required"] is True
+    assert updated_goals[1]["required"] is False
