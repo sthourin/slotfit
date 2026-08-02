@@ -94,11 +94,26 @@ pytest
 - **Analysis**: `.cursor/plans/slotfit_plan_analysis.md`
 - **Exercise CSV**: `assets/slotfit_exercise_database_with_urls.csv`
 
-## Database Connection
+## Configuration
 
-Default PostgreSQL connection (check `backend/.env`):
+`.env` at the repo root is the single canonical config file. The FastAPI app,
+alembic, and everything under `backend/scripts` read it through
+`app.core.config`, which resolves it by absolute path — so commands work from
+any working directory. `hevy/pull_hevy.py` reads it directly.
+
+Copy `.env.example` to `.env` and fill it in; that template documents every
+variable and where to get each key.
+
+Two files stay separate on purpose:
+- `web/.env` — Vite only exposes `VITE_`-prefixed vars to the browser bundle,
+  so client config is kept physically apart from server secrets.
+- `.env.e2e` — the e2e overlay. Nothing auto-loads it; Playwright requires
+  `E2E_DATABASE_URL` exported in the shell so a run cannot silently target the
+  dev database.
+
+Default PostgreSQL connection:
 ```
-DATABASE_URL=postgresql://user:password@localhost:5432/slotfit
+DATABASE_URL=postgresql+asyncpg://postgres:slotfit@localhost:5432/slotfit
 ```
 
 ## API Conventions

@@ -47,7 +47,15 @@ docker run --name slotfit-db -e POSTGRES_PASSWORD=slotfit -e POSTGRES_DB=slotfit
 
 ### 4. Create .env File
 
-Create `backend/.env` file:
+Copy the template at the repo root — it documents every variable and where to
+get each key:
+
+```bash
+cp .env.example .env
+```
+
+`.env` lives at the repo root, not in `backend/`, and is read by the app,
+alembic, and `backend/scripts` alike. At minimum set:
 
 ```env
 DATABASE_URL=postgresql+asyncpg://postgres:slotfit@localhost:5432/slotfit

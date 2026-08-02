@@ -3,7 +3,7 @@ import { defineConfig } from '@playwright/test'
 if (!process.env.E2E_DATABASE_URL) {
   throw new Error(
     'E2E_DATABASE_URL is not set. Set it to the slotfit_e2e connection string ' +
-      '(copy DATABASE_URL from backend/.env.e2e). Refusing to run against the dev database.'
+      '(copy DATABASE_URL from .env.e2e at the repo root). Refusing to run against the dev database.'
   )
 }
 

@@ -30,10 +30,13 @@ yarn-error.log*
 *.aab
 
 # Environment
+# .env at the repo root is the canonical config file for the whole repo.
+# .env.example is the committed template and must stay tracked.
 .env
 .env.local
 .env.*.local
 .env.e2e
+!.env.example
 
 # IDE
 .vscode/
@@ -49,3 +52,12 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Hevy export (personal training data)
+hevy/data/
+
+# Test and coverage artifacts
+.coverage
+htmlcov/
+web/test-results/
+.playwright-cli/
