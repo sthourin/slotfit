@@ -10,6 +10,7 @@ Run from backend/: python -m scripts.backfill_staples
 import asyncio
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models import User, StapleExercise, ExercisePatternMap
@@ -18,7 +19,7 @@ from app.services.history_service import times_performed_map
 STAPLE_THRESHOLD = 3
 
 
-async def backfill_user(db, user: User) -> int:
+async def backfill_user(db: AsyncSession, user: User) -> int:
     """Create staple rows for one user's frequently-performed exercises.
 
     Counts distinct completed sessions per exercise (legacy + new history,

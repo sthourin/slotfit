@@ -4,6 +4,7 @@ import pytest
 from datetime import datetime
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
     User,
@@ -28,7 +29,9 @@ from app.services.pattern_taxonomy import (
 from scripts.backfill_staples import backfill_user
 
 
-async def _make_user_and_exercise(test_db, device_id: str, exercise_name: str):
+async def _make_user_and_exercise(
+    test_db: AsyncSession, device_id: str, exercise_name: str
+) -> tuple[User, Exercise]:
     """Seed the pattern taxonomy and create one user + one purpose-built compound exercise.
 
     Uses explicit movement_pattern_1/mechanics ("Horizontal Pull" / "Compound")
@@ -48,8 +51,8 @@ async def _make_user_and_exercise(test_db, device_id: str, exercise_name: str):
 
 
 def _add_completed_legacy_session(
-    test_db, user_id: int, exercise_id: int, day: int, rounds: int = 1
-):
+    test_db: AsyncSession, user_id: int, exercise_id: int, day: int, rounds: int = 1
+) -> None:
     """Add one COMPLETED legacy WorkoutSession performing exercise_id.
 
     `rounds` controls how many WorkoutExercise rows (not sessions) reference
@@ -70,8 +73,13 @@ def _add_completed_legacy_session(
 
 
 def _add_completed_new_session(
-    test_db, user_id: int, exercise_id: int, pattern_id: int, day: int, rounds: int = 1
-):
+    test_db: AsyncSession,
+    user_id: int,
+    exercise_id: int,
+    pattern_id: int,
+    day: int,
+    rounds: int = 1,
+) -> None:
     """Add one COMPLETED new-schema TrainingSession performing exercise_id.
 
     `rounds` controls how many SupersetRound/RoundEntry pairs reference the
@@ -147,8 +155,8 @@ async def test_repeats_within_one_session_do_not_cross_threshold(test_db):
     """An exercise appearing in two rounds of a SINGLE completed session counts
     as 1 session, not 2 - regression for the row-vs-session counting bug.
 
-    Two single-round sessions plus one two-round session = 3 rows but only
-    2 distinct sessions, so this must NOT become a staple.
+    One single-round session plus one two-round session = 3 RoundEntry rows
+    but only 2 distinct sessions, so this must NOT become a staple.
     """
     user, ex = await _make_user_and_exercise(
         test_db, "device-single-session-repeat", "Lat Pulldown"
