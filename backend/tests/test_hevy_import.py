@@ -141,3 +141,148 @@ def test_sorted_by_session_count_descending():
 
 def test_empty_history_returns_empty_list():
     assert select_exercises([], TEMPLATES) == []
+
+
+from app.services.hevy_import import CatalogueEntry, rank_candidates, should_prefill
+
+
+def _hevy(title: str, equipment: str | None = None) -> HevyExercise:
+    return HevyExercise(
+        title=title,
+        template_id="tid",
+        sessions=5,
+        last_performed="2026-07-01",
+        hevy_equipment=equipment,
+    )
+
+
+LAT_PULLDOWNS = [
+    CatalogueEntry("Cable V Grip Lat Pulldown", "Cable"),
+    CatalogueEntry("Cable Wide Grip Lat Pulldown", "Cable"),
+    CatalogueEntry("Cable Reverse Grip Lat Pulldown", "Cable"),
+    CatalogueEntry("Dumbbell Pullover", "Dumbbell"),
+]
+
+
+def test_ranks_by_token_recall():
+    ranked = rank_candidates(_hevy("Wide Grip Lat Pulldown"), LAT_PULLDOWNS)
+    assert ranked[0].name == "Cable Wide Grip Lat Pulldown"
+
+
+def test_shorter_name_wins_on_equal_recall():
+    catalogue = [
+        CatalogueEntry("Stability Ball Double Dumbbell Seated Pullover", "Dumbbell"),
+        CatalogueEntry("Dumbbell Pullover", "Dumbbell"),
+    ]
+    ranked = rank_candidates(_hevy("Pullover (Dumbbell)", "dumbbell"), catalogue)
+    assert ranked[0].name == "Dumbbell Pullover"
+
+
+def test_equipment_agreement_boosts_and_contradiction_penalises():
+    catalogue = [
+        CatalogueEntry("Kettlebell Goblet Squat", "Kettlebell"),
+        CatalogueEntry("Dumbbell Goblet Squat", "Dumbbell"),
+    ]
+    ranked = rank_candidates(_hevy("Goblet Squat", "dumbbell"), catalogue)
+    assert ranked[0].name == "Dumbbell Goblet Squat"
+
+
+def test_machine_equipment_neither_boosts_nor_penalises():
+    # Hevy calls a cable lat pulldown "machine". That must not demote Cable rows.
+    ranked = rank_candidates(_hevy("Wide Grip Lat Pulldown", "machine"), LAT_PULLDOWNS)
+    assert ranked[0].name == "Cable Wide Grip Lat Pulldown"
+
+
+def test_limit_caps_the_candidate_list():
+    assert len(rank_candidates(_hevy("Lat Pulldown"), LAT_PULLDOWNS, limit=2)) == 2
+
+
+def test_no_overlap_yields_no_candidates():
+    assert rank_candidates(_hevy("Rowing Machine"), LAT_PULLDOWNS) == []
+
+
+def test_ambiguous_full_recall_must_not_prefill():
+    # The heart of the design: three grips tie, so a human must choose.
+    ranked = rank_candidates(_hevy("Lat Pulldown", "machine"), LAT_PULLDOWNS)
+    assert ranked[0].recall == pytest.approx(1.0)
+    assert should_prefill(ranked) is False
+
+
+def test_unique_full_recall_prefills():
+    catalogue = [
+        CatalogueEntry("Dumbbell Goblet Squat", "Dumbbell"),
+        CatalogueEntry("Barbell Back Squat", "Barbell"),
+    ]
+    ranked = rank_candidates(_hevy("Goblet Squat (Dumbbell)", "dumbbell"), catalogue)
+    assert should_prefill(ranked) is True
+
+
+def test_partial_recall_never_prefills():
+    ranked = rank_candidates(_hevy("Iso-Lateral Chest Press"), [
+        CatalogueEntry("Resistance Band Chest Press", "Resistance Band"),
+    ])
+    assert ranked and ranked[0].recall < 1.0
+    assert should_prefill(ranked) is False
+
+
+def test_empty_candidates_never_prefills():
+    assert should_prefill([]) is False
+
+
+import yaml
+
+from app.services.hevy_import import build_map_document, dump_map
+
+
+CATALOGUE = [
+    CatalogueEntry("Dumbbell Goblet Squat", "Dumbbell"),
+    CatalogueEntry("Kettlebell Goblet Squat", "Kettlebell"),
+    CatalogueEntry("Barbell Back Squat", "Barbell"),
+]
+
+
+def test_document_records_selection_meta():
+    doc = build_map_document([], CATALOGUE, generated_at="2026-08-02")
+    assert doc["meta"]["window_days"] == 365
+    assert doc["meta"]["min_sessions"] == 3
+    assert doc["meta"]["generated_at"] == "2026-08-02"
+
+
+def test_unambiguous_entry_is_prefilled():
+    entry = _hevy("Goblet Squat (Dumbbell)", "dumbbell")
+    doc = build_map_document([entry], CATALOGUE, generated_at="2026-08-02")
+    (row,) = doc["exercises"]
+    assert row["slotfit"] == "Dumbbell Goblet Squat"
+
+
+def test_ambiguous_entry_is_left_null_with_candidates():
+    entry = _hevy("Goblet Squat", "machine")
+    doc = build_map_document([entry], CATALOGUE, generated_at="2026-08-02")
+    (row,) = doc["exercises"]
+    assert row["slotfit"] is None
+    assert "Dumbbell Goblet Squat" in row["candidates"]
+    assert "Kettlebell Goblet Squat" in row["candidates"]
+
+
+def test_entry_carries_review_context():
+    entry = _hevy("Goblet Squat", "dumbbell")
+    doc = build_map_document([entry], CATALOGUE, generated_at="2026-08-02")
+    (row,) = doc["exercises"]
+    assert row["hevy"] == "Goblet Squat"
+    assert row["sessions"] == 5
+    assert row["last_performed"] == "2026-07-01"
+    assert row["hevy_equipment"] == "dumbbell"
+
+
+def test_dump_is_valid_yaml_and_round_trips():
+    doc = build_map_document(
+        [_hevy("Goblet Squat", "dumbbell")], CATALOGUE, generated_at="2026-08-02"
+    )
+    text = dump_map(doc)
+    assert yaml.safe_load(text) == doc
+
+
+def test_dump_leads_with_review_instructions():
+    text = dump_map(build_map_document([], CATALOGUE, generated_at="2026-08-02"))
+    assert text.lstrip().startswith("#")
+    assert "SKIP" in text
