@@ -11,7 +11,7 @@
  * silently doing nothing, because gym wifi is unreliable.
  */
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useSessionStore } from '../stores/sessionStore'
 import { useDayPlanStore } from '../stores/dayPlanStore'
 import { getAnchorSuggestions, getPartnerSuggestions } from '../services/suggestions'
@@ -63,6 +63,9 @@ export default function Session() {
   const dayPlanId = session?.day_plan_id ?? null
   const dayPlan = plans.find((p) => p.id === dayPlanId) ?? null
   const warmupKey = (dayPlan?.warmup_preferences ?? []).join(',')
+  // Groups with no staples are dropped server-side, so an empty staple pool
+  // arrives here as `groups: []` and the picker would otherwise render nothing.
+  const anchorCardCount = (anchorData?.groups ?? []).reduce((n, g) => n + g.staples.length, 0)
 
   // Resume an in-progress session when the page is opened cold (refresh, or
   // the phone screen locking mid-workout).
@@ -176,7 +179,13 @@ export default function Session() {
     }
     return (
       <div className="container mx-auto p-6">
-        <p className="text-gray-500">No active session.</p>
+        {/* A failed check is not the same as "no session": say so, or the user
+            starts a new one and gets an unexplained 409. */}
+        {error ? (
+          <p className="text-red-600">{error}</p>
+        ) : (
+          <p className="text-gray-500">No active session.</p>
+        )}
         <button onClick={() => navigate('/')} className="text-blue-600 underline mt-2 py-2">
           Pick a day plan to start
         </button>
@@ -442,6 +451,29 @@ export default function Session() {
             <>
               {!anchorData && !suggestionError && (
                 <p className="text-sm text-gray-500">Loading suggestions...</p>
+              )}
+              {/* Anchor suggestions are drawn exclusively from the staple pool,
+                  and a brand-new user's pool is empty. Without this the picker
+                  renders a heading, nothing, and Cancel -- a dead end with no
+                  hint that staples are the missing input. */}
+              {anchorData && anchorCardCount === 0 && (
+                <div
+                  className="bg-white border rounded-lg p-4 text-sm text-gray-700"
+                  data-testid="anchor-empty"
+                >
+                  <p className="font-medium mb-1">No anchor suggestions yet.</p>
+                  <p className="mb-2">
+                    Anchors are drawn from your staple pool &mdash; the exercises you have marked as
+                    ones you actually do.{' '}
+                    {anchorData.not_recommended.length > 0
+                      ? 'Everything in it was filtered out for this round; see the reasons below.'
+                      : 'It is currently empty.'}
+                  </p>
+                  <Link to="/exercises" className="text-blue-600 underline">
+                    Browse exercises and add a few staples
+                  </Link>
+                  <span>, then come back and start this round.</span>
+                </div>
               )}
               {anchorData?.groups.map((group) => (
                 <div key={group.pattern.id} className="mb-3">

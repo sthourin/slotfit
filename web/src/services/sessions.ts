@@ -1,6 +1,7 @@
 /**
  * Training session API service
  */
+import axios from 'axios'
 import { apiClient } from './api'
 
 export interface Target {
@@ -68,12 +69,21 @@ export async function createSession(dayPlanId: number | null): Promise<TrainingS
   return data
 }
 
+/**
+ * Returns the active session, or null when there genuinely is none (404).
+ *
+ * Any other failure -- a 500, a dropped connection mid-workout -- is re-thrown.
+ * Swallowing those rendered "No active session" while a session was in fact
+ * live, and the user's attempt to start a fresh one then 409'd with nothing on
+ * screen to explain it.
+ */
 export async function getActiveSession(): Promise<TrainingSession | null> {
   try {
     const { data } = await apiClient.get('/sessions/active')
     return data
-  } catch {
-    return null
+  } catch (e) {
+    if (axios.isAxiosError(e) && e.response?.status === 404) return null
+    throw e
   }
 }
 

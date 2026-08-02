@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import DayPlan, PatternGoal, User
+from app.models import DayPlan, PatternGoal, TrainingSession, User
 from app.schemas.day_plan import DayPlanCreate, DayPlanUpdate, DayPlanResponse
 
 router = APIRouter()
@@ -99,7 +99,23 @@ async def delete_day_plan(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Delete a day plan if owned by the current user."""
+    """Delete a day plan if owned by the current user.
+
+    `training_sessions.day_plan_id` is a plain FK with no ON DELETE rule, so
+    deleting a plan any session was ever started from would raise a
+    ForeignKeyViolation and surface as a 500. Report the conflict instead:
+    the session history is the reason the row cannot go away.
+    """
     plan = await _get_owned_plan(db, user, plan_id)
+    referencing = await db.execute(
+        select(TrainingSession.id)
+        .where(TrainingSession.day_plan_id == plan_id)
+        .limit(1)
+    )
+    if referencing.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete this day plan: training sessions reference it.",
+        )
     await db.delete(plan)
     await db.commit()

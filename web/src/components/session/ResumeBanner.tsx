@@ -20,7 +20,14 @@ export default function ResumeBanner() {
 
   useEffect(() => {
     if (!checked) {
-      resume().finally(() => setChecked(true))
+      // Deliberately swallowed: resume() now re-throws on anything but a 404,
+      // and this banner renders on every page. A failed check leaves the banner
+      // hidden (its only job is to offer a resume), and the store keeps the
+      // error for the Session page to display -- it must not become an
+      // unhandled rejection here.
+      resume()
+        .catch(() => undefined)
+        .finally(() => setChecked(true))
     }
   }, [checked, resume])
 

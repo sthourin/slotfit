@@ -73,9 +73,21 @@ export default function DayPlans() {
     }
   }
 
-  const handleDelete = (plan: DayPlan) => {
-    if (window.confirm(`Delete "${plan.name}"?`)) {
-      remove(plan.id)
+  const handleDelete = async (plan: DayPlan) => {
+    if (!window.confirm(`Delete "${plan.name}"?`)) return
+    setLocalError(null)
+    try {
+      await remove(plan.id)
+    } catch (err) {
+      // A plan any session was started from is refused with 409; without this
+      // the dialog closes, the plan stays listed, and nothing explains why.
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        setLocalError(
+          `"${plan.name}" can't be deleted because training sessions reference it.`
+        )
+      } else {
+        setLocalError(err instanceof Error ? err.message : 'Failed to delete day plan')
+      }
     }
   }
 

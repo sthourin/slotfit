@@ -177,6 +177,60 @@ async def test_user_scoping(client_with_data, device_id):
 
 
 @pytest.mark.asyncio
+async def test_delete_conflicts_when_a_session_references_the_plan(
+    client_with_data, device_id
+):
+    """A plan a session was started from cannot be deleted: 409, not a 500.
+
+    `training_sessions.day_plan_id` has no ON DELETE rule, so without the
+    reference check the delete raises ForeignKeyViolation. The unused plan in
+    the same test proves the check is not simply rejecting every delete.
+    """
+    client, _seed = client_with_data
+    headers = {"X-Device-ID": device_id}
+    await client.get("/api/v1/users/me", headers=headers)
+
+    patterns = (await client.get("/api/v1/patterns/", headers=headers)).json()
+    hp = next(p for p in patterns if p["slug"] == "horizontal_pull")
+    body = {
+        "warmup_preferences": [],
+        "rounds_target": 3,
+        "goals": [{"pattern_id": hp["id"], "required": True, "target_sets": 3}],
+    }
+
+    used = (
+        await client.post(
+            "/api/v1/day-plans/", json={**body, "name": "Used Plan"}, headers=headers
+        )
+    ).json()
+    unused = (
+        await client.post(
+            "/api/v1/day-plans/", json={**body, "name": "Unused Plan"}, headers=headers
+        )
+    ).json()
+
+    started = await client.post(
+        "/api/v1/sessions/", json={"day_plan_id": used["id"]}, headers=headers
+    )
+    assert started.status_code == 201
+
+    conflict = await client.delete(f"/api/v1/day-plans/{used['id']}", headers=headers)
+    assert conflict.status_code == 409
+    assert "session" in conflict.json()["detail"].lower()
+    # Still listed: a refused delete must not half-apply.
+    assert (
+        await client.get(f"/api/v1/day-plans/{used['id']}", headers=headers)
+    ).status_code == 200
+
+    # An unreferenced plan still deletes cleanly.
+    ok = await client.delete(f"/api/v1/day-plans/{unused['id']}", headers=headers)
+    assert ok.status_code == 204
+    assert (
+        await client.get(f"/api/v1/day-plans/{unused['id']}", headers=headers)
+    ).status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_put_without_goals_preserves_goals(client_with_data, device_id):
     """Test that PUT without goals key leaves existing goals untouched"""
     client, _seed = client_with_data

@@ -49,15 +49,24 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }
   },
 
+  // Distinguishes "no session" from "could not find out". getActiveSession
+  // only returns null on a 404; anything else lands in the catch, records the
+  // reason so callers can show it, and re-throws.
   resume: async () => {
-    const session = await getActiveSession()
-    if (!session) {
-      set({ session: null, coverage: null })
-      return null
+    set({ error: null })
+    try {
+      const session = await getActiveSession()
+      if (!session) {
+        set({ session: null, coverage: null })
+        return null
+      }
+      set({ session })
+      await get().refresh()
+      return session
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Failed to check for an active session' })
+      throw e
     }
-    set({ session })
-    await get().refresh()
-    return session
   },
 
   refresh: async () => {
