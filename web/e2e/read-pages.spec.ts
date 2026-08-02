@@ -5,9 +5,8 @@ test.beforeEach(async ({ page }) => {
   await useDevice(page)
 })
 
-// This spec runs BEFORE workout-critical-path.spec.ts (alphabetical order),
-// so on a fresh database no completed workout exists yet. It asserts only
-// that pages render without crashes; data presence is verified manually
+// On a fresh database no completed workout/session exists yet. It asserts
+// only that pages render without crashes; data presence is verified manually
 // after the full ordered run.
 for (const [path, heading] of [
   ['/history', 'Workout History'],

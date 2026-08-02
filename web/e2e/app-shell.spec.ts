@@ -4,8 +4,8 @@ test('app shell loads with all navigation links', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('link', { name: 'SlotFit' })).toBeVisible()
   for (const label of [
-    'Routine Designer',
-    'Start Workout',
+    'Day Plans',
+    'Session',
     'Exercise Browser',
     'History',
     'Analytics',

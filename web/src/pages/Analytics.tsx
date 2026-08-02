@@ -5,6 +5,8 @@
 import { useState, useEffect } from 'react'
 import { analyticsApi, type WeeklyVolumeResponse, type SlotPerformanceResponse } from '../services/analytics'
 import { routineApi, type RoutineTemplate } from '../services/routines'
+import { getPatternProgress } from '../services/patterns'
+import type { PatternProgress } from '../services/patterns'
 import VolumeChart from '../components/analytics/VolumeChart'
 import ProgressionChart from '../components/analytics/ProgressionChart'
 import MovementBalance from '../components/analytics/MovementBalance'
@@ -17,9 +19,11 @@ export default function Analytics() {
   const [slotPerformance, setSlotPerformance] = useState<SlotPerformanceResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [progress, setProgress] = useState<PatternProgress[]>([])
 
   useEffect(() => {
     loadData()
+    getPatternProgress(12).then(setProgress)
   }, [])
 
   useEffect(() => {
@@ -97,6 +101,31 @@ export default function Analytics() {
             Track your progress and analyze your workout patterns
           </p>
         </div>
+
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold mb-3">Pattern Progress (12 weeks)</h2>
+          {progress.map((p) => {
+            const latest = p.trend[p.trend.length - 1]
+            const delta = latest ? Math.round((latest.index - 1) * 100) : null
+            return (
+              <div
+                key={p.pattern_id}
+                className="bg-white rounded-lg shadow p-4 mb-2 flex justify-between items-center"
+              >
+                <span className="font-medium">{p.name}</span>
+                <span className="text-sm text-gray-500">{p.trend.length} weeks tracked</span>
+                <span
+                  className={`font-semibold ${delta != null && delta >= 0 ? 'text-green-600' : 'text-red-500'}`}
+                >
+                  {delta != null ? `${delta >= 0 ? '+' : ''}${delta}% vs baseline` : 'no data'}
+                </span>
+              </div>
+            )
+          })}
+          {progress.length === 0 && (
+            <p className="text-sm text-gray-400">Complete some sessions to see pattern trends.</p>
+          )}
+        </section>
 
         <div className="space-y-6">
           {/* Weekly Volume Chart */}

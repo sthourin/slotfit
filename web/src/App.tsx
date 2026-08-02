@@ -1,13 +1,13 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { useEffect } from 'react'
-import RoutineDesigner from './pages/RoutineDesigner'
+import DayPlans from './pages/DayPlans'
+import Session from './pages/Session'
 import ExerciseBrowser from './pages/ExerciseBrowser'
 import Settings from './pages/Settings'
-import WorkoutStart from './pages/WorkoutStart'
-import Workout from './pages/Workout'
 import WorkoutHistory from './pages/WorkoutHistory'
 import Analytics from './pages/Analytics'
 import PersonalRecords from './pages/PersonalRecords'
+import ResumeBanner from './components/session/ResumeBanner'
 import { useUserStore } from './stores/userStore'
 
 function App() {
@@ -32,13 +32,13 @@ function App() {
                   to="/"
                   className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  Routine Designer
+                  Day Plans
                 </Link>
                 <Link
-                  to="/workout/start"
+                  to="/session"
                   className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  Start Workout
+                  Session
                 </Link>
                 <Link
                   to="/exercises"
@@ -75,10 +75,11 @@ function App() {
           </div>
         </nav>
 
+        <ResumeBanner />
+
         <Routes>
-          <Route path="/" element={<RoutineDesigner />} />
-          <Route path="/workout/start" element={<WorkoutStart />} />
-          <Route path="/workout" element={<Workout />} />
+          <Route path="/" element={<DayPlans />} />
+          <Route path="/session" element={<Session />} />
           <Route path="/exercises" element={<ExerciseBrowser />} />
           <Route path="/history" element={<WorkoutHistory />} />
           <Route path="/analytics" element={<Analytics />} />
