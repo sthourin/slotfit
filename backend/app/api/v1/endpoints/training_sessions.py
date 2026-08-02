@@ -208,7 +208,7 @@ async def get_active_session(
 
 @router.get("/", response_model=List[TrainingSessionResponse])
 async def list_sessions(
-    state: Optional[str] = Query(None),
+    state: Optional[SessionState] = Query(None),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
@@ -222,7 +222,7 @@ async def list_sessions(
         .limit(limit)
     )
     if state:
-        query = query.where(TrainingSession.state == SessionState(state))
+        query = query.where(TrainingSession.state == state)
     result = await db.execute(query)
     return [await _session_response(db, user, s) for s in result.scalars().all()]
 

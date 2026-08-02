@@ -14,7 +14,7 @@ from app.models import (
     Exercise,
     User,
 )
-from app.services.pattern_taxonomy import seed_movement_patterns
+from app.services.pattern_taxonomy import seed_movement_patterns, classify_exercise
 
 
 @pytest.mark.asyncio
@@ -118,7 +118,17 @@ async def test_session_lifecycle_api(client_with_data, device_id):
     )
     assert entry_resp.status_code == 201
     entry = entry_resp.json()
-    assert entry["pattern_id"] > 0  # denormalized server-side
+
+    # pattern_id must be the ACTUAL resolved pattern for this exercise, not
+    # merely "some positive integer" - independently recompute it via the
+    # same taxonomy classifier the server uses, from the seeded Exercise
+    # object's own movement_pattern_1/mechanics, and compare by identity.
+    seeded_exercise = next(e for e in _seed["exercises"] if e.id == exercise["id"])
+    expected_slug = classify_exercise(
+        seeded_exercise.movement_pattern_1, seeded_exercise.mechanics
+    )
+    expected_pattern_id = next(p["id"] for p in patterns if p["slug"] == expected_slug)
+    assert entry["pattern_id"] == expected_pattern_id  # denormalized server-side
 
     dup = await client.post(
         f"/api/v1/sessions/rounds/{rnd['id']}/entries",
@@ -134,16 +144,15 @@ async def test_session_lifecycle_api(client_with_data, device_id):
     )
     assert set_resp.status_code == 201
 
-    # Coverage reflects the completed set
+    # Coverage reports one goal entry per day-plan pattern goal. Whether the
+    # logged set actually lands in one of those buckets is exercised
+    # precisely (not conditionally) by test_coverage_counts_only_completed_sets
+    # below, which controls the entry's pattern instead of taking whatever the
+    # first seeded exercise happens to resolve to.
     coverage = (
         await client.get(f"/api/v1/sessions/{session['id']}/coverage", headers=headers)
     ).json()
     assert len(coverage["goals"]) == 2
-    covered_by_pattern = {g["pattern_id"]: g for g in coverage["goals"]}
-    entry_pattern = entry["pattern_id"]
-    if entry_pattern in covered_by_pattern:
-        goal = covered_by_pattern[entry_pattern]
-        assert goal["sets_done"] >= 1
 
     # Complete
     done = await client.post(
