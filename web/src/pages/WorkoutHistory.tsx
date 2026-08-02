@@ -18,7 +18,7 @@ export default function WorkoutHistory() {
 
   useEffect(() => {
     loadWorkouts()
-    listSessions('completed').then(setSessions)
+    loadSessions()
   }, [])
 
   const loadWorkouts = async () => {
@@ -32,6 +32,16 @@ export default function WorkoutHistory() {
       setError('Failed to load workout history. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadSessions = async () => {
+    try {
+      const data = await listSessions('completed')
+      setSessions(data)
+    } catch (err) {
+      console.error('Failed to load sessions:', err)
+      setError('Failed to load workout history. Please try again.')
     }
   }
 

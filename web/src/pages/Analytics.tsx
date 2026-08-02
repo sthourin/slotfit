@@ -8,7 +8,6 @@ import { routineApi, type RoutineTemplate } from '../services/routines'
 import { getPatternProgress } from '../services/patterns'
 import type { PatternProgress } from '../services/patterns'
 import VolumeChart from '../components/analytics/VolumeChart'
-import ProgressionChart from '../components/analytics/ProgressionChart'
 import MovementBalance from '../components/analytics/MovementBalance'
 import SlotPerformance from '../components/analytics/SlotPerformance'
 
@@ -23,7 +22,7 @@ export default function Analytics() {
 
   useEffect(() => {
     loadData()
-    getPatternProgress(12).then(setProgress)
+    loadPatternProgress()
   }, [])
 
   useEffect(() => {
@@ -51,6 +50,16 @@ export default function Analytics() {
       setError('Failed to load analytics data. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadPatternProgress = async () => {
+    try {
+      const data = await getPatternProgress(12)
+      setProgress(data)
+    } catch (err) {
+      console.error('Failed to load pattern progress:', err)
+      setError('Failed to load analytics data. Please try again.')
     }
   }
 
