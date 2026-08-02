@@ -50,8 +50,14 @@ export default function Session() {
   const [localError, setLocalError] = useState<string | null>(null)
   const [resumeChecked, setResumeChecked] = useState(false)
   const [warmups, setWarmups] = useState<WarmupOption[]>([])
+  const [warmupError, setWarmupError] = useState<string | null>(null)
   const [staples, setStaples] = useState<Staple[]>([])
+  const [staplesLoaded, setStaplesLoaded] = useState(false)
+  const [staplesError, setStaplesError] = useState<string | null>(null)
   const [stapling, setStapling] = useState<number | null>(null)
+  // Set-logging failures are reported inside the EntryCard that failed: three
+  // rounds deep on a phone, a banner at the top of the page is off-screen.
+  const [entryError, setEntryError] = useState<{ entryId: number; message: string } | null>(null)
 
   const sessionId = session?.id ?? null
   const dayPlanId = session?.day_plan_id ?? null
@@ -80,15 +86,19 @@ export default function Session() {
   useEffect(() => {
     if (warmupKey === '') {
       setWarmups([])
+      setWarmupError(null)
       return
     }
     let cancelled = false
+    setWarmupError(null)
     Promise.all(warmupKey.split(',').map((id) => exerciseApi.get(Number(id))))
       .then((list) => {
         if (!cancelled) setWarmups(list.map((e) => ({ id: e.id, name: e.name })))
       })
-      .catch(() => {
-        if (!cancelled) setWarmups([])
+      .catch((e) => {
+        if (cancelled) return
+        setWarmups([])
+        setWarmupError(message(e, 'Could not load your warm-up options.'))
       })
     return () => {
       cancelled = true
@@ -125,11 +135,20 @@ export default function Session() {
     }
   }, [picker, sessionId])
 
+  // The staple list decides which exercises are offered as "new". If the fetch
+  // fails we must not present the list at all: an empty `staples` would offer
+  // every exercise, including ones already stapled, which 4xx on tap.
   useEffect(() => {
     if (!finished) return
+    setStaplesError(null)
     listStaples()
-      .then(setStaples)
-      .catch(() => undefined)
+      .then((s) => {
+        setStaples(s)
+        setStaplesLoaded(true)
+      })
+      .catch((e) => {
+        setStaplesError(message(e, 'Could not check which exercises are already staples.'))
+      })
   }, [finished])
 
   const handleLogSet = useCallback(
@@ -140,8 +159,12 @@ export default function Session() {
       setLocalError(null)
       try {
         await logSet(entryId, s)
+        setEntryError((prev) => (prev?.entryId === entryId ? null : prev))
       } catch (e) {
-        setLocalError(message(e, 'Failed to log set. Check your connection and try again.'))
+        setEntryError({
+          entryId,
+          message: message(e, 'Failed to log set. Check your connection and try again.'),
+        })
       }
     },
     [logSet]
@@ -268,7 +291,14 @@ export default function Session() {
           {session.rounds.length === 0 && <p className="text-gray-500">No rounds logged.</p>}
         </div>
 
-        {newExercises.length > 0 && (
+        {staplesError && (
+          <div className="bg-gray-50 border rounded-lg p-4 mt-4 text-sm text-gray-600">
+            {staplesError} Add-to-staples is unavailable right now &mdash; you can add them from the
+            staples list later.
+          </div>
+        )}
+
+        {staplesLoaded && !staplesError && newExercises.length > 0 && (
           <div
             className="bg-purple-50 border border-purple-200 rounded-lg p-4 mt-4"
             data-testid="add-staples"
@@ -329,6 +359,12 @@ export default function Session() {
 
       <CoverageChips coverage={coverage} />
 
+      {session.rounds.length === 0 && warmupError && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-sm text-gray-700">
+          {warmupError} Warm up with whatever is free, then start your first round below.
+        </div>
+      )}
+
       {session.rounds.length === 0 && warmups.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4" data-testid="warmup-card">
           <h3 className="font-semibold mb-2">Warm-up &mdash; what&apos;s available?</h3>
@@ -369,10 +405,25 @@ export default function Session() {
             )}
           </div>
           {round.entries.map((entry) => (
-            <EntryCard key={entry.id} entry={entry} onLogSet={handleLogSet} busy={busy} />
+            <EntryCard
+              key={entry.id}
+              entry={entry}
+              onLogSet={handleLogSet}
+              busy={busy}
+              error={entryError?.entryId === entry.id ? entryError.message : null}
+            />
           ))}
+          {/* An empty round is reachable by cancelling the anchor picker, so it
+              must always carry its own control to re-open that picker —
+              otherwise the round is stranded and unfillable. */}
           {round.entries.length === 0 && (
-            <p className="text-sm text-gray-400">Pick an anchor below.</p>
+            <button
+              onClick={() => setPicker({ kind: 'anchor', roundId: round.id })}
+              disabled={busy}
+              className="w-full border-2 border-dashed rounded-lg py-4 text-gray-600 hover:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              + Pick an anchor for this round
+            </button>
           )}
         </div>
       ))}

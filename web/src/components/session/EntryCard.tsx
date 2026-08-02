@@ -22,6 +22,12 @@ interface Props {
     }
   ) => Promise<unknown>
   busy?: boolean
+  /**
+   * Failure message for this entry's last set. Rendered inside the card rather
+   * than in a page-level banner: several rounds deep on a phone, the top of the
+   * page is off-screen and a failed set would otherwise just silently not appear.
+   */
+  error?: string | null
 }
 
 /** "8 @ 135", "12", "45s" — never "null" or a misleading 0. */
@@ -33,7 +39,7 @@ function formatSet(s: { weight: number | null; reps: number | null; time_seconds
   return bits.length > 0 ? bits.join(' · ') : '—'
 }
 
-export default function EntryCard({ entry, onLogSet, busy }: Props) {
+export default function EntryCard({ entry, onLogSet, busy, error }: Props) {
   const [weight, setWeight] = useState<string>(
     entry.target?.weight != null ? String(entry.target.weight) : ''
   )
@@ -77,13 +83,15 @@ export default function EntryCard({ entry, onLogSet, busy }: Props) {
       )}
       {!target && <div className="text-sm text-gray-400 mt-1">No history yet — log your first set.</div>}
 
+      {/* Touch heights are deliberately generous (>= 44px): this row is tapped
+          dozens of times per session, one-handed, with sweaty hands. */}
       <div className="flex flex-wrap gap-2 mt-3 items-center">
         <input
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
           placeholder="weight"
           aria-label="weight"
-          className="w-24 border rounded-md px-2 py-2"
+          className="w-24 border rounded-md px-3 py-3 min-h-[44px]"
           inputMode="decimal"
         />
         <input
@@ -91,7 +99,7 @@ export default function EntryCard({ entry, onLogSet, busy }: Props) {
           onChange={(e) => setReps(e.target.value)}
           placeholder="reps"
           aria-label="reps"
-          className="w-20 border rounded-md px-2 py-2"
+          className="w-20 border rounded-md px-3 py-3 min-h-[44px]"
           inputMode="numeric"
         />
         <input
@@ -99,17 +107,23 @@ export default function EntryCard({ entry, onLogSet, busy }: Props) {
           onChange={(e) => setTimeSec(e.target.value)}
           placeholder="time (sec)"
           aria-label="time (sec)"
-          className="w-24 border rounded-md px-2 py-2"
+          className="w-28 border rounded-md px-3 py-3 min-h-[44px]"
           inputMode="numeric"
         />
         <button
           onClick={logSet}
           disabled={busy}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-blue-600 text-white px-5 py-3 min-h-[44px] rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Log Set
         </button>
       </div>
+
+      {error && (
+        <div className="text-red-600 text-sm mt-2" role="alert">
+          {error}
+        </div>
+      )}
 
       {entry.sets.length > 0 && (
         <div className="text-sm text-gray-600 mt-2">
