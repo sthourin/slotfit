@@ -15,11 +15,12 @@ const EMPTY: DayPlanInput = {
 
 export default function DayPlans() {
   const { plans, patterns, loading, error, fetchAll, save, remove } = useDayPlanStore()
-  const { start: startSession, busy } = useSessionStore()
+  const { start: startSession } = useSessionStore()
   const navigate = useNavigate()
   const [editing, setEditing] = useState<DayPlan | null>(null)
   const [draft, setDraft] = useState<DayPlanInput | null>(null)
-  const [startError, setStartError] = useState<string | null>(null)
+  const [localError, setLocalError] = useState<string | null>(null)
+  const [starting, setStarting] = useState(false)
 
   useEffect(() => {
     fetchAll()
@@ -40,23 +41,41 @@ export default function DayPlans() {
   }
 
   const submit = async () => {
-    if (!draft || !draft.name.trim()) return
-    await save(draft, editing?.id)
-    setDraft(null)
-    setEditing(null)
+    if (!draft) return
+    if (!draft.name.trim()) {
+      setLocalError('Name is required.')
+      return
+    }
+    setLocalError(null)
+    try {
+      await save(draft, editing?.id)
+      setDraft(null)
+      setEditing(null)
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : 'Failed to save day plan')
+    }
   }
 
   const handleStart = async (plan: DayPlan) => {
-    setStartError(null)
+    setLocalError(null)
+    setStarting(true)
     try {
       await startSession(plan.id)
       navigate('/session')
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
-        setStartError('A session is already in progress. Finish or discard it before starting a new one.')
+        setLocalError('A session is already in progress. Finish or discard it before starting a new one.')
       } else {
-        setStartError(err instanceof Error ? err.message : 'Failed to start session')
+        setLocalError(err instanceof Error ? err.message : 'Failed to start session')
       }
+    } finally {
+      setStarting(false)
+    }
+  }
+
+  const handleDelete = (plan: DayPlan) => {
+    if (window.confirm(`Delete "${plan.name}"?`)) {
+      remove(plan.id)
     }
   }
 
@@ -71,7 +90,7 @@ export default function DayPlans() {
         </button>
       </div>
       {error && <div className="text-red-600 mb-4">{error}</div>}
-      {startError && <div className="text-red-600 mb-4">{startError}</div>}
+      {localError && <div className="text-red-600 mb-4">{localError}</div>}
 
       {plans.map((plan) => (
         <div key={plan.id} className="bg-white rounded-lg shadow p-4 mb-3 flex justify-between items-center">
@@ -84,16 +103,16 @@ export default function DayPlans() {
                 .join(', ')}
             </div>
           </div>
-          <div className="space-x-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => handleStart(plan)}
-              disabled={busy}
-              className="bg-green-600 text-white px-3 py-1.5 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={starting}
+              className="bg-green-600 text-white px-3 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Start Session
             </button>
-            <button onClick={() => openEditor(plan)} className="text-blue-600 px-2">Edit</button>
-            <button onClick={() => remove(plan.id)} className="text-red-500 px-2">Delete</button>
+            <button onClick={() => openEditor(plan)} className="text-blue-600 px-3 py-2">Edit</button>
+            <button onClick={() => handleDelete(plan)} className="text-red-500 px-3 py-2">Delete</button>
           </div>
         </div>
       ))}
@@ -118,7 +137,10 @@ export default function DayPlans() {
               min={1}
               max={10}
               value={draft.rounds_target}
-              onChange={(e) => setDraft({ ...draft, rounds_target: Number(e.target.value) })}
+              onChange={(e) => {
+                if (e.target.value === '') return
+                setDraft({ ...draft, rounds_target: Number(e.target.value) })
+              }}
               className="mt-1 w-24 border rounded-md px-3 py-2"
             />
           </label>
@@ -156,14 +178,15 @@ export default function DayPlans() {
                           min={1}
                           max={30}
                           value={goal.target_sets ?? 3}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            if (e.target.value === '') return
                             setDraft({
                               ...draft,
                               goals: draft.goals.map((g) =>
                                 g.pattern_id === p.id ? { ...g, target_sets: Number(e.target.value) } : g
                               ),
                             })
-                          }
+                          }}
                           className="w-16 border rounded-md px-2 py-1 text-sm"
                           title="Target sets"
                         />
