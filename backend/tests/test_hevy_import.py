@@ -286,3 +286,114 @@ def test_dump_leads_with_review_instructions():
     text = dump_map(build_map_document([], CATALOGUE, generated_at="2026-08-02"))
     assert text.lstrip().startswith("#")
     assert "SKIP" in text
+
+
+from app.services.hevy_import import resolve_selection, validate_map
+
+KNOWN_EXERCISES = {"Dumbbell Goblet Squat", "Barbell Back Squat"}
+KNOWN_PATTERNS = {"knee_dominant", "isolation", "conditioning"}
+KNOWN_EQUIPMENT = {"Dumbbell", "Cable", "Rowing Machine"}
+
+
+def _doc(*rows: dict) -> dict:
+    return {"meta": {}, "exercises": list(rows)}
+
+
+def test_index_selection_resolves_to_a_candidate_name():
+    assert resolve_selection(2, ["First", "Second", "Third"]) == "Second"
+
+
+def test_name_selection_passes_through():
+    assert resolve_selection("Dumbbell Goblet Squat", []) == "Dumbbell Goblet Squat"
+
+
+def test_skip_is_preserved():
+    assert resolve_selection("SKIP", []) == "SKIP"
+
+
+def test_null_selection_is_unresolved():
+    assert resolve_selection(None, ["First"]) is None
+
+
+def test_valid_document_has_no_errors():
+    doc = _doc(
+        {"hevy": "Goblet Squat", "slotfit": "Dumbbell Goblet Squat", "candidates": []},
+        {"hevy": "Rest", "slotfit": "SKIP", "candidates": []},
+        {
+            "hevy": "Rowing Machine",
+            "slotfit": None,
+            "candidates": [],
+            "create": {
+                "name": "Rowing Machine",
+                "pattern": "conditioning",
+                "equipment": "Rowing Machine",
+            },
+        },
+    )
+    assert validate_map(doc, KNOWN_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT) == []
+
+
+def test_unresolved_entries_are_all_reported_at_once():
+    doc = _doc(
+        {"hevy": "A", "slotfit": None, "candidates": []},
+        {"hevy": "B", "slotfit": None, "candidates": []},
+    )
+    errors = validate_map(doc, KNOWN_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT)
+    assert len(errors) == 2
+    assert any("A" in e for e in errors) and any("B" in e for e in errors)
+
+
+def test_unknown_exercise_name_is_an_error():
+    doc = _doc({"hevy": "A", "slotfit": "No Such Exercise", "candidates": []})
+    (error,) = validate_map(doc, KNOWN_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT)
+    assert "No Such Exercise" in error
+
+
+def test_unknown_pattern_slug_is_an_error():
+    doc = _doc({
+        "hevy": "A", "slotfit": None, "candidates": [],
+        "create": {"name": "New Thing", "pattern": "not_a_pattern"},
+    })
+    (error,) = validate_map(doc, KNOWN_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT)
+    assert "not_a_pattern" in error
+
+
+def test_unknown_equipment_is_an_error():
+    doc = _doc({
+        "hevy": "A", "slotfit": None, "candidates": [],
+        "create": {"name": "New Thing", "pattern": "isolation", "equipment": "Nope"},
+    })
+    (error,) = validate_map(doc, KNOWN_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT)
+    assert "Nope" in error
+
+
+def test_create_requires_a_pattern():
+    doc = _doc({
+        "hevy": "A", "slotfit": None, "candidates": [], "create": {"name": "New Thing"},
+    })
+    (error,) = validate_map(doc, KNOWN_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT)
+    assert "pattern" in error
+
+
+def test_setting_both_slotfit_and_create_is_an_error():
+    doc = _doc({
+        "hevy": "A", "slotfit": "Dumbbell Goblet Squat", "candidates": [],
+        "create": {"name": "New Thing", "pattern": "isolation"},
+    })
+    (error,) = validate_map(doc, KNOWN_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT)
+    assert "both" in error.lower()
+
+
+def test_creating_an_existing_exercise_name_is_an_error():
+    doc = _doc({
+        "hevy": "A", "slotfit": None, "candidates": [],
+        "create": {"name": "Barbell Back Squat", "pattern": "knee_dominant"},
+    })
+    (error,) = validate_map(doc, KNOWN_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT)
+    assert "already exists" in error
+
+
+def test_out_of_range_index_is_an_error():
+    doc = _doc({"hevy": "A", "slotfit": 9, "candidates": ["Only One"]})
+    (error,) = validate_map(doc, KNOWN_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT)
+    assert "9" in error

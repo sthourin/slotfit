@@ -17,6 +17,17 @@ from datetime import datetime, timedelta
 from typing import Sequence
 
 import yaml
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models import (
+    Equipment,
+    Exercise,
+    ExercisePatternMap,
+    MovementPattern,
+    StapleExercise,
+    User,
+)
 
 # Hevy's equipment vocabulary is five values wide. SlotFit has 39 named
 # implements and no typology. "machine" is deliberately mapped to None: it is
@@ -285,3 +296,215 @@ def dump_map(document: dict) -> str:
     """Serialize the mapping document to YAML, with review instructions on top."""
     body = yaml.safe_dump(document, sort_keys=False, allow_unicode=True, width=100)
     return f"{MAP_HEADER}\n{body}"
+
+
+SKIP = "SKIP"
+
+
+def resolve_selection(raw: object, candidates: Sequence[str]) -> str | None:
+    """Turn a reviewed `slotfit:` value into an exercise name.
+
+    Accepts a 1-based candidate index so a review decision is one keystroke,
+    an exact exercise name, or the SKIP sentinel. Returns None when the entry
+    is still unresolved. An out-of-range index returns None so validate_map
+    reports it rather than silently selecting the wrong exercise.
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, bool):
+        return None
+    if isinstance(raw, int):
+        if 1 <= raw <= len(candidates):
+            return candidates[raw - 1]
+        return None
+    text = str(raw).strip()
+    return text or None
+
+
+def validate_map(
+    document: dict,
+    known_exercises: set[str],
+    known_patterns: set[str],
+    known_equipment: set[str],
+) -> list[str]:
+    """Check a reviewed mapping document, returning every problem at once.
+
+    Reporting all errors together matters: the reviewer resolves ~58 entries by
+    hand, and fixing them one failed run at a time would be miserable.
+    """
+    errors: list[str] = []
+    for row in document.get("exercises") or []:
+        label = row.get("hevy", "<unnamed>")
+        raw = row.get("slotfit")
+        candidates = row.get("candidates") or []
+        create = row.get("create")
+
+        if create is not None and raw is not None:
+            errors.append(f"{label}: sets both 'slotfit' and 'create' - choose one")
+            continue
+
+        if create is not None:
+            name = (create.get("name") or "").strip()
+            pattern = create.get("pattern")
+            equipment = create.get("equipment")
+            if not name:
+                errors.append(f"{label}: create needs a 'name'")
+            elif name in known_exercises:
+                errors.append(
+                    f"{label}: create name {name!r} already exists in the catalogue"
+                )
+            if not pattern:
+                errors.append(f"{label}: create needs a 'pattern' slug")
+            elif pattern not in known_patterns:
+                errors.append(f"{label}: unknown pattern {pattern!r}")
+            if equipment is not None and equipment not in known_equipment:
+                errors.append(f"{label}: unknown equipment {equipment!r}")
+            continue
+
+        if isinstance(raw, int) and not isinstance(raw, bool):
+            if not 1 <= raw <= len(candidates):
+                errors.append(
+                    f"{label}: candidate index {raw} is out of range "
+                    f"(1-{len(candidates)})"
+                )
+                continue
+
+        resolved = resolve_selection(raw, candidates)
+        if resolved is None:
+            errors.append(f"{label}: unresolved - set 'slotfit' or 'create'")
+        elif resolved != SKIP and resolved not in known_exercises:
+            errors.append(f"{label}: unknown SlotFit exercise {resolved!r}")
+    return errors
+
+
+@dataclass
+class ApplyResult:
+    """Counts from one apply run, for the CLI to report."""
+
+    equipment_created: int = 0
+    exercises_created: int = 0
+    staples_created: int = 0
+    skipped_existing: int = 0
+    skipped_no_pattern: int = 0
+    skipped_explicit: int = 0
+
+
+async def _ensure_machine_equipment(db: AsyncSession) -> int:
+    """Insert the six machine equipment rows if absent. Returns rows created."""
+    existing = set((await db.execute(select(Equipment.name))).scalars().all())
+    created = 0
+    for name, category in MACHINE_EQUIPMENT:
+        if name in existing:
+            continue
+        db.add(Equipment(name=name, category=category))
+        created += 1
+    if created:
+        await db.flush()
+    return created
+
+
+async def apply_map(db: AsyncSession, document: dict, user: User) -> ApplyResult:
+    """Seed staples for one user from a validated mapping document.
+
+    Additive and idempotent: existing staples, exercises, and equipment rows are
+    reused, never updated or deleted. Running twice creates nothing the second
+    time.
+
+    Validate with validate_map before calling. The caller owns the commit.
+    """
+    result = ApplyResult()
+    result.equipment_created = await _ensure_machine_equipment(db)
+
+    equipment_ids = {
+        name: eid
+        for eid, name in (await db.execute(select(Equipment.id, Equipment.name))).all()
+    }
+    pattern_ids = {
+        slug: pid
+        for pid, slug in (
+            await db.execute(select(MovementPattern.id, MovementPattern.slug))
+        ).all()
+    }
+    exercise_ids = {
+        name: eid
+        for eid, name in (await db.execute(select(Exercise.id, Exercise.name))).all()
+    }
+    existing_staples = set(
+        (
+            await db.execute(
+                select(StapleExercise.exercise_id).where(
+                    StapleExercise.user_id == user.id
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    for row in document.get("exercises") or []:
+        create = row.get("create")
+
+        if create is not None:
+            name = create["name"].strip()
+            exercise_id = exercise_ids.get(name)
+            if exercise_id is None:
+                equipment_name = create.get("equipment")
+                exercise = Exercise(
+                    name=name,
+                    is_custom="True",
+                    primary_equipment_id=(
+                        equipment_ids.get(equipment_name) if equipment_name else None
+                    ),
+                )
+                db.add(exercise)
+                await db.flush()
+                exercise_id = exercise.id
+                exercise_ids[name] = exercise_id
+                result.exercises_created += 1
+                # is_override keeps seed_exercise_pattern_map from rewriting the
+                # hand-assigned pattern on its next run.
+                db.add(
+                    ExercisePatternMap(
+                        exercise_id=exercise_id,
+                        pattern_id=pattern_ids[create["pattern"]],
+                        is_override=True,
+                    )
+                )
+                await db.flush()
+        else:
+            resolved = resolve_selection(row.get("slotfit"), row.get("candidates") or [])
+            if resolved == SKIP:
+                result.skipped_explicit += 1
+                continue
+            exercise_id = exercise_ids.get(resolved) if resolved else None
+            if exercise_id is None:
+                result.skipped_no_pattern += 1
+                continue
+
+        if exercise_id in existing_staples:
+            result.skipped_existing += 1
+            continue
+
+        mapping = (
+            await db.execute(
+                select(ExercisePatternMap).where(
+                    ExercisePatternMap.exercise_id == exercise_id
+                )
+            )
+        ).scalar_one_or_none()
+        if mapping is None:
+            result.skipped_no_pattern += 1
+            continue
+
+        db.add(
+            StapleExercise(
+                user_id=user.id,
+                pattern_id=mapping.pattern_id,
+                exercise_id=exercise_id,
+            )
+        )
+        existing_staples.add(exercise_id)
+        result.staples_created += 1
+
+    await db.flush()
+    return result
