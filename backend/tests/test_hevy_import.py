@@ -397,3 +397,86 @@ def test_out_of_range_index_is_an_error():
     doc = _doc({"hevy": "A", "slotfit": 9, "candidates": ["Only One"]})
     (error,) = validate_map(doc, KNOWN_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT)
     assert "9" in error
+
+
+from app.services.hevy_import import apply_review_selections
+
+
+def _review_doc() -> dict:
+    return {
+        "meta": {"window_days": 365},
+        "exercises": [
+            {"hevy": "Goblet Squat", "slotfit": None, "candidates": ["A", "B"]},
+            {"hevy": "Rest", "slotfit": None, "candidates": []},
+            {"hevy": "Rowing Machine", "slotfit": None, "candidates": []},
+        ],
+    }
+
+
+def test_review_records_a_named_choice():
+    doc = apply_review_selections(
+        _review_doc(), {"Goblet Squat": {"kind": "exercise", "name": "B"}}
+    )
+    assert doc["exercises"][0]["slotfit"] == "B"
+
+
+def test_review_records_a_skip():
+    doc = apply_review_selections(_review_doc(), {"Rest": {"kind": "skip"}})
+    assert doc["exercises"][1]["slotfit"] == "SKIP"
+
+
+def test_review_records_a_create_block():
+    doc = apply_review_selections(
+        _review_doc(),
+        {
+            "Rowing Machine": {
+                "kind": "create",
+                "name": "Rowing Machine",
+                "pattern": "conditioning",
+                "equipment": "Rowing Machine",
+            }
+        },
+    )
+    row = doc["exercises"][2]
+    assert row["slotfit"] is None
+    assert row["create"] == {
+        "name": "Rowing Machine",
+        "pattern": "conditioning",
+        "equipment": "Rowing Machine",
+    }
+
+
+def test_review_omits_blank_equipment_from_create():
+    doc = apply_review_selections(
+        _review_doc(),
+        {"Rowing Machine": {"kind": "create", "name": "X", "pattern": "core", "equipment": ""}},
+    )
+    assert "equipment" not in doc["exercises"][2]["create"]
+
+
+def test_review_clears_a_stale_create_when_reselected_as_exercise():
+    doc = _review_doc()
+    doc["exercises"][0]["create"] = {"name": "Old", "pattern": "core"}
+    doc = apply_review_selections(
+        doc, {"Goblet Squat": {"kind": "exercise", "name": "A"}}
+    )
+    assert "create" not in doc["exercises"][0]
+    assert doc["exercises"][0]["slotfit"] == "A"
+
+
+def test_review_leaves_unmentioned_entries_untouched():
+    doc = apply_review_selections(_review_doc(), {})
+    assert all(r["slotfit"] is None for r in doc["exercises"])
+
+
+def test_review_ignores_unknown_hevy_names():
+    doc = apply_review_selections(
+        _review_doc(), {"Not In File": {"kind": "skip"}}
+    )
+    assert all(r["slotfit"] is None for r in doc["exercises"])
+
+
+def test_review_does_not_mutate_the_input_document():
+    original = _review_doc()
+    apply_review_selections(original, {"Goblet Squat": {"kind": "exercise", "name": "A"}})
+    assert original["exercises"][0]["slotfit"] is None

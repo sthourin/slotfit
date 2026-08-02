@@ -10,6 +10,7 @@ This module holds the logic; backend/scripts/hevy_staples.py is the CLI.
 
 from __future__ import annotations
 
+import copy
 import re
 from collections import Counter
 from dataclasses import dataclass
@@ -375,6 +376,42 @@ def validate_map(
         elif resolved != SKIP and resolved not in known_exercises:
             errors.append(f"{label}: unknown SlotFit exercise {resolved!r}")
     return errors
+
+
+def apply_review_selections(document: dict, selections: dict[str, dict]) -> dict:
+    """Fold review decisions into a mapping document, returning a new document.
+
+    `selections` maps a Hevy exercise title to one of:
+        {"kind": "exercise", "name": ...}
+        {"kind": "skip"}
+        {"kind": "create", "name": ..., "pattern": ..., "equipment": ...}
+
+    Entries with no selection are left exactly as they were, so a partial
+    review can be saved and resumed. The input document is not mutated.
+    """
+    result = copy.deepcopy(document)
+    for row in result.get("exercises") or []:
+        choice = selections.get(row.get("hevy"))
+        if choice is None:
+            continue
+
+        kind = choice.get("kind")
+        if kind == "create":
+            create = {
+                "name": (choice.get("name") or "").strip(),
+                "pattern": choice.get("pattern"),
+            }
+            equipment = (choice.get("equipment") or "").strip()
+            if equipment:
+                create["equipment"] = equipment
+            row["create"] = create
+            row["slotfit"] = None
+            continue
+
+        # Any non-create choice supersedes a create block left from an earlier pass.
+        row.pop("create", None)
+        row["slotfit"] = SKIP if kind == "skip" else (choice.get("name") or "").strip()
+    return result
 
 
 @dataclass
