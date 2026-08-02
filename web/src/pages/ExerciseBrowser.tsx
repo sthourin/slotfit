@@ -2,9 +2,11 @@
  * Exercise Browser Page
  * Browse and search exercises
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import axios from 'axios'
 import { exerciseApi, Exercise } from '../services/exercises'
 import { equipmentApi, Equipment } from '../services/equipment'
+import { createStaple } from '../services/staples'
 
 export default function ExerciseBrowser() {
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -13,6 +15,15 @@ export default function ExerciseBrowser() {
   const [selectedEquipment, setSelectedEquipment] = useState<number[]>([])
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([])
   const [page, setPage] = useState(1)
+  // Exercises confirmed to be in the staple pool. A 409 ("already a staple")
+  // counts as success: the user's intent is satisfied either way.
+  const [stapled, setStapled] = useState<number[]>([])
+  const [stapling, setStapling] = useState<number | null>(null)
+  const [stapleError, setStapleError] = useState<string | null>(null)
+  // Monotonic request counter. Without it a slower earlier fetch (the initial
+  // unfiltered load counts every one of the ~3,240 rows) resolves after a
+  // newer search and silently overwrites the filtered results.
+  const requestSeq = useRef(0)
   const pageSize = 20
 
   useEffect(() => {
@@ -21,6 +32,7 @@ export default function ExerciseBrowser() {
   }, [search, selectedEquipment, page])
 
   const loadExercises = async () => {
+    const seq = ++requestSeq.current
     setLoading(true)
     try {
       const params: Parameters<typeof exerciseApi.list>[0] = {
@@ -33,11 +45,32 @@ export default function ExerciseBrowser() {
         params.equipment_id = selectedEquipment[0]
       }
       const response = await exerciseApi.list(params)
+      // A newer request has been issued since; its results win.
+      if (seq !== requestSeq.current) return
       setExercises(response.exercises)
     } catch (error) {
+      if (seq !== requestSeq.current) return
       console.error('Failed to load exercises:', error)
     } finally {
-      setLoading(false)
+      if (seq === requestSeq.current) setLoading(false)
+    }
+  }
+
+  const addToStaples = async (exerciseId: number) => {
+    setStapleError(null)
+    setStapling(exerciseId)
+    try {
+      await createStaple(exerciseId)
+      setStapled((prev) => (prev.includes(exerciseId) ? prev : [...prev, exerciseId]))
+    } catch (err) {
+      // 409 means it is already in the pool - the desired end state, not a failure.
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        setStapled((prev) => (prev.includes(exerciseId) ? prev : [...prev, exerciseId]))
+      } else {
+        setStapleError(err instanceof Error ? err.message : 'Failed to add to staples')
+      }
+    } finally {
+      setStapling(null)
     }
   }
 
@@ -53,6 +86,8 @@ export default function ExerciseBrowser() {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Exercise Browser</h1>
+
+      {stapleError && <div className="text-red-600 mb-4">{stapleError}</div>}
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
@@ -150,6 +185,20 @@ export default function ExerciseBrowser() {
                   Watch Demo →
                 </a>
               )}
+              {/* Accessible name stays "Add to Staples" after a successful add so
+                  the control is addressable by the same name throughout. */}
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  onClick={() => addToStaples(exercise.id)}
+                  disabled={stapling !== null}
+                  className="text-sm bg-purple-600 text-white px-3 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Add to Staples
+                </button>
+                {stapled.includes(exercise.id) && (
+                  <span className="text-sm text-green-700">Added</span>
+                )}
+              </div>
             </div>
           ))}
         </div>

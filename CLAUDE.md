@@ -45,7 +45,15 @@ uvicorn app.main:app --reload --port 8000
 cd backend
 alembic upgrade head          # Run migrations
 alembic revision --autogenerate -m "description"  # Create migration
+
+# REQUIRED after migrations, on every database (dev, e2e, CI):
+# seeds movement_patterns and the exercise -> pattern map.
+./venv/Scripts/python.exe -m scripts.seed_patterns
 ```
+
+The pattern seed is not run by app startup, Alembic, or CI. On a database where
+it has not been run, `movement_patterns` is empty and the pattern-based session
+feature is inert: entry creation and staple creation both 404.
 
 ### Web
 ```bash
@@ -111,7 +119,7 @@ DATABASE_URL=postgresql://user:password@localhost:5432/slotfit
 
 1. **Exercise Database**: CSV in `assets/` - don't modify, import via scripts
 2. **Muscle Group Hierarchy**: 4 levels (Target → Prime Mover → Secondary → Tertiary)
-3. **Slot-to-Exercise**: 1:1 relationship (one exercise per slot)
+3. **Movement Patterns**: Every exercise maps to one movement pattern; a session is built live from superset rounds, not from pre-planned slots
 4. **Web-First**: Build all features for web before Android
 5. **No Auth Yet**: MVP uses browser local storage, auth deferred
 
@@ -122,24 +130,28 @@ These decisions have been made during development and should be followed consist
 ### Bodyweight Exercises
 Exercises with `primary_equipment_id = NULL` (bodyweight exercises) are **ALWAYS** available regardless of equipment profile selection. They should never be filtered out for equipment reasons in recommendations or exercise selection.
 
-### Workout Slot Pre-Population
-When starting a workout from a routine:
-1. Query the most recent **COMPLETED** workout using that routine
-2. Pre-fill slots with the exercises from that workout
-3. If no previous completed workout exists, slots start empty (user selects exercises)
+### Pattern-Based Dynamic Sessions
+Routine templates with pre-planned muscle-group slots are retired. A session is
+built live in the gym instead:
+1. A **Day Plan** carries pattern goals (target sets per movement pattern), not an exercise list
+2. In the gym the user starts a **superset round** and picks an **anchor** - whatever station is free
+3. The app suggests a **partner** working the OPPOSITE movement pattern, drawn from the user's staple pool
+4. Sets are logged per round entry; pattern coverage updates against the day plan's goals
 
-This provides continuity for users who repeat the same routine regularly.
+Nothing is pre-filled from a previous workout, and there is no "save as new
+routine" prompt: the session is composed on the spot, so there is no template to
+diverge from.
 
-### Save As New Routine
-If the user modifies exercises during a workout (different from the pre-filled selections):
-- At workout completion, prompt: "You made changes to this routine. Save as new routine?"
-- Options: "Save as New", "Update Original", "Don't Save Changes"
-- This allows maintaining alternate versions (e.g., "Push Day - Home" vs "Push Day - Gym")
+### Staple Pool
+Anchor and partner suggestions come exclusively from the user's **staples** -
+exercises they have marked as ones they actually do. A user with an empty pool
+gets no suggestions, so the anchor picker must always point them at
+`/exercises` to add some rather than rendering an empty list.
 
-### Workout Resume (Simple Implementation)
-On app load, check localStorage for active workout state:
-- If found and `workout.state` is `'draft'` or `'active'`:
-  - Show a **banner** at top of screen: "You have an unfinished workout. [Resume] [Discard]"
+### Session Resume (Simple Implementation)
+On app load, call `GET /sessions/active` (the server is the source of truth):
+- If it returns a session in state `'draft'` or `'active'`:
+  - Show a **banner** at top of screen: "You have an unfinished session. [Resume] [Discard]"
 - No modal interruption - just a persistent banner until user takes action
 - This is the simplest implementation; can be enhanced later if needed
 

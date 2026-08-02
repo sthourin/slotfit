@@ -4,6 +4,8 @@
  */
 import { useState, useEffect } from 'react'
 import { workoutApi, type WorkoutSession } from '../services/workouts'
+import { listSessions } from '../services/sessions'
+import type { TrainingSession } from '../services/sessions'
 import WorkoutCard from '../components/history/WorkoutCard'
 import WorkoutDetail from '../components/history/WorkoutDetail'
 
@@ -12,9 +14,11 @@ export default function WorkoutHistory() {
   const [loading, setLoading] = useState(true)
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutSession | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [sessions, setSessions] = useState<TrainingSession[]>([])
 
   useEffect(() => {
     loadWorkouts()
+    loadSessions()
   }, [])
 
   const loadWorkouts = async () => {
@@ -28,6 +32,16 @@ export default function WorkoutHistory() {
       setError('Failed to load workout history. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadSessions = async () => {
+    try {
+      const data = await listSessions('completed')
+      setSessions(data)
+    } catch (err) {
+      console.error('Failed to load sessions:', err)
+      setError('Failed to load workout history. Please try again.')
     }
   }
 
@@ -70,6 +84,23 @@ export default function WorkoutHistory() {
           </p>
         </div>
 
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-2">Sessions</h2>
+          {sessions.map((s) => (
+            <div key={s.id} className="bg-white rounded-lg shadow p-4 mb-2">
+              <div className="font-medium">
+                {s.started_at ? new Date(s.started_at).toLocaleDateString() : '—'}
+              </div>
+              <div className="text-sm text-gray-500">
+                {s.rounds.length} rounds ·{' '}
+                {s.rounds.map((r) => r.entries.map((e) => e.exercise_name).join(' + ')).join(' | ')}
+              </div>
+            </div>
+          ))}
+          {sessions.length === 0 && <p className="text-sm text-gray-400 mb-4">No sessions yet.</p>}
+        </div>
+
+        <h2 className="text-lg font-semibold mb-2">Legacy Workouts</h2>
         {workouts.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <p className="text-gray-500 text-lg">No workout history yet.</p>

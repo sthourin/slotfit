@@ -9,6 +9,9 @@ if (!process.env.E2E_DATABASE_URL) {
 
 export default defineConfig({
   testDir: './e2e',
+  // Truncates the session tables in the e2e database so runs stay repeatable;
+  // re-checks the E2E_DATABASE_URL guard itself before touching anything.
+  globalSetup: './e2e/global-setup.ts',
   timeout: 30_000,
   fullyParallel: false,
   workers: 1,
@@ -22,7 +25,11 @@ export default defineConfig({
       command: 'venv\\Scripts\\python.exe -m uvicorn app.main:app --port 8000',
       cwd: '../backend',
       url: 'http://localhost:8000/docs',
-      reuseExistingServer: true,
+      // Never reuse: a developer following the README's quick-start already has
+      // uvicorn on :8000 pointed at the DEV database, and reusing it would make
+      // the E2E_DATABASE_URL guard above a no-op while the suite's beforeEach
+      // discards active sessions. A port clash here is the correct loud failure.
+      reuseExistingServer: false,
       timeout: 60_000,
       env: {
         DATABASE_URL: process.env.E2E_DATABASE_URL,

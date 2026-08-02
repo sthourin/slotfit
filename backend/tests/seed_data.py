@@ -13,6 +13,7 @@ from app.models import (
 )
 from app.models.exercise import DifficultyLevel, exercise_muscle_groups
 from app.models.injury import injury_movement_restrictions
+from app.services.pattern_taxonomy import seed_movement_patterns, seed_exercise_pattern_map
 
 
 async def seed_muscle_groups(session: AsyncSession):
@@ -261,9 +262,12 @@ async def seed_all_data(session: AsyncSession):
     equipment = await seed_equipment(session)
     exercises = await seed_exercises(session, muscle_groups, equipment)
     injuries = await seed_injuries(session)
-    
+
+    await seed_movement_patterns(session)
+    await seed_exercise_pattern_map(session)
+
     await session.commit()
-    
+
     return {
         "muscle_groups": muscle_groups,
         "equipment": equipment,

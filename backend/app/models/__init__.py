@@ -19,6 +19,12 @@ from app.models.personal_record import PersonalRecord, RecordType
 from app.models.weekly_volume import WeeklyVolume
 from app.models.injury import InjuryType, MovementRestriction, UserInjury
 from app.models.user import User
+from app.models.movement_pattern import MovementPattern, ExercisePatternMap
+from app.models.day_plan import DayPlan, PatternGoal
+from app.models.training_session import (
+    TrainingSession, SupersetRound, RoundEntry, EntrySet, SessionState
+)
+from app.models.staple import StapleExercise, ExercisePreference
 
 __all__ = [
     "Base",
@@ -42,4 +48,15 @@ __all__ = [
     "MovementRestriction",
     "UserInjury",
     "User",
+    "MovementPattern",
+    "ExercisePatternMap",
+    "DayPlan",
+    "PatternGoal",
+    "TrainingSession",
+    "SupersetRound",
+    "RoundEntry",
+    "EntrySet",
+    "SessionState",
+    "StapleExercise",
+    "ExercisePreference",
 ]

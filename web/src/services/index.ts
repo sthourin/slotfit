@@ -11,6 +11,11 @@ export * from './analytics'
 export * from './muscleGroups'
 export * from './equipment'
 export * from './personalRecords'
+export * from './patterns'
+export * from './dayPlans'
+export * from './staples'
+export * from './sessions'
+export * from './suggestions'
 
 // Export recommendations types explicitly to avoid conflicts
 export type {
