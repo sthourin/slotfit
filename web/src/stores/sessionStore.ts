@@ -17,13 +17,14 @@ interface SessionState {
   session: TrainingSession | null
   coverage: Coverage | null
   loading: boolean
+  busy: boolean
   error: string | null
   start: (dayPlanId: number | null) => Promise<TrainingSession>
   resume: () => Promise<TrainingSession | null>
   refresh: () => Promise<void>
   addRound: () => Promise<number>
   addEntry: (roundId: number, exerciseId: number, position: number) => Promise<void>
-  logSet: (entryId: number, s: { set_number: number; weight?: number | null; reps?: number | null }) => Promise<EntrySet>
+  logSet: (entryId: number, s: { set_number: number; weight?: number | null; reps?: number | null; time_seconds?: number | null }) => Promise<EntrySet>
   complete: () => Promise<void>
   discard: () => Promise<void>
 }
@@ -32,6 +33,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   session: null,
   coverage: null,
   loading: false,
+  busy: false,
   error: null,
 
   start: async (dayPlanId) => {
@@ -49,8 +51,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   resume: async () => {
     const session = await getActiveSession()
+    if (!session) {
+      set({ session: null, coverage: null })
+      return null
+    }
     set({ session })
-    if (session) await get().refresh()
+    await get().refresh()
     return session
   },
 
@@ -67,33 +73,58 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   addRound: async () => {
     const current = get().session
     if (!current) throw new Error('No active session')
-    const round = await createRound(current.id)
-    await get().refresh()
-    return round.id
+    set({ busy: true })
+    try {
+      const round = await createRound(current.id)
+      await get().refresh()
+      return round.id
+    } finally {
+      set({ busy: false })
+    }
   },
 
   addEntry: async (roundId, exerciseId, position) => {
-    await createEntry(roundId, exerciseId, position)
-    await get().refresh()
+    set({ busy: true })
+    try {
+      await createEntry(roundId, exerciseId, position)
+      await get().refresh()
+    } finally {
+      set({ busy: false })
+    }
   },
 
   logSet: async (entryId, s) => {
-    const logged = await createSet(entryId, s)
-    await get().refresh()
-    return logged
+    set({ busy: true })
+    try {
+      const logged = await createSet(entryId, s)
+      await get().refresh()
+      return logged
+    } finally {
+      set({ busy: false })
+    }
   },
 
   complete: async () => {
     const current = get().session
     if (!current) return
-    const session = await completeSession(current.id)
-    set({ session })
+    set({ busy: true })
+    try {
+      const session = await completeSession(current.id)
+      set({ session })
+    } finally {
+      set({ busy: false })
+    }
   },
 
   discard: async () => {
     const current = get().session
     if (!current) return
-    await discardSession(current.id)
-    set({ session: null, coverage: null })
+    set({ busy: true })
+    try {
+      await discardSession(current.id)
+      set({ session: null, coverage: null })
+    } finally {
+      set({ busy: false })
+    }
   },
 }))
