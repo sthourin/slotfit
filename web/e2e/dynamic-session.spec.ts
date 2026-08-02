@@ -9,8 +9,17 @@
  * Data assumptions (verified against the e2e database):
  *   - "Barbell Bent Over Row" is classified Horizontal Pull
  *   - "Barbell Bench Press" is classified Horizontal Push (its opposite)
- * Both must be in the user's staple pool before they can be suggested, which
- * is what the Exercise Browser's "Add to Staples" action is for.
+ *   - "Suspension Archer Row" is classified Horizontal Pull (the distractor)
+ * All three must be in the user's staple pool before they can be suggested,
+ * which is what the Exercise Browser's "Add to Staples" action is for.
+ *
+ * Why a third staple: with only an opposite-pattern pair in the pool, asserting
+ * that the partner picker offers the Horizontal Push exercise proves nothing --
+ * it is the only other staple, so an engine that filtered to the opposite
+ * pattern and one that simply listed every other staple would render the same
+ * UI. The distractor is a SECOND Horizontal Pull, so the partner list at
+ * position 2 must exclude it. That exclusion is the assertion that can fail,
+ * and it is what actually tests antagonist pairing.
  */
 import { test, expect, type Page, type APIRequestContext } from '@playwright/test'
 import { useDevice, E2E_DEVICE_ID } from './helpers/device'
@@ -20,6 +29,8 @@ const apiHeaders = { 'X-Device-ID': E2E_DEVICE_ID }
 
 const ANCHOR = 'Barbell Bent Over Row' // Horizontal Pull
 const PARTNER = 'Barbell Bench Press' // Horizontal Push - the antagonist
+// Same pattern as the anchor, so it must NOT be offered as a position-2 partner.
+const DISTRACTOR = 'Suspension Archer Row' // Horizontal Pull
 
 /**
  * A session left active by an earlier run makes `POST /sessions/` 409, so the
@@ -68,9 +79,11 @@ test('create day plan, run a dynamic session with a superset round, finish', asy
 
   // --- Staples: anchor suggestions are drawn from the staple pool, which
   // starts empty for the e2e device. Both patterns must be represented or the
-  // partner step at position 2 has no candidates.
+  // partner step at position 2 has no candidates. The distractor shares the
+  // anchor's pattern and exists purely to be excluded from the partner list.
   await addStapleViaBrowser(page, ANCHOR)
   await addStapleViaBrowser(page, PARTNER)
+  await addStapleViaBrowser(page, DISTRACTOR)
 
   // --- Create a day plan with opposing pattern goals. The goals are what make
   // the coverage chips render at all.
@@ -106,12 +119,23 @@ test('create day plan, run a dynamic session with a superset round, finish', asy
   await expect(page.getByText(/Pick your anchor/)).toBeVisible({ timeout: 10_000 })
 
   const picker = page.getByTestId('picker')
-  await picker.getByRole('button', { name: new RegExp(ANCHOR, 'i') }).first().click()
+  const anchorButton = picker.getByRole('button', { name: new RegExp(ANCHOR, 'i') })
+  await expect(anchorButton).toHaveCount(1)
+  // The distractor must be reachable HERE, in the anchor picker. If it were
+  // missing from the staple pool, the "absent from the partner list" assertion
+  // below would pass vacuously - this is what gives that assertion its teeth.
+  await expect(picker.getByRole('button', { name: new RegExp(DISTRACTOR, 'i') })).toHaveCount(1)
+  await anchorButton.click()
 
-  // --- Partner suggestion: must offer the OPPOSITE pattern
+  // --- Partner suggestion: must offer the OPPOSITE pattern...
   await expect(page.getByText(/Partner suggestion/)).toBeVisible({ timeout: 10_000 })
   const partnerButton = picker.getByRole('button', { name: new RegExp(PARTNER, 'i') }).first()
   await expect(partnerButton).toBeVisible({ timeout: 10_000 })
+  // ...and must NOT offer an exercise sharing the anchor's pattern. Checked only
+  // after the candidates have rendered (line above), so an absence cannot be an
+  // artifact of the list still loading. Scoped to the picker so the anchor's own
+  // entry card, already on the page, cannot affect the count either way.
+  await expect(picker.getByRole('button', { name: new RegExp(DISTRACTOR, 'i') })).toHaveCount(0)
   await partnerButton.click()
 
   // Both entries are now in the round; the picker closes.
