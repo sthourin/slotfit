@@ -125,8 +125,25 @@ async def apply(args: argparse.Namespace) -> int:
         known_equipment = set(
             (await db.execute(select(Equipment.name))).scalars().all()
         ) | {name for name, _ in MACHINE_EQUIPMENT}
+        # Exercises a previous apply created. Re-running over these is expected,
+        # not a name collision, so validation must not reject them.
+        custom_exercises = set(
+            (
+                await db.execute(
+                    select(Exercise.name).where(Exercise.is_custom == "True")
+                )
+            )
+            .scalars()
+            .all()
+        )
 
-        errors = validate_map(document, known_exercises, known_patterns, known_equipment)
+        errors = validate_map(
+            document,
+            known_exercises,
+            known_patterns,
+            known_equipment,
+            custom_exercises=custom_exercises,
+        )
         if errors:
             print(f"{len(errors)} problem(s) in {MAP_PATH}:", file=sys.stderr)
             for error in errors:

@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from typing import Sequence
 
 import yaml
-from sqlalchemy import select
+from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
@@ -29,6 +29,7 @@ from app.models import (
     StapleExercise,
     User,
 )
+from app.models.exercise import exercise_muscle_groups
 
 # Hevy's equipment vocabulary is five values wide. SlotFit has 39 named
 # implements and no typology. "machine" is deliberately mapped to None: it is
@@ -302,6 +303,11 @@ def dump_map(document: dict) -> str:
 SKIP = "SKIP"
 
 
+def variant_name_for(base_name: str, variant_type: str) -> str:
+    """Name a variant the way POST /exercises/{id}/variants already does."""
+    return f"{base_name} ({variant_type})"
+
+
 def resolve_selection(raw: object, candidates: Sequence[str]) -> str | None:
     """Turn a reviewed `slotfit:` value into an exercise name.
 
@@ -327,12 +333,19 @@ def validate_map(
     known_exercises: set[str],
     known_patterns: set[str],
     known_equipment: set[str],
+    custom_exercises: set[str] | None = None,
 ) -> list[str]:
     """Check a reviewed mapping document, returning every problem at once.
 
     Reporting all errors together matters: the reviewer resolves ~58 entries by
     hand, and fixing them one failed run at a time would be miserable.
+
+    `custom_exercises` are exercises a previous apply created (is_custom). A
+    create block naming one of those is a re-run, not a mistake, so it passes -
+    apply reuses the row. A create block naming a *stock* catalogue exercise is
+    still an error, because that entry should have used `slotfit:` instead.
     """
+    custom_exercises = custom_exercises or set()
     errors: list[str] = []
     for row in document.get("exercises") or []:
         label = row.get("hevy", "<unnamed>")
@@ -345,12 +358,35 @@ def validate_map(
             continue
 
         if create is not None:
-            name = (create.get("name") or "").strip()
+            base = create.get("variant_of")
             pattern = create.get("pattern")
             equipment = create.get("equipment")
+
+            if base:
+                # A variant inherits the base's pattern, muscles, and equipment,
+                # so declaring a pattern here would be silently ignored.
+                variant_type = (create.get("variant_type") or "").strip()
+                if base not in known_exercises:
+                    errors.append(f"{label}: variant_of names no such exercise {base!r}")
+                if not variant_type:
+                    errors.append(f"{label}: variant_of needs a 'variant_type'")
+                if pattern:
+                    errors.append(
+                        f"{label}: a variant takes its pattern from its base - "
+                        f"remove 'pattern'"
+                    )
+                if variant_type and base in known_exercises:
+                    derived = variant_name_for(base, variant_type)
+                    if derived in known_exercises and derived not in custom_exercises:
+                        errors.append(
+                            f"{label}: variant {derived!r} already exists in the catalogue"
+                        )
+                continue
+
+            name = (create.get("name") or "").strip()
             if not name:
                 errors.append(f"{label}: create needs a 'name'")
-            elif name in known_exercises:
+            elif name in known_exercises and name not in custom_exercises:
                 errors.append(
                     f"{label}: create name {name!r} already exists in the catalogue"
                 )
@@ -396,6 +432,18 @@ def apply_review_selections(document: dict, selections: dict[str, dict]) -> dict
             continue
 
         kind = choice.get("kind")
+        if kind == "variant":
+            create = {
+                "variant_of": choice.get("variant_of"),
+                "variant_type": (choice.get("variant_type") or "").strip(),
+            }
+            duration = str(choice.get("default_time_seconds") or "").strip()
+            if duration:
+                create["default_time_seconds"] = int(duration)
+            row["create"] = create
+            row["slotfit"] = None
+            continue
+
         if kind == "create":
             create = {
                 "name": (choice.get("name") or "").strip(),
@@ -440,6 +488,84 @@ async def _ensure_machine_equipment(db: AsyncSession) -> int:
     return created
 
 
+async def _create_variant(db: AsyncSession, base_name: str, create: dict) -> int:
+    """Create a training-style variant of an existing exercise. Returns its id.
+
+    Mirrors POST /exercises/{id}/variants: the variant copies the base's
+    descriptive attributes and muscle groups so pattern coverage and antagonist
+    pairing keep working, and is linked back via base_exercise_id. What differs
+    is the training intent - variant_type and a time-based default.
+    """
+    base = (
+        await db.execute(select(Exercise).where(Exercise.name == base_name))
+    ).scalar_one()
+
+    variant = Exercise(
+        name=variant_name_for(base_name, create["variant_type"]),
+        description=base.description,
+        exercise_classification=base.exercise_classification,
+        primary_equipment_id=base.primary_equipment_id,
+        secondary_equipment_id=base.secondary_equipment_id,
+        primary_equipment_count=base.primary_equipment_count,
+        secondary_equipment_count=base.secondary_equipment_count,
+        posture=base.posture,
+        movement_pattern_1=base.movement_pattern_1,
+        movement_pattern_2=base.movement_pattern_2,
+        movement_pattern_3=base.movement_pattern_3,
+        plane_of_motion_1=base.plane_of_motion_1,
+        body_region=base.body_region,
+        force_type=base.force_type,
+        mechanics=base.mechanics,
+        laterality=base.laterality,
+        difficulty=base.difficulty,
+        base_exercise_id=base.id,
+        variant_type=create["variant_type"],
+        is_custom="True",
+        default_time_seconds=create.get("default_time_seconds"),
+    )
+    db.add(variant)
+    await db.flush()
+
+    for muscle_group in await _base_muscle_groups(db, base.id):
+        await db.execute(
+            insert(exercise_muscle_groups).values(
+                exercise_id=variant.id,
+                muscle_group_id=muscle_group.muscle_group_id,
+                role=muscle_group.role,
+            )
+        )
+
+    # Inherit the base's pattern rather than re-classifying: a HIIT reverse fly
+    # is still the same movement. is_override protects it from seed_patterns.
+    base_map = (
+        await db.execute(
+            select(ExercisePatternMap).where(ExercisePatternMap.exercise_id == base.id)
+        )
+    ).scalar_one_or_none()
+    if base_map is not None:
+        db.add(
+            ExercisePatternMap(
+                exercise_id=variant.id,
+                pattern_id=base_map.pattern_id,
+                is_override=True,
+            )
+        )
+    await db.flush()
+    return variant.id
+
+
+async def _base_muscle_groups(db: AsyncSession, base_id: int):
+    """Rows of (muscle_group_id, role) for an exercise, straight from the join table."""
+    return (
+        await db.execute(
+            select(
+                exercise_muscle_groups.c.muscle_group_id,
+                exercise_muscle_groups.c.role,
+            ).where(exercise_muscle_groups.c.exercise_id == base_id)
+        )
+    ).all()
+
+
 async def apply_map(db: AsyncSession, document: dict, user: User) -> ApplyResult:
     """Seed staples for one user from a validated mapping document.
 
@@ -482,32 +608,40 @@ async def apply_map(db: AsyncSession, document: dict, user: User) -> ApplyResult
         create = row.get("create")
 
         if create is not None:
-            name = create["name"].strip()
+            base_name = create.get("variant_of")
+            if base_name:
+                name = variant_name_for(base_name, create["variant_type"])
+            else:
+                name = create["name"].strip()
+
             exercise_id = exercise_ids.get(name)
             if exercise_id is None:
-                equipment_name = create.get("equipment")
-                exercise = Exercise(
-                    name=name,
-                    is_custom="True",
-                    primary_equipment_id=(
-                        equipment_ids.get(equipment_name) if equipment_name else None
-                    ),
-                )
-                db.add(exercise)
-                await db.flush()
-                exercise_id = exercise.id
+                if base_name:
+                    exercise_id = await _create_variant(db, base_name, create)
+                else:
+                    equipment_name = create.get("equipment")
+                    exercise = Exercise(
+                        name=name,
+                        is_custom="True",
+                        primary_equipment_id=(
+                            equipment_ids.get(equipment_name) if equipment_name else None
+                        ),
+                    )
+                    db.add(exercise)
+                    await db.flush()
+                    exercise_id = exercise.id
+                    # is_override keeps seed_exercise_pattern_map from rewriting
+                    # the hand-assigned pattern on its next run.
+                    db.add(
+                        ExercisePatternMap(
+                            exercise_id=exercise_id,
+                            pattern_id=pattern_ids[create["pattern"]],
+                            is_override=True,
+                        )
+                    )
+                    await db.flush()
                 exercise_ids[name] = exercise_id
                 result.exercises_created += 1
-                # is_override keeps seed_exercise_pattern_map from rewriting the
-                # hand-assigned pattern on its next run.
-                db.add(
-                    ExercisePatternMap(
-                        exercise_id=exercise_id,
-                        pattern_id=pattern_ids[create["pattern"]],
-                        is_override=True,
-                    )
-                )
-                await db.flush()
         else:
             resolved = resolve_selection(row.get("slotfit"), row.get("candidates") or [])
             if resolved == SKIP:

@@ -480,3 +480,134 @@ def test_review_does_not_mutate_the_input_document():
     original = _review_doc()
     apply_review_selections(original, {"Goblet Squat": {"kind": "exercise", "name": "A"}})
     assert original["exercises"][0]["slotfit"] is None
+
+
+KNOWN_VARIANT_EXERCISES = {"Kettlebell Swing", "Double Dumbbell Bent Over Reverse Fly"}
+
+
+def test_variant_create_needs_no_pattern():
+    """A variant inherits its base's pattern, so pattern must not be required."""
+    doc = _doc({
+        "hevy": "HIIT KB Swings", "slotfit": None, "candidates": [],
+        "create": {"variant_of": "Kettlebell Swing", "variant_type": "HIIT",
+                   "default_time_seconds": 40},
+    })
+    assert validate_map(doc, KNOWN_VARIANT_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT) == []
+
+
+def test_variant_of_must_name_an_existing_exercise():
+    doc = _doc({
+        "hevy": "HIIT KB Swings", "slotfit": None, "candidates": [],
+        "create": {"variant_of": "No Such Base", "variant_type": "HIIT"},
+    })
+    (error,) = validate_map(doc, KNOWN_VARIANT_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT)
+    assert "No Such Base" in error
+
+
+def test_variant_requires_a_variant_type():
+    doc = _doc({
+        "hevy": "HIIT KB Swings", "slotfit": None, "candidates": [],
+        "create": {"variant_of": "Kettlebell Swing"},
+    })
+    (error,) = validate_map(doc, KNOWN_VARIANT_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT)
+    assert "variant_type" in error
+
+
+def test_variant_and_pattern_together_is_an_error():
+    """Setting both is ambiguous: the base's pattern wins, so the pattern is a lie."""
+    doc = _doc({
+        "hevy": "HIIT KB Swings", "slotfit": None, "candidates": [],
+        "create": {"variant_of": "Kettlebell Swing", "variant_type": "HIIT",
+                   "pattern": "core"},
+    })
+    (error,) = validate_map(doc, KNOWN_VARIANT_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT)
+    assert "pattern" in error.lower()
+
+
+def test_plain_create_still_requires_a_pattern():
+    doc = _doc({
+        "hevy": "Rowing Machine", "slotfit": None, "candidates": [],
+        "create": {"name": "Rowing Machine"},
+    })
+    (error,) = validate_map(doc, KNOWN_VARIANT_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT)
+    assert "pattern" in error
+
+
+def test_variant_default_name_is_derived_from_base_and_type():
+    from app.services.hevy_import import variant_name_for
+    assert variant_name_for("Kettlebell Swing", "HIIT") == "Kettlebell Swing (HIIT)"
+
+
+def test_variant_review_selection_writes_a_variant_create():
+    doc = apply_review_selections(
+        {"exercises": [{"hevy": "HIIT KB Swings", "slotfit": None, "candidates": []}]},
+        {"HIIT KB Swings": {"kind": "variant", "variant_of": "Kettlebell Swing",
+                            "variant_type": "HIIT", "default_time_seconds": 40}},
+    )
+    assert doc["exercises"][0]["create"] == {
+        "variant_of": "Kettlebell Swing",
+        "variant_type": "HIIT",
+        "default_time_seconds": 40,
+    }
+    assert doc["exercises"][0]["slotfit"] is None
+
+
+def test_variant_review_selection_omits_blank_duration():
+    doc = apply_review_selections(
+        {"exercises": [{"hevy": "HIIT X", "slotfit": None, "candidates": []}]},
+        {"HIIT X": {"kind": "variant", "variant_of": "Kettlebell Swing",
+                    "variant_type": "HIIT", "default_time_seconds": ""}},
+    )
+    assert "default_time_seconds" not in doc["exercises"][0]["create"]
+
+
+def test_rerun_allows_a_create_whose_exercise_we_already_made():
+    """apply is meant to be re-runnable, so a second pass must not fail
+    validation just because the first pass created the exercise."""
+    doc = _doc({
+        "hevy": "Rowing Machine", "slotfit": None, "candidates": [],
+        "create": {"name": "Rowing Machine", "pattern": "conditioning"},
+    })
+    known = KNOWN_EXERCISES | {"Rowing Machine"}
+    errors = validate_map(
+        doc, known, KNOWN_PATTERNS, KNOWN_EQUIPMENT, custom_exercises={"Rowing Machine"}
+    )
+    assert errors == []
+
+
+def test_create_colliding_with_a_stock_catalogue_name_is_still_an_error():
+    """The original guard must survive: if the name is a stock exercise, you
+    should have mapped to it with slotfit, not created a duplicate."""
+    doc = _doc({
+        "hevy": "A", "slotfit": None, "candidates": [],
+        "create": {"name": "Barbell Back Squat", "pattern": "knee_dominant"},
+    })
+    (error,) = validate_map(
+        doc, KNOWN_EXERCISES, KNOWN_PATTERNS, KNOWN_EQUIPMENT, custom_exercises=set()
+    )
+    assert "already exists" in error
+
+
+def test_rerun_allows_a_variant_we_already_created():
+    doc = _doc({
+        "hevy": "HIIT KB Swings", "slotfit": None, "candidates": [],
+        "create": {"variant_of": "Kettlebell Swing", "variant_type": "HIIT"},
+    })
+    known = KNOWN_VARIANT_EXERCISES | {"Kettlebell Swing (HIIT)"}
+    errors = validate_map(
+        doc, known, KNOWN_PATTERNS, KNOWN_EQUIPMENT,
+        custom_exercises={"Kettlebell Swing (HIIT)"},
+    )
+    assert errors == []
+
+
+def test_variant_colliding_with_a_stock_name_is_still_an_error():
+    doc = _doc({
+        "hevy": "HIIT KB Swings", "slotfit": None, "candidates": [],
+        "create": {"variant_of": "Kettlebell Swing", "variant_type": "HIIT"},
+    })
+    known = KNOWN_VARIANT_EXERCISES | {"Kettlebell Swing (HIIT)"}
+    (error,) = validate_map(
+        doc, known, KNOWN_PATTERNS, KNOWN_EQUIPMENT, custom_exercises=set()
+    )
+    assert "already exists" in error

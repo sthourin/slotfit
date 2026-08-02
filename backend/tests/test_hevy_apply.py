@@ -210,3 +210,84 @@ async def test_index_selection_is_honoured(test_db):
     result = await apply_map(test_db, doc, user)
 
     assert result.staples_created == 1
+
+
+async def test_creates_a_linked_variant_inheriting_the_base(test_db):
+    """A HIIT variant is a separate exercise linked to its base, same pattern."""
+    user, base = await _seed(test_db)
+    doc = {"exercises": [{
+        "hevy": "HIIT Lat Pulldowns", "slotfit": None, "candidates": [],
+        "create": {
+            "variant_of": base.name,
+            "variant_type": "HIIT",
+            "default_time_seconds": 40,
+        },
+    }]}
+
+    result = await apply_map(test_db, doc, user)
+
+    assert result.exercises_created == 1
+    variant = (
+        await test_db.execute(
+            select(Exercise).where(Exercise.name == f"{base.name} (HIIT)")
+        )
+    ).scalar_one()
+    assert variant.base_exercise_id == base.id
+    assert variant.variant_type == "HIIT"
+    assert variant.default_time_seconds == 40
+    assert variant.is_custom == "True"
+    # Inherited from the base so pattern coverage and pairing still work.
+    assert variant.primary_equipment_id == base.primary_equipment_id
+    assert variant.movement_pattern_1 == base.movement_pattern_1
+
+    base_map = (
+        await test_db.execute(
+            select(ExercisePatternMap).where(ExercisePatternMap.exercise_id == base.id)
+        )
+    ).scalar_one()
+    variant_map = (
+        await test_db.execute(
+            select(ExercisePatternMap).where(
+                ExercisePatternMap.exercise_id == variant.id
+            )
+        )
+    ).scalar_one()
+    assert variant_map.pattern_id == base_map.pattern_id
+    assert variant_map.is_override is True
+
+
+async def test_variant_and_its_base_are_separate_staples(test_db):
+    """The whole point: HIIT work must not merge into the strength staple."""
+    user, base = await _seed(test_db)
+    doc = {"exercises": [
+        {"hevy": "Lat Pulldown (Cable)", "slotfit": base.name, "candidates": []},
+        {"hevy": "HIIT Lat Pulldowns", "slotfit": None, "candidates": [],
+         "create": {"variant_of": base.name, "variant_type": "HIIT"}},
+    ]}
+
+    result = await apply_map(test_db, doc, user)
+
+    assert result.staples_created == 2
+    staples = (await test_db.execute(select(StapleExercise))).scalars().all()
+    assert len({s.exercise_id for s in staples}) == 2
+
+
+async def test_variant_creation_is_idempotent(test_db):
+    user, base = await _seed(test_db)
+    doc = {"exercises": [{
+        "hevy": "HIIT Lat Pulldowns", "slotfit": None, "candidates": [],
+        "create": {"variant_of": base.name, "variant_type": "HIIT"},
+    }]}
+
+    await apply_map(test_db, doc, user)
+    await test_db.commit()
+    second = await apply_map(test_db, doc, user)
+
+    assert second.exercises_created == 0
+    assert second.staples_created == 0
+    variants = (
+        await test_db.execute(
+            select(Exercise).where(Exercise.name == f"{base.name} (HIIT)")
+        )
+    ).scalars().all()
+    assert len(variants) == 1

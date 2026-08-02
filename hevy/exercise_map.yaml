@@ -28,12 +28,16 @@ exercises:
   hevy_equipment: machine
   slotfit: null
   candidates: []
+  create:
+    name: Rowing Machine
+    pattern: conditioning
+    equipment: Rowing Machine
 - hevy: Incline Bench Press (Dumbbell)
   hevy_template_id: 07B38369
   sessions: 22
   last_performed: '2026-06-13'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Double Dumbbell Incline Bench Press
   candidates:
   - Double Dumbbell Incline Bench Press
   - Alternating Double Dumbbell Incline Bench Press
@@ -45,7 +49,7 @@ exercises:
   sessions: 17
   last_performed: '2026-07-18'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Dumbbell Goblet Squat
   candidates:
   - Dumbbell Goblet Squat
   - Dumbbell Goblet Cossack Squat
@@ -64,12 +68,16 @@ exercises:
   - Parallette Mountain Climber
   - Ring Mountain Climber
   - Slider Mountain Climber
+  create:
+    variant_of: Bodyweight Mountain Climber
+    variant_type: HIIT
+    default_time_seconds: 33
 - hevy: Pullover (Dumbbell)
   hevy_template_id: '67280085'
   sessions: 13
   last_performed: '2026-07-18'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Dumbbell Pullover
   candidates:
   - Dumbbell Pullover
   - Dumbbell Incline Bench Pullover
@@ -93,7 +101,7 @@ exercises:
   sessions: 11
   last_performed: '2026-07-18'
   hevy_equipment: machine
-  slotfit: null
+  slotfit: Bar Pull Up
   candidates:
   - Bar Pull Up
   - Ring Pull Up
@@ -105,7 +113,7 @@ exercises:
   sessions: 10
   last_performed: '2026-07-18'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Single Arm Dumbbell Bench Press
   candidates:
   - Single Arm Dumbbell Bench Press
   - Single Arm Dumbbell Decline Bench Press
@@ -117,7 +125,7 @@ exercises:
   sessions: 9
   last_performed: '2026-07-18'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Double Dumbbell Single Leg Romanian Deadlift
   candidates:
   - Double Dumbbell Single Leg Romanian Deadlift
   - Dumbbell Crush Grip Single Leg Romanian Deadlift
@@ -136,6 +144,10 @@ exercises:
   - Suspension Chest Fly
   - Double Cable Chest Fly
   - Double Dumbbell Chest Fly
+  create:
+    name: Chest Fly (Machine)
+    pattern: horizontal_push
+    equipment: Pec Deck
 - hevy: Hack Squat (Machine)
   hevy_template_id: 1E42FD5F
   sessions: 8
@@ -148,6 +160,10 @@ exercises:
   - Suspension Squat
   - Barbell Overhead Squat
   - Barbell Squat Clean
+  create:
+    name: Hack Squat (Machine)
+    pattern: knee_dominant
+    equipment: Hack Squat Machine
 - hevy: Iso-Lateral Chest Press (Machine)
   hevy_template_id: 24706DCD
   sessions: 8
@@ -160,6 +176,9 @@ exercises:
   - Single Arm Resistance Band Chest Press
   - Landmine V Grip Tall Kneeling Chest Press
   - Single Arm Dumbbell Hollow Body Chest Press
+  create:
+    name: Iso-Lateral Chest Press (Machine)
+    pattern: horizontal_push
 - hevy: Leg Press (Machine)
   hevy_template_id: C7973E0E
   sessions: 8
@@ -172,12 +191,16 @@ exercises:
   - Suspension Single Leg Standing Bent Knee Cuban Press
   - Double Kettlebell Single Leg Standing Bent Knee Overhead Press
   - Alternating Single Arm Landmine Single Leg Standing Bent Knee Shoulder Press
+  create:
+    name: Leg Press (Machine)
+    pattern: knee_dominant
+    equipment: Leg Press Machine
 - hevy: Romanian Deadlift (Dumbbell)
   hevy_template_id: 72CFFAD5
   sessions: 8
   last_performed: '2026-06-06'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Double Dumbbell Romanian Deadlift
   candidates:
   - Double Dumbbell Romanian Deadlift
   - Dumbbell Crush Grip Romanian Deadlift
@@ -196,12 +219,16 @@ exercises:
   - Single Arm Macebell Inside Circle
   - Single Arm Macebell Outside Circle
   - Double Indian Club Lateral Arm Circles
+  create:
+    name: Arm Circles
+    pattern: conditioning
+    equipment: Bodyweight
 - hevy: Bulgarian Split Squat
   hevy_template_id: B5D3A742
   sessions: 7
   last_performed: '2026-05-29'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Double Dumbbell Suitcase Bulgarian Split Squat
   candidates:
   - Dumbbell Goblet Bulgarian Split Squat
   - Double Dumbbell Overhead Bulgarian Split Squat
@@ -220,12 +247,16 @@ exercises:
   - Double Dumbbell Seated Reverse Fly
   - Double Dumbbell Bent Over Reverse Fly
   - Suspension Single Leg Standing Bent Knee Reverse Fly
+  create:
+    name: Rear Delt Reverse Fly (Machine)
+    pattern: horizontal_pull
+    equipment: Pec Deck
 - hevy: Cable Core Palloff Press
   hevy_template_id: CC55119B
   sessions: 6
   last_performed: '2026-01-05'
   hevy_equipment: machine
-  slotfit: null
+  slotfit: Cable Pallof Press
   candidates:
   - Cable Pallof Press
   - Cable Half Kneeling Pallof Press
@@ -237,7 +268,7 @@ exercises:
   sessions: 6
   last_performed: '2026-07-16'
   hevy_equipment: machine
-  slotfit: null
+  slotfit: Bar Chin Up
   candidates:
   - Bar Chin Up
   - Ring Chin Up
@@ -249,7 +280,7 @@ exercises:
   sessions: 6
   last_performed: '2026-04-19'
   hevy_equipment: machine
-  slotfit: null
+  slotfit: Cable Face Pull
   candidates:
   - Cable Face Pull
   - Suspension Face Pull
@@ -261,7 +292,7 @@ exercises:
   sessions: 6
   last_performed: '2026-05-14'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Double Dumbbell Front Raise
   candidates:
   - Double Dumbbell Front Raise
   - Alternating Double Dumbbell Front Raise
@@ -273,7 +304,7 @@ exercises:
   sessions: 6
   last_performed: '2025-11-22'
   hevy_equipment: machine
-  slotfit: null
+  slotfit: Cable Wide Grip Lat Pulldown
   candidates:
   - Cable Reverse Grip Lat Pulldown
   - Cable V Grip Lat Pulldown
@@ -285,7 +316,7 @@ exercises:
   sessions: 6
   last_performed: '2026-03-19'
   hevy_equipment: none
-  slotfit: null
+  slotfit: Bodyweight Squat
   candidates:
   - Bodyweight Squat
   - Bodyweight Cossack Squat
@@ -297,7 +328,7 @@ exercises:
   sessions: 6
   last_performed: '2026-03-04'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Dumbbell Seated Overhead Tricep Extension
   candidates:
   - Dumbbell Overhead Tricep Extension
   - Dumbbell Seated Overhead Tricep Extension
@@ -328,12 +359,16 @@ exercises:
   - Double Dumbbell Incline Bench Chest Fly
   - Single Arm Dumbbell Knee Supported Row
   - Single Arm Dumbbell Hollow Body Chest Press
+  create:
+    name: Double Dumbbell Incline Bench Prone W Fly
+    pattern: horizontal_pull
+    equipment: Bench (Incline)
 - hevy: Chest Supported Y Raise (Dumbbell)
   hevy_template_id: F21D5693
   sessions: 5
   last_performed: '2026-04-22'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Double Dumbbell Incline Bench Prone Y Raise
   candidates:
   - Double Dumbbell Incline Bench Prone Y Raise
   - Double Dumbbell Chest Fly
@@ -345,7 +380,7 @@ exercises:
   sessions: 5
   last_performed: '2026-01-26'
   hevy_equipment: barbell
-  slotfit: null
+  slotfit: Trap Bar Deadlift
   candidates:
   - Trap Bar Deadlift
   - Trap Bar Deficit Deadlift
@@ -357,7 +392,7 @@ exercises:
   sessions: 5
   last_performed: '2026-03-14'
   hevy_equipment: none
-  slotfit: null
+  slotfit: Bodyweight Glute Bridge
   candidates:
   - Bodyweight Glute Bridge
   - Bodyweight Feet Elevated Glute Bridge
@@ -369,7 +404,7 @@ exercises:
   sessions: 5
   last_performed: '2026-03-14'
   hevy_equipment: none
-  slotfit: null
+  slotfit: Bodyweight Squat Jump
   candidates:
   - Bodyweight Squat Jump
   - Bodyweight Split Squat Jump
@@ -381,26 +416,30 @@ exercises:
   sessions: 5
   last_performed: '2026-05-11'
   hevy_equipment: none
-  slotfit: Slider Plank Jack
+  slotfit: null
   candidates:
   - Slider Plank Jack
   - Bodyweight Copenhagen Plank
   - Bodyweight Forearm Plank
   - Bodyweight Reverse Plank
   - Bodyweight Side Plank
+  create:
+    name: Plank Jacks
+    pattern: conditioning
+    equipment: Bodyweight
 - hevy: Rest
   hevy_template_id: 1a5c23fd-1da2-4502-9b4e-1a5eb3af19db
   sessions: 5
   last_performed: '2026-04-26'
   hevy_equipment: none
-  slotfit: null
+  slotfit: SKIP
   candidates: []
 - hevy: Bent Over Row (Dumbbell)
   hevy_template_id: 23E92538
   sessions: 4
   last_performed: '2025-12-31'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Double Dumbbell Bent Over Row
   candidates:
   - Double Dumbbell Bent Over Row
   - Alternating Double Dumbbell Bent Over Row
@@ -412,7 +451,7 @@ exercises:
   sessions: 4
   last_performed: '2026-02-22'
   hevy_equipment: none
-  slotfit: null
+  slotfit: Bodyweight Crunch
   candidates:
   - Bodyweight Crunch
   - Bodyweight Bicycle Crunch
@@ -424,7 +463,7 @@ exercises:
   sessions: 4
   last_performed: '2025-11-18'
   hevy_equipment: barbell
-  slotfit: null
+  slotfit: Barbell Front Rack Squat
   candidates:
   - Barbell Front Rack Squat
   - Barbell Front Rack Cossack Squat
@@ -443,6 +482,10 @@ exercises:
   - Double Dumbbell Suitcase Step Up
   - Dumbbell Goblet Alternating Step Up
   - Dumbbell Goblet Russian Step Up
+  create:
+    variant_of: Double Dumbbell Suitcase Step Up
+    variant_type: HIIT
+    default_time_seconds: 40
 - hevy: HIIT Neutral Grip DB Front Raise
   hevy_template_id: 1d10ec3f-827a-4023-9d73-72118da4c52a
   sessions: 4
@@ -455,6 +498,10 @@ exercises:
   - Single Arm Dumbbell Front Raise
   - Double Dumbbell Front Rack Calf Raise
   - Dumbbell Crush Grip Front Rack March
+  create:
+    variant_of: Alternating Double Dumbbell Front Raise
+    variant_type: HIIT
+    default_time_seconds: 40
 - hevy: High Knees
   hevy_template_id: 150E076B
   sessions: 4
@@ -467,6 +514,10 @@ exercises:
   - Bodyweight Bent Knee Windshield Wiper
   - Bodyweight Knee Hover Bird Dog
   - Bodyweight Bird Dog Knee to Elbow
+  create:
+    name: High Knees
+    pattern: conditioning
+    equipment: Bodyweight
 - hevy: Jumping Lunge
   hevy_template_id: 5CC07A1F
   sessions: 4
@@ -479,6 +530,10 @@ exercises:
   - Bodyweight Lateral Lunge
   - Bodyweight Reverse Lunge
   - Bodyweight Walking Lunge
+  create:
+    name: Jumping Lunge
+    pattern: conditioning
+    equipment: Bodyweight
 - hevy: Triceps Pushdown
   hevy_template_id: 93A552C6
   sessions: 4
@@ -491,12 +546,16 @@ exercises:
   - Cable Rope Incline Bench Tricep Pushdown
   - Cable Rope Tall Kneeling Tricep Pushdown
   - Cable Straight Bar Incline Bench Tricep Pushdown
+  create:
+    name: Cable Angle Bar Tricep Pushdown
+    pattern: vertical_push
+    equipment: Cable
 - hevy: Arnold Press (Dumbbell)
   hevy_template_id: A69FF221
   sessions: 3
   last_performed: '2025-11-15'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Double Dumbbell Seated Arnold Press
   candidates:
   - Double Dumbbell Arnold Press
   - Alternating Double Dumbbell Arnold Press
@@ -515,6 +574,10 @@ exercises:
   - Bodyweight Reverse Hyperextension
   - Bodyweight Tricep Extension
   - Stability Ball Hyperextension
+  create:
+    name: Weighted Reverse Hyperextension
+    pattern: hip_hinge
+    equipment: Hyperextension Bench
 - hevy: Burpee
   hevy_template_id: BB792A36
   sessions: 3
@@ -525,12 +588,16 @@ exercises:
   - Bodyweight Burpee
   - Bodyweight Rolling Squat Burpee
   - Battle Rope Power Slam to Burpee
+  create:
+    name: Bodyweight HIIT Burpee
+    pattern: conditioning
+    equipment: Bodyweight
 - hevy: Cable Fly Crossovers
   hevy_template_id: 651F844C
   sessions: 3
   last_performed: '2026-05-29'
   hevy_equipment: machine
-  slotfit: null
+  slotfit: Double Cable Chest Fly
   candidates:
   - Double Cable Chest Fly
   - Double Cable Seated Chest Fly
@@ -542,7 +609,7 @@ exercises:
   sessions: 3
   last_performed: '2025-10-25'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Double Dumbbell Push Press
   candidates:
   - Double Dumbbell Push Press
   - Alternating Double Dumbbell Push Press
@@ -554,7 +621,7 @@ exercises:
   sessions: 3
   last_performed: '2025-12-31'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Double Dumbbell Suitcase Deadlift
   candidates:
   - Double Dumbbell Romanian Deadlift
   - Double Dumbbell Suitcase Deadlift
@@ -573,6 +640,10 @@ exercises:
   - Alternating Double Dumbbell Bent Over Row
   - Double Dumbbell Seesaw Bent Over Row
   - Dumbbell Crush Grip Bent Over Row
+  create:
+    variant_of: Double Dumbbell Bent Over Reverse Fly
+    variant_type: HIIT
+    default_time_seconds: 40
 - hevy: HIIT DB Up And Arounds
   hevy_template_id: 9b13d622-98b0-40fd-8b32-dccd372d16ab
   sessions: 3
@@ -585,6 +656,10 @@ exercises:
   - Double Dumbbell Suitcase Step Up
   - Double Dumbbell Turkish Get Up
   - Double Dumbbell Turkish Sit Up
+  create:
+    name: HIIT DB Up And Arounds
+    pattern: conditioning
+    equipment: Dumbbell
 - hevy: HIIT KB Swings
   hevy_template_id: c26d33c3-0eba-40c4-90e2-cfc09e98d5ab
   sessions: 3
@@ -597,6 +672,10 @@ exercises:
   - Double Kettlebell Outside Swing
   - Kettlebell Half Kneeling Swing
   - Kettlebell Start Stop Swing
+  create:
+    variant_of: Kettlebell Swing
+    variant_type: HIIT
+    default_time_seconds: 40
 - hevy: HIIT Speedskater Jumps
   hevy_template_id: 7fd860e4-a933-4825-8402-1f3c58334788
   sessions: 3
@@ -609,12 +688,16 @@ exercises:
   - Bodyweight Skater Jump
   - Bodyweight Squat Jump
   - Bodyweight Tuck Jump
+  create:
+    variant_of: Bodyweight Skater Jump
+    variant_type: HIIT
+    default_time_seconds: 30
 - hevy: Kettlebell Swing
   hevy_template_id: F8A0FCCA
   sessions: 3
   last_performed: '2026-01-26'
   hevy_equipment: kettlebell
-  slotfit: null
+  slotfit: Kettlebell Swing
   candidates:
   - Kettlebell Swing
   - Double Kettlebell Swing
@@ -626,7 +709,7 @@ exercises:
   sessions: 3
   last_performed: '2026-05-16'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Double Dumbbell Lateral Raise
   candidates:
   - Double Dumbbell Lateral Raise
   - Double Dumbbell Seated Lateral Raise
@@ -645,12 +728,16 @@ exercises:
   - Barbell Staggered Stance Push Press
   - Barbell Single Leg Standing Bent Knee Overhead Press
   - Suspension Single Leg Standing Bent Knee Cuban Press
+  create:
+    name: Leg Press Wide Stance (Machine)
+    pattern: knee_dominant
+    equipment: Leg Press Machine
 - hevy: Plank
   hevy_template_id: C6C9B8A0
   sessions: 3
   last_performed: '2026-04-19'
   hevy_equipment: none
-  slotfit: null
+  slotfit: Bodyweight Copenhagen Plank
   candidates:
   - Bodyweight Copenhagen Plank
   - Bodyweight Forearm Plank
@@ -662,7 +749,7 @@ exercises:
   sessions: 3
   last_performed: '2026-02-17'
   hevy_equipment: none
-  slotfit: null
+  slotfit: Bodyweight Push Up
   candidates:
   - Bodyweight Push Up
   - Bodyweight Archer Push Up
@@ -674,7 +761,7 @@ exercises:
   sessions: 3
   last_performed: '2025-12-31'
   hevy_equipment: dumbbell
-  slotfit: null
+  slotfit: Double Dumbbell Bent Over Reverse Fly
   candidates:
   - Double Dumbbell Seated Reverse Fly
   - Double Dumbbell Bent Over Reverse Fly
@@ -688,6 +775,10 @@ exercises:
   hevy_equipment: none
   slotfit: null
   candidates: []
+  create:
+    name: Superman
+    pattern: core
+    equipment: Bodyweight
 - hevy: kettle bell 1 leg arounds
   hevy_template_id: 3c16690c-b678-40c8-b5d7-1bbbba25046a
   sessions: 3
@@ -700,3 +791,7 @@ exercises:
   - Bodyweight Single Leg Box Jump
   - Bodyweight Single Leg Calf Raise
   - Bodyweight Single Leg Glute Bridge
+  create:
+    name: Single-leg Alternating Kettlebell Around the World
+    pattern: core
+    equipment: Kettlebell

@@ -16,6 +16,8 @@ import argparse
 import asyncio
 import json
 import webbrowser
+from collections import defaultdict
+from statistics import median
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -52,6 +54,24 @@ async def _load_reference() -> dict:
         "patterns": list(patterns),
         "equipment": all_equipment,
     }
+
+
+def _median_durations() -> dict[str, int]:
+    """Median seconds per set for each Hevy exercise that logs duration.
+
+    Pre-fills the variant form so a time-based exercise carries the interval
+    length actually used, rather than a guess.
+    """
+    workouts_path = REPO_ROOT / "hevy" / "data" / "workouts.json"
+    if not workouts_path.is_file():
+        return {}
+    seen: dict[str, list[int]] = defaultdict(list)
+    for workout in json.loads(workouts_path.read_text(encoding="utf-8")):
+        for entry in workout.get("exercises") or []:
+            for one_set in entry.get("sets") or []:
+                if one_set.get("duration_seconds"):
+                    seen[entry.get("title")].append(one_set["duration_seconds"])
+    return {title: int(median(values)) for title, values in seen.items() if values}
 
 
 def _read_map() -> dict:
@@ -182,7 +202,8 @@ let filter = "all";
 
 // Seed state from any decisions already in the file, so a partial review resumes.
 for (const e of DATA.entries) {
-  if (e.create) state[e.hevy] = {kind: "create", ...e.create};
+  if (e.create && e.create.variant_of) state[e.hevy] = {kind: "variant", ...e.create};
+  else if (e.create) state[e.hevy] = {kind: "create", ...e.create};
   else if (e.slotfit === "SKIP") state[e.hevy] = {kind: "skip"};
   else if (e.slotfit) state[e.hevy] = {kind: "exercise", name: e.slotfit};
 }
@@ -209,6 +230,18 @@ function card(e, i) {
         <input type="text" placeholder="Type at least 2 characters" class="q">
         <div class="results"></div>
         <div class="chosen"></div>
+      </div>
+      <label class="opt" data-kind="variant">
+        <input type="radio" name="${id}"><span>Training-style variant of an existing exercise</span><span class="kbd">v</span>
+      </label>
+      <div class="extra" data-for="variant">
+        <div class="row">
+          <input type="text" class="vbase" placeholder="Base exercise (search)" value="${esc(e.candidates[0] || "")}">
+          <input type="text" class="vtype" placeholder="Style, e.g. HIIT" value="HIIT">
+          <input type="text" class="vtime" placeholder="Seconds per set" value="${e.median_seconds || ""}">
+        </div>
+        <div class="results vresults"></div>
+        <div class="chosen vchosen">${e.candidates[0] ? "Base: " + esc(e.candidates[0]) : ""}</div>
       </div>
       <label class="opt" data-kind="create">
         <input type="radio" name="${id}"><span>Create a new exercise</span><span class="kbd">c</span>
@@ -253,6 +286,11 @@ function restore(section) {
       section.querySelector(".cname").value = sel.name || "";
       section.querySelector(".cpattern").value = sel.pattern || "";
       section.querySelector(".cequip").value = sel.equipment || "";
+    } else if (sel.kind === "variant") {
+      section.querySelector(".vbase").value = sel.variant_of || "";
+      section.querySelector(".vtype").value = sel.variant_type || "";
+      section.querySelector(".vtime").value = sel.default_time_seconds || "";
+      section.querySelector(".vchosen").textContent = "Base: " + (sel.variant_of || "");
     }
   }
   if (target) { target.querySelector("input").checked = true; paint(section); }
@@ -275,12 +313,30 @@ function choose(section, label) {
   if (kind === "exercise") state[hevy] = {kind: "exercise", name: label.dataset.name};
   else if (kind === "skip") state[hevy] = {kind: "skip"};
   else if (kind === "create") readCreate(section);
+  else if (kind === "variant") readVariant(section);
   else {
     const prior = section.querySelector('[data-for="search"] .chosen').textContent;
     if (!prior) delete state[hevy];       // search picked but nothing chosen yet
   }
   paint(section); tally();
   if (kind === "search") section.querySelector(".q").focus();
+}
+
+function readVariant(section) {
+  const hevy = section.dataset.hevy;
+  const variant_of = section.querySelector(".vbase").value.trim();
+  const variant_type = section.querySelector(".vtype").value.trim();
+  const secs = section.querySelector(".vtime").value.trim();
+  // Only a decision once the base exists in the catalogue and a style is named.
+  if (variant_of && variant_type && DATA.catalogue.includes(variant_of)) {
+    state[hevy] = {kind: "variant", variant_of, variant_type, default_time_seconds: secs};
+    section.querySelector(".vchosen").textContent = "Base: " + variant_of;
+  } else {
+    delete state[hevy];
+    section.querySelector(".vchosen").textContent =
+      variant_of ? "Base not found in catalogue - pick from the list" : "";
+  }
+  paint(section); tally();
 }
 
 function readCreate(section) {
@@ -300,6 +356,12 @@ list.addEventListener("click", ev => {
   const hit = ev.target.closest(".results div");
   if (hit) {
     const section = hit.closest(".card");
+    if (hit.closest(".vresults")) {           // choosing a variant's base
+      section.querySelector(".vbase").value = hit.textContent;
+      section.querySelector(".vresults").innerHTML = "";
+      readVariant(section);
+      return;
+    }
     state[section.dataset.hevy] = {kind: "exercise", name: hit.textContent};
     section.querySelector('[data-for="search"] .chosen').textContent = "Selected: " + hit.textContent;
     section.querySelector(".results").innerHTML = "";
@@ -307,19 +369,27 @@ list.addEventListener("click", ev => {
   }
 });
 
+function searchInto(box, query) {
+  const q = query.trim().toLowerCase();
+  if (q.length < 2) { box.innerHTML = ""; return; }
+  const terms = q.split(/\\s+/);
+  const hits = DATA.catalogue
+    .filter(n => { const l = n.toLowerCase(); return terms.every(t => l.includes(t)); })
+    .slice(0, 40);
+  box.innerHTML = hits.map(n => `<div>${esc(n)}</div>`).join("")
+    || '<div style="color:var(--muted);cursor:default">no match</div>';
+}
+
 list.addEventListener("input", ev => {
   const section = ev.target.closest(".card");
   if (ev.target.classList.contains("q")) {
-    const q = ev.target.value.trim().toLowerCase();
-    const box = section.querySelector(".results");
-    if (q.length < 2) { box.innerHTML = ""; return; }
-    const terms = q.split(/\\s+/);
-    const hits = DATA.catalogue
-      .filter(n => { const l = n.toLowerCase(); return terms.every(t => l.includes(t)); })
-      .slice(0, 40);
-    box.innerHTML = hits.map(n => `<div>${esc(n)}</div>`).join("")
-      || '<div style="color:var(--muted);cursor:default">no match</div>';
+    searchInto(section.querySelector('[data-for="search"] .results'), ev.target.value);
   }
+  if (ev.target.classList.contains("vbase")) {
+    searchInto(section.querySelector(".vresults"), ev.target.value);
+    readVariant(section);
+  }
+  if (ev.target.matches(".vtype, .vtime")) readVariant(section);
   if (ev.target.matches(".cname, .cpattern, .cequip")) readCreate(section);
 });
 
@@ -329,7 +399,7 @@ list.addEventListener("mouseover", ev => { hovered = ev.target.closest(".card") 
 document.addEventListener("keydown", ev => {
   if (!hovered || ev.metaKey || ev.ctrlKey || ev.altKey) return;
   if (/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
-  const map = {s: "search", c: "create", x: "skip"};
+  const map = {s: "search", c: "create", v: "variant", x: "skip"};
   let label = null;
   if (/^[1-9]$/.test(ev.key)) {
     label = hovered.querySelectorAll('.opt[data-kind="exercise"]')[+ev.key - 1];
@@ -402,8 +472,12 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, b"not found", "text/plain")
             return
         document = _read_map()
+        entries = document.get("exercises") or []
+        durations = _median_durations()
+        for entry in entries:
+            entry["median_seconds"] = durations.get(entry.get("hevy"))
         payload = {
-            "entries": document.get("exercises") or [],
+            "entries": entries,
             "meta": document.get("meta") or {},
             **self.reference,
         }
