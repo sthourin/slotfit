@@ -4,15 +4,11 @@ List all equipment in the database
 import asyncio
 import sys
 from pathlib import Path
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-env_path = Path(__file__).parent.parent / ".env"
-if env_path.exists():
-    load_dotenv(env_path)
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# app.core.config loads the repo-root .env itself, by absolute path.
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy import select, func

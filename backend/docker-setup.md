@@ -38,7 +38,8 @@ docker exec -it slotfit-db psql -U postgres -d slotfit -c "SELECT version();"
 
 ## Step 5: Configure Backend
 
-Create `backend/.env` file with:
+Copy `.env.example` at the repo root to `.env` (the config file lives at the
+root, not in `backend/`) and set:
 
 ```env
 DATABASE_URL=postgresql+asyncpg://postgres:slotfit@localhost:5432/slotfit
