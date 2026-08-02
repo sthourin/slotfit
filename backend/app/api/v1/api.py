@@ -21,6 +21,7 @@ from app.api.v1.endpoints import (
     day_plans,
     staples,
     training_sessions,
+    suggestions,
 )
 
 api_router = APIRouter()
@@ -53,4 +54,7 @@ api_router.include_router(day_plans.router, prefix="/day-plans", tags=["day-plan
 api_router.include_router(staples.router, prefix="/staples", tags=["staples"])
 api_router.include_router(
     training_sessions.router, prefix="/sessions", tags=["sessions"]
+)
+api_router.include_router(
+    suggestions.router, prefix="/suggestions", tags=["suggestions"]
 )
