@@ -50,12 +50,15 @@ the three, because the other two depend on it.
    free-text label.** Overloading `variant_type` was rejected: a lowercase
    `"amrap"` would silently log the wrong fields, and it would force every
    variant to be a protocol even when it is just `"Volume"`.
-2. **Protocol lives on the exercise, not the round entry.** Per-entry choice was
+2. **Labels are compound — `HIIT AMRAP`, `HIIT EMOM`.** Intent and protocol are
+   independent, and stating both removes the need to guess what `HIIT` implies.
+   Inference is a token scan rather than an exact-match table.
+3. **Protocol lives on the exercise, not the round entry.** Per-entry choice was
    rejected as making you pick a protocol every time you add an exercise to a
    round, rather than once when you define the variant.
-3. **`emom` and `reps` stay distinct despite logging identical columns**, because
+4. **`emom` and `reps` stay distinct despite logging identical columns**, because
    progression differs and spec 2's interval structure must tell them apart.
-4. **The server stays permissive.** No new rejection for a protocol's missing
+5. **The server stays permissive.** No new rejection for a protocol's missing
    field.
 
 ## Data Model
@@ -88,18 +91,28 @@ not retroactively change what last month's sets meant.
 
 ## Protocol Inference on Variant Creation
 
-`variant_type` remains free text and human-facing. A lookup sets `set_protocol`
-when a variant is created:
+`variant_type` remains free text and human-facing. It carries two independent
+things, and a compound label states both: **HIIT** is the training intent
+(conditioning-style interval work) and **AMRAP / EMOM** is the measurement
+protocol. A strength AMRAP is a real thing and is simply labelled `AMRAP`.
 
-| variant_type (case-insensitive) | set_protocol |
+Inference is a token scan over the lowercased label, so no exact-match table is
+needed and compound labels work by construction:
+
+| variant_type | set_protocol |
 | --- | --- |
+| `HIIT AMRAP` | `amrap` |
+| `HIIT EMOM` | `emom` |
 | `AMRAP` | `amrap` |
 | `EMOM` | `emom` |
-| `HIIT` | `amrap` |
-| anything else | `reps` |
+| `HIIT` | `reps` |
+| `Strength`, `Volume`, anything else | `reps` |
 
-`HIIT` maps to `amrap` because that is what Scott's HIIT work actually is: a
-fixed time window with a variable rep count.
+Bare `HIIT` deliberately does **not** imply AMRAP. An earlier draft mapped it
+that way, which buried a guess about Scott's training in the code and would be
+wrong for anyone doing fixed-rep intervals. With compound labels available, a
+variant that fails to state its protocol has not stated one, and falls back to
+straight reps.
 
 Both creation paths apply it:
 
@@ -149,10 +162,18 @@ every existing exercise and round entry is valid without a data pass.
 
 Two explicit backfills follow, both narrow and named:
 
-| Target | New protocol | Why |
+| Target | Change | Why |
 | --- | --- | --- |
-| The 6 exercises where `variant_type = 'HIIT'` | `amrap` | Their Hevy sets ran 30–40 second windows, not 60-second intervals |
-| `Rowing Machine` | `time` | Warm-up conditioning with no meaningful rep count |
+| The 6 exercises where `variant_type = 'HIIT'` | `variant_type` → `HIIT AMRAP`, name `… (HIIT)` → `… (HIIT AMRAP)`, `set_protocol` → `amrap` | Their Hevy sets ran 30–40 second windows, not 60-second intervals |
+| `Rowing Machine` | `set_protocol` → `time` | Warm-up conditioning with no meaningful rep count |
+
+The rename is required, not cosmetic: with bare `HIIT` no longer implying a
+protocol, leaving the label alone would silently reclassify all six to `reps`.
+Renaming is safe because staples and round entries reference exercises by id.
+
+`hevy/exercise_map.yaml` is updated in the same change so its six `variant_type`
+values read `HIIT AMRAP`. Without that, re-running `hevy_staples apply` would
+try to create a second set of `… (HIIT)` variants alongside the renamed ones.
 
 Nothing else is touched. In particular, no attempt is made to infer protocol
 from `default_time_seconds` across the catalogue — that would silently

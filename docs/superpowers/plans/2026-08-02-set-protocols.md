@@ -13,7 +13,8 @@
 - Design spec: `docs/superpowers/specs/2026-08-02-set-protocols-design.md`. Read it before starting.
 - Protocol values are exactly `reps`, `time`, `amrap`, `emom`. Default is `reps`.
 - Field matrix — `reps`: weight optional, reps yes, time not shown. `time`: weight optional, time yes, reps not shown. `amrap`: weight optional, reps yes, time yes. `emom`: weight optional, reps yes, time not shown.
-- Inference is case-insensitive: `AMRAP`→`amrap`, `EMOM`→`emom`, `HIIT`→`amrap`, anything else→`reps`.
+- Inference is a case-insensitive **token scan** over `variant_type`, supporting compound labels: `HIIT AMRAP`→`amrap`, `HIIT EMOM`→`emom`, `AMRAP`→`amrap`, `EMOM`→`emom`, bare `HIIT`→`reps`, anything else→`reps`.
+- Bare `HIIT` must NOT imply AMRAP. That guess was deliberately removed; a variant that doesn't state its protocol hasn't got one.
 - **The server stays permissive.** Do not add rejection for a protocol's missing field. A set that fails to save mid-workout is worse than a set missing a number.
 - `emom` and `reps` log identical columns. Keep them distinct anyway — progression differs and spec 2 needs to tell them apart.
 - Never rewrite existing `EntrySet` or `RoundEntry` rows. Existing entries stay on the `reps` default.
@@ -51,21 +52,31 @@ def test_protocol_values_are_the_four_agreed_strings():
     [
         ("AMRAP", SetProtocol.AMRAP),
         ("EMOM", SetProtocol.EMOM),
-        ("HIIT", SetProtocol.AMRAP),
+        ("HIIT AMRAP", SetProtocol.AMRAP),
+        ("HIIT EMOM", SetProtocol.EMOM),
     ],
 )
-def test_known_variant_types_infer_their_protocol(variant_type, expected):
+def test_labels_infer_their_protocol(variant_type, expected):
     assert protocol_for_variant_type(variant_type) is expected
 
 
 def test_inference_is_case_insensitive():
     # variant_type is free text; a lowercase label must not change behaviour.
-    assert protocol_for_variant_type("amrap") is SetProtocol.AMRAP
-    assert protocol_for_variant_type("eMoM") is SetProtocol.EMOM
+    assert protocol_for_variant_type("hiit amrap") is SetProtocol.AMRAP
+    assert protocol_for_variant_type("HiIt eMoM") is SetProtocol.EMOM
 
 
-def test_inference_tolerates_surrounding_whitespace():
-    assert protocol_for_variant_type("  HIIT  ") is SetProtocol.AMRAP
+def test_inference_tolerates_extra_whitespace():
+    assert protocol_for_variant_type("  HIIT   AMRAP  ") is SetProtocol.AMRAP
+
+
+def test_bare_hiit_does_not_imply_amrap():
+    """Intent without a stated protocol is not a protocol.
+
+    An earlier draft mapped HIIT to AMRAP, which buried a guess about one
+    person's training in the code. Compound labels make the guess unnecessary.
+    """
+    assert protocol_for_variant_type("HIIT") is SetProtocol.REPS
 
 
 @pytest.mark.parametrize("variant_type", ["Strength", "Volume", "Endurance", "", None])
@@ -97,21 +108,31 @@ class SetProtocol(str, enum.Enum):
     EMOM = "emom"      # weight optional, reps - fixed reps per interval
 
 
-# variant_type is free text and human-facing; this maps the labels that imply a
-# measurement protocol. HIIT means AMRAP here: Scott's HIIT work is a fixed time
-# window with a variable rep count, not a fixed-rep interval.
-_VARIANT_TYPE_PROTOCOLS: dict[str, SetProtocol] = {
+# A label carries two independent things: intent ("HIIT") and protocol
+# ("AMRAP"/"EMOM"). Scanning tokens rather than matching whole strings lets
+# compound labels like "HIIT AMRAP" work without enumerating combinations.
+_PROTOCOL_TOKENS: dict[str, SetProtocol] = {
     "amrap": SetProtocol.AMRAP,
     "emom": SetProtocol.EMOM,
-    "hiit": SetProtocol.AMRAP,
 }
 
 
 def protocol_for_variant_type(variant_type: str | None) -> SetProtocol:
-    """Infer a set protocol from a variant's human label. Unknown labels are REPS."""
+    """Infer a set protocol from a variant's human label.
+
+    "HIIT AMRAP" -> AMRAP, "EMOM" -> EMOM, "Strength" -> REPS.
+
+    A bare "HIIT" yields REPS on purpose. It states an intent, not a
+    measurement, and guessing AMRAP from it would be wrong for anyone whose
+    intervals are fixed-rep.
+    """
     if not variant_type:
         return SetProtocol.REPS
-    return _VARIANT_TYPE_PROTOCOLS.get(variant_type.strip().lower(), SetProtocol.REPS)
+    for token in variant_type.lower().split():
+        protocol = _PROTOCOL_TOKENS.get(token)
+        if protocol is not None:
+            return protocol
+    return SetProtocol.REPS
 ```
 
 Then add the column to the `Exercise` class, next to `variant_type`:
@@ -397,11 +418,32 @@ def upgrade() -> None:
 
     # Two narrow, named backfills. No inference across the catalogue: guessing
     # from default_time_seconds would silently reclassify unreviewed exercises.
-    op.execute("UPDATE exercises SET set_protocol = 'amrap' WHERE variant_type = 'HIIT'")
+    #
+    # The six HIIT variants are relabelled as well as reclassified. Bare "HIIT"
+    # no longer implies a protocol, so leaving the label alone would silently
+    # drop them to 'reps'. Renaming is safe: staples and round entries reference
+    # exercises by id, never by name.
+    op.execute(
+        """
+        UPDATE exercises
+           SET name = replace(name, ' (HIIT)', ' (HIIT AMRAP)'),
+               variant_type = 'HIIT AMRAP',
+               set_protocol = 'amrap'
+         WHERE variant_type = 'HIIT'
+        """
+    )
     op.execute("UPDATE exercises SET set_protocol = 'time' WHERE name = 'Rowing Machine'")
 
 
 def downgrade() -> None:
+    op.execute(
+        """
+        UPDATE exercises
+           SET name = replace(name, ' (HIIT AMRAP)', ' (HIIT)'),
+               variant_type = 'HIIT'
+         WHERE variant_type = 'HIIT AMRAP'
+        """
+    )
     op.drop_column('round_entries', 'set_protocol')
     op.drop_column('exercises', 'set_protocol')
     sa.Enum(name='setprotocol').drop(op.get_bind(), checkfirst=True)
@@ -432,18 +474,50 @@ async def m():
 asyncio.run(m())"
 ```
 
-Expected: 3,257 on `reps`, 6 on `amrap` (the HIIT variants), 1 on `time` (`Rowing Machine`).
+Expected: 3,257 on `reps`, 6 on `amrap`, 1 on `time` (`Rowing Machine`). The six
+amrap rows must now be named `… (HIIT AMRAP)`, not `… (HIIT)`.
 
-- [ ] **Step 4: Verify the downgrade works**
+- [ ] **Step 4: Update the mapping file to match**
 
-Run: `./venv/Scripts/python.exe -m alembic downgrade -1 && ./venv/Scripts/python.exe -m alembic upgrade head`
-Expected: both succeed; the backfill counts from Step 3 are the same afterward
-
-- [ ] **Step 5: Commit**
+`hevy/exercise_map.yaml` still says `variant_type: HIIT` for the six. Left alone,
+a re-run of `hevy_staples apply` would create a second set of `… (HIIT)`
+variants beside the renamed ones. Run from the repo root:
 
 ```bash
-git add alembic/versions/b7c14e2a9f30_add_set_protocol.py
-git commit -m "[SH] feat: migrate set_protocol columns and backfill HIIT variants"
+cd .. && ./backend/venv/Scripts/python.exe -c "
+import sys; sys.path.insert(0,'backend')
+from pathlib import Path
+import yaml
+from app.services.hevy_import import dump_map
+p = Path('hevy/exercise_map.yaml')
+doc = yaml.safe_load(p.read_text(encoding='utf-8'))
+n = 0
+for row in doc['exercises']:
+    c = row.get('create') or {}
+    if c.get('variant_type') == 'HIIT':
+        c['variant_type'] = 'HIIT AMRAP'; n += 1
+p.write_text(dump_map(doc), encoding='utf-8')
+print(f'relabelled {n} entries')" && cd backend
+```
+
+Expected: `relabelled 6 entries`
+
+- [ ] **Step 5: Confirm apply is still a no-op**
+
+Run: `./venv/Scripts/python.exe -m scripts.hevy_staples apply`
+Expected: `exercises created : 0`, `already staple : 57` — proving the rename and
+the relabel agree, so no duplicate variants would be created.
+
+- [ ] **Step 6: Verify the downgrade works**
+
+Run: `./venv/Scripts/python.exe -m alembic downgrade -1 && ./venv/Scripts/python.exe -m alembic upgrade head`
+Expected: both succeed; the Step 3 counts and names are the same afterward
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add alembic/versions/b7c14e2a9f30_add_set_protocol.py ../hevy/exercise_map.yaml
+git commit -m "[SH] feat: migrate set_protocol columns, relabel HIIT variants as HIIT AMRAP"
 ```
 
 ---
@@ -468,7 +542,7 @@ Append to `backend/tests/test_set_protocols.py`:
 from app.services.hevy_import import apply_map
 
 
-async def test_hevy_variant_creation_infers_amrap_from_hiit(test_db):
+async def test_hevy_variant_creation_infers_amrap_from_a_compound_label(test_db):
     await seed_movement_patterns(test_db)
     user = User(device_id="protocol-device-02")
     base = Exercise(
@@ -480,8 +554,33 @@ async def test_hevy_variant_creation_infers_amrap_from_hiit(test_db):
 
     doc = {"exercises": [{
         "hevy": "HIIT KB Swings", "slotfit": None, "candidates": [],
-        "create": {"variant_of": "Kettlebell Swing", "variant_type": "HIIT",
+        "create": {"variant_of": "Kettlebell Swing", "variant_type": "HIIT AMRAP",
                    "default_time_seconds": 40},
+    }]}
+    await apply_map(test_db, doc, user)
+
+    variant = (
+        await test_db.execute(
+            select(Exercise).where(Exercise.name == "Kettlebell Swing (HIIT AMRAP)")
+        )
+    ).scalar_one()
+    assert variant.set_protocol == SP.AMRAP
+
+
+async def test_hevy_variant_with_bare_hiit_stays_on_reps(test_db):
+    """Guards the removed guess: intent alone must not pick a protocol."""
+    await seed_movement_patterns(test_db)
+    user = User(device_id="protocol-device-05")
+    base = Exercise(
+        name="Kettlebell Swing", movement_pattern_1="Hip Hinge", mechanics="Compound"
+    )
+    test_db.add_all([user, base])
+    await test_db.flush()
+    await seed_exercise_pattern_map(test_db)
+
+    doc = {"exercises": [{
+        "hevy": "HIIT KB Swings", "slotfit": None, "candidates": [],
+        "create": {"variant_of": "Kettlebell Swing", "variant_type": "HIIT"},
     }]}
     await apply_map(test_db, doc, user)
 
@@ -490,7 +589,7 @@ async def test_hevy_variant_creation_infers_amrap_from_hiit(test_db):
             select(Exercise).where(Exercise.name == "Kettlebell Swing (HIIT)")
         )
     ).scalar_one()
-    assert variant.set_protocol == SP.AMRAP
+    assert variant.set_protocol == SP.REPS
 
 
 async def test_hevy_variant_creation_infers_emom(test_db):
