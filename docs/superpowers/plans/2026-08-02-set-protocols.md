@@ -151,7 +151,7 @@ Then add the column to the `Exercise` class, next to `variant_type`:
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `./venv/Scripts/python.exe -m pytest tests/test_set_protocols.py -v --no-cov`
-Expected: PASS, 11 tests
+Expected: PASS, 13 tests
 
 - [ ] **Step 5: Commit**
 
@@ -275,7 +275,7 @@ Then add to the `RoundEntry` class, immediately after the `pattern_id` column an
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `./venv/Scripts/python.exe -m pytest tests/test_set_protocols.py -v --no-cov`
-Expected: PASS, 14 tests
+Expected: PASS, 16 tests
 
 - [ ] **Step 5: Capture the protocol when an entry is created**
 
@@ -687,7 +687,7 @@ and to the exercise response schema (near `variant_type` at line 57):
 - [ ] **Step 5: Run test to verify it passes**
 
 Run: `./venv/Scripts/python.exe -m pytest tests/test_set_protocols.py -v --no-cov`
-Expected: PASS, 17 tests
+Expected: PASS, 21 tests
 
 - [ ] **Step 6: Run the full backend suite**
 
