@@ -70,7 +70,7 @@ exercises:
   - Slider Mountain Climber
   create:
     variant_of: Bodyweight Mountain Climber
-    variant_type: HIIT
+    variant_type: HIIT AMRAP
     default_time_seconds: 33
 - hevy: Pullover (Dumbbell)
   hevy_template_id: '67280085'
@@ -484,7 +484,7 @@ exercises:
   - Dumbbell Goblet Russian Step Up
   create:
     variant_of: Double Dumbbell Suitcase Step Up
-    variant_type: HIIT
+    variant_type: HIIT AMRAP
     default_time_seconds: 40
 - hevy: HIIT Neutral Grip DB Front Raise
   hevy_template_id: 1d10ec3f-827a-4023-9d73-72118da4c52a
@@ -500,7 +500,7 @@ exercises:
   - Dumbbell Crush Grip Front Rack March
   create:
     variant_of: Alternating Double Dumbbell Front Raise
-    variant_type: HIIT
+    variant_type: HIIT AMRAP
     default_time_seconds: 40
 - hevy: High Knees
   hevy_template_id: 150E076B
@@ -642,7 +642,7 @@ exercises:
   - Dumbbell Crush Grip Bent Over Row
   create:
     variant_of: Double Dumbbell Bent Over Reverse Fly
-    variant_type: HIIT
+    variant_type: HIIT AMRAP
     default_time_seconds: 40
 - hevy: HIIT DB Up And Arounds
   hevy_template_id: 9b13d622-98b0-40fd-8b32-dccd372d16ab
@@ -674,7 +674,7 @@ exercises:
   - Kettlebell Start Stop Swing
   create:
     variant_of: Kettlebell Swing
-    variant_type: HIIT
+    variant_type: HIIT AMRAP
     default_time_seconds: 40
 - hevy: HIIT Speedskater Jumps
   hevy_template_id: 7fd860e4-a933-4825-8402-1f3c58334788
@@ -690,7 +690,7 @@ exercises:
   - Bodyweight Tuck Jump
   create:
     variant_of: Bodyweight Skater Jump
-    variant_type: HIIT
+    variant_type: HIIT AMRAP
     default_time_seconds: 30
 - hevy: Kettlebell Swing
   hevy_template_id: F8A0FCCA

@@ -144,3 +144,88 @@ async def test_a_set_outside_its_protocol_is_still_accepted(test_db):
         await test_db.execute(select(EntrySet).where(EntrySet.entry_id == entry.id))
     ).scalar_one()
     assert stored.time_seconds == 60
+
+
+from app.services.hevy_import import apply_map
+
+
+async def _base_for_variant(test_db, device_id):
+    await seed_movement_patterns(test_db)
+    user = User(device_id=device_id)
+    base = Exercise(
+        name="Kettlebell Swing", movement_pattern_1="Hip Hinge", mechanics="Compound"
+    )
+    test_db.add_all([user, base])
+    await test_db.flush()
+    await seed_exercise_pattern_map(test_db)
+    return user
+
+
+async def test_hevy_variant_creation_infers_amrap_from_a_compound_label(test_db):
+    user = await _base_for_variant(test_db, "protocol-device-02")
+    doc = {"exercises": [{
+        "hevy": "HIIT KB Swings", "slotfit": None, "candidates": [],
+        "create": {"variant_of": "Kettlebell Swing", "variant_type": "HIIT AMRAP",
+                   "default_time_seconds": 40},
+    }]}
+    await apply_map(test_db, doc, user)
+
+    variant = (
+        await test_db.execute(
+            select(Exercise).where(Exercise.name == "Kettlebell Swing (HIIT AMRAP)")
+        )
+    ).scalar_one()
+    assert variant.set_protocol == SP.AMRAP
+
+
+async def test_hevy_variant_with_bare_hiit_stays_on_reps(test_db):
+    """Guards the removed guess: intent alone must not pick a protocol."""
+    user = await _base_for_variant(test_db, "protocol-device-05")
+    doc = {"exercises": [{
+        "hevy": "HIIT KB Swings", "slotfit": None, "candidates": [],
+        "create": {"variant_of": "Kettlebell Swing", "variant_type": "HIIT"},
+    }]}
+    await apply_map(test_db, doc, user)
+
+    variant = (
+        await test_db.execute(
+            select(Exercise).where(Exercise.name == "Kettlebell Swing (HIIT)")
+        )
+    ).scalar_one()
+    assert variant.set_protocol == SP.REPS
+
+
+async def test_hevy_variant_creation_infers_emom(test_db):
+    user = await _base_for_variant(test_db, "protocol-device-03")
+    doc = {"exercises": [{
+        "hevy": "EMOM KB Swings", "slotfit": None, "candidates": [],
+        "create": {"variant_of": "Kettlebell Swing", "variant_type": "HIIT EMOM"},
+    }]}
+    await apply_map(test_db, doc, user)
+
+    variant = (
+        await test_db.execute(
+            select(Exercise).where(Exercise.name == "Kettlebell Swing (HIIT EMOM)")
+        )
+    ).scalar_one()
+    assert variant.set_protocol == SP.EMOM
+
+
+async def test_hevy_plain_create_stays_on_reps(test_db):
+    await seed_movement_patterns(test_db)
+    user = User(device_id="protocol-device-04")
+    test_db.add(user)
+    await test_db.flush()
+
+    doc = {"exercises": [{
+        "hevy": "Leg Press (Machine)", "slotfit": None, "candidates": [],
+        "create": {"name": "Leg Press (Machine)", "pattern": "knee_dominant"},
+    }]}
+    await apply_map(test_db, doc, user)
+
+    created = (
+        await test_db.execute(
+            select(Exercise).where(Exercise.name == "Leg Press (Machine)")
+        )
+    ).scalar_one()
+    assert created.set_protocol == SP.REPS

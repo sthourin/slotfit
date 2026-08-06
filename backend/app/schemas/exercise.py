@@ -54,7 +54,8 @@ class Exercise(ExerciseBase):
     last_performed: Optional[datetime] = None  # Calculated from workout history
     # Variant fields
     base_exercise_id: Optional[int] = None
-    variant_type: Optional[str] = None  # "HIIT", "Strength", "Volume", "Endurance", "Custom"
+    variant_type: Optional[str] = None  # "HIIT AMRAP", "HIIT EMOM", "Strength", "Volume", "Custom"
+    set_protocol: str = "reps"
     is_custom: bool = False
     default_sets: Optional[int] = None
     default_reps: Optional[int] = None
@@ -80,7 +81,8 @@ class ExerciseUpdate(BaseModel):
 class ExerciseDuplicate(BaseModel):
     """Schema for duplicating an exercise to create a variant"""
     name: Optional[str] = None  # If not provided, will append variant_type to original name
-    variant_type: str  # "HIIT", "Strength", "Volume", "Endurance", "Custom"
+    variant_type: str  # "HIIT AMRAP", "HIIT EMOM", "Strength", "Volume", "Custom"
+    set_protocol: Optional[str] = None  # overrides inference from variant_type
     default_sets: Optional[int] = None
     default_reps: Optional[int] = None
     default_weight: Optional[float] = None

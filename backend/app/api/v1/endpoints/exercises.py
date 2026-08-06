@@ -11,6 +11,7 @@ from datetime import datetime
 from app.core.database import get_db
 from app.core.logging import get_logger
 from app.models import Exercise, MuscleGroup, Equipment, WorkoutExercise
+from app.models.exercise import protocol_for_variant_type
 from app.schemas.exercise import Exercise as ExerciseSchema, ExerciseListResponse, ExerciseDuplicate
 from fastapi import HTTPException
 
@@ -98,7 +99,7 @@ async def list_exercises(
             )
         
         if difficulty:
-            from app.models.exercise import DifficultyLevel
+            from app.models.exercise import protocol_for_variant_type, DifficultyLevel
             try:
                 diff_enum = DifficultyLevel(difficulty)
                 query = query.where(Exercise.difficulty == diff_enum)
@@ -473,6 +474,10 @@ async def duplicate_exercise(
         instructions=original.instructions,
         base_exercise_id=base_exercise_id,
         variant_type=variant_data.variant_type,
+        set_protocol=(
+            variant_data.set_protocol
+            or protocol_for_variant_type(variant_data.variant_type)
+        ),
         is_custom=True,
         default_sets=variant_data.default_sets,
         default_reps=variant_data.default_reps,

@@ -29,6 +29,8 @@ export interface RoundEntry {
   exercise_name: string
   pattern_id: number
   pattern_slug: string
+  set_protocol: 'reps' | 'time' | 'amrap' | 'emom'
+  default_time_seconds: number | null
   sets: EntrySet[]
   target: Target | null
 }

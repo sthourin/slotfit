@@ -29,7 +29,7 @@ from app.models import (
     StapleExercise,
     User,
 )
-from app.models.exercise import exercise_muscle_groups
+from app.models.exercise import exercise_muscle_groups, protocol_for_variant_type
 
 # Hevy's equipment vocabulary is five values wide. SlotFit has 39 named
 # implements and no typology. "machine" is deliberately mapped to None: it is
@@ -520,6 +520,7 @@ async def _create_variant(db: AsyncSession, base_name: str, create: dict) -> int
         difficulty=base.difficulty,
         base_exercise_id=base.id,
         variant_type=create["variant_type"],
+        set_protocol=protocol_for_variant_type(create["variant_type"]),
         is_custom="True",
         default_time_seconds=create.get("default_time_seconds"),
     )
