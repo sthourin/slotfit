@@ -14,6 +14,7 @@ from app.models import (
     SupersetRound,
     RoundEntry,
     EntrySet,
+    Exercise,
     SessionState,
     ExercisePatternMap,
     MovementPattern,
@@ -110,6 +111,8 @@ async def _entry_response(
         exercise_name=entry.exercise.name,
         pattern_id=entry.pattern_id,
         pattern_slug=entry.pattern.slug,
+        set_protocol=entry.set_protocol.value,
+        default_time_seconds=entry.exercise.default_time_seconds,
         sets=[EntrySetResponse.model_validate(s) for s in entry.sets],
         target=TargetResponse(**target) if target else None,
     )
@@ -297,11 +300,19 @@ async def create_entry(
     if mapping is None:
         raise HTTPException(status_code=404, detail="Exercise has no pattern mapping")
 
+    exercise = (
+        await db.execute(select(Exercise).where(Exercise.id == data.exercise_id))
+    ).scalar_one_or_none()
+    if exercise is None:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+
     entry = RoundEntry(
         round_id=rnd.id,
         position=data.position,
         exercise_id=data.exercise_id,
         pattern_id=mapping.pattern_id,
+        # Denormalized like pattern_id: the protocol in force when this was logged.
+        set_protocol=exercise.set_protocol,
     )
     db.add(entry)
     await db.commit()

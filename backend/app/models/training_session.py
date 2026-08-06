@@ -7,6 +7,7 @@ from sqlalchemy import Column, String, Integer, Float, Boolean, Text, ForeignKey
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base
+from app.models.exercise import SetProtocol
 
 
 class SessionState(str, enum.Enum):
@@ -67,6 +68,14 @@ class RoundEntry(Base):
     exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False, index=True)
     # Denormalized at logging time so later mapping edits don't rewrite history
     pattern_id = Column(Integer, ForeignKey("movement_patterns.id"), nullable=False, index=True)
+    # Denormalized alongside pattern_id and for the same reason: reclassifying an
+    # exercise later must not change what past sets meant.
+    set_protocol = Column(
+        SQLEnum(SetProtocol, values_callable=lambda x: [e.value for e in x]),
+        default=SetProtocol.REPS,
+        server_default=SetProtocol.REPS.value,
+        nullable=False,
+    )
 
     round = relationship("SupersetRound", back_populates="entries")
     exercise = relationship("Exercise")

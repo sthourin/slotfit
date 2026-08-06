@@ -25,6 +25,47 @@ class DifficultyLevel(str, enum.Enum):
     EXPERT = "Expert"
 
 
+class SetProtocol(str, enum.Enum):
+    """How an exercise's sets are measured.
+
+    Drives which fields the gym UI prompts for. REPS and EMOM record the same
+    columns today, but stay distinct because progression differs and interval
+    routines need to tell them apart.
+    """
+
+    REPS = "reps"      # weight optional, reps
+    TIME = "time"      # weight optional, seconds - rower, plank, carries
+    AMRAP = "amrap"    # weight optional, reps, seconds - fixed window, count reps
+    EMOM = "emom"      # weight optional, reps - fixed reps per interval
+
+
+# A label carries two independent things: intent ("HIIT") and protocol
+# ("AMRAP"/"EMOM"). Scanning tokens rather than matching whole strings lets
+# compound labels like "HIIT AMRAP" work without enumerating combinations.
+_PROTOCOL_TOKENS: dict[str, SetProtocol] = {
+    "amrap": SetProtocol.AMRAP,
+    "emom": SetProtocol.EMOM,
+}
+
+
+def protocol_for_variant_type(variant_type: str | None) -> SetProtocol:
+    """Infer a set protocol from a variant's human label.
+
+    "HIIT AMRAP" -> AMRAP, "EMOM" -> EMOM, "Strength" -> REPS.
+
+    A bare "HIIT" yields REPS on purpose. It states an intent, not a
+    measurement, and guessing AMRAP from it would be wrong for anyone whose
+    intervals are fixed-rep.
+    """
+    if not variant_type:
+        return SetProtocol.REPS
+    for token in variant_type.lower().split():
+        protocol = _PROTOCOL_TOKENS.get(token)
+        if protocol is not None:
+            return protocol
+    return SetProtocol.REPS
+
+
 # Association table for many-to-many relationship between exercises and muscle groups
 exercise_muscle_groups = Table(
     "exercise_muscle_groups",
@@ -74,7 +115,15 @@ class Exercise(Base):
     
     # Exercise Variants (for context-aware history tracking)
     base_exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=True)  # NULL for original exercises, references id for variants
-    variant_type = Column(String, nullable=True)  # "HIIT", "Strength", "Volume", "Endurance", "Custom"
+    variant_type = Column(String, nullable=True)  # "HIIT AMRAP", "HIIT EMOM", "Strength", "Volume", "Custom"
+    # How sets are measured. Inferred from variant_type on creation, but stored
+    # explicitly so behaviour can't be changed by editing a free-text label.
+    set_protocol = Column(
+        SQLEnum(SetProtocol, values_callable=lambda x: [e.value for e in x]),
+        default=SetProtocol.REPS,
+        server_default=SetProtocol.REPS.value,
+        nullable=False,
+    )
     is_custom = Column(String, default="False")  # "True" for user-created variants (using String for SQLite compatibility)
     # Default parameters for variants
     default_sets = Column(Integer, nullable=True)

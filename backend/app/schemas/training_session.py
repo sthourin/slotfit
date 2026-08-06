@@ -39,6 +39,8 @@ class RoundEntryResponse(BaseModel):
     exercise_name: str
     pattern_id: int
     pattern_slug: str
+    set_protocol: str
+    default_time_seconds: Optional[int] = None
     sets: List[EntrySetResponse] = []
     target: Optional[TargetResponse] = None
 
