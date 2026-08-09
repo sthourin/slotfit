@@ -179,6 +179,7 @@ exercises:
   create:
     name: Iso-Lateral Chest Press (Machine)
     pattern: horizontal_push
+    equipment: Chest Press Machine
 - hevy: Leg Press (Machine)
   hevy_template_id: C7973E0E
   sessions: 8

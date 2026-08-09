@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.exercise import Exercise
+from app.models.exercise import DifficultyLevel, Exercise
 from app.models.equipment_profile import EquipmentProfile
 from app.models.movement_pattern import MovementPattern, ExercisePatternMap
 from app.models.staple import StapleExercise, ExercisePreference
@@ -37,6 +37,13 @@ from app.services.progression_service import compute_entry_target
 
 WEEKLY_SET_LIMIT = 20
 NOVELTY_STALENESS_DAYS = 90
+
+# Difficulty levels a 'try something new' suggestion may come from.
+NOVELTY_DIFFICULTIES = (
+    DifficultyLevel.BEGINNER,
+    DifficultyLevel.NOVICE,
+    DifficultyLevel.INTERMEDIATE,
+)
 SEVERITY_ORDER = {"mild": 0, "moderate": 1, "severe": 2}
 
 # Novelty scan: how many candidate rows to consider, and the coprime
@@ -125,6 +132,29 @@ async def _available_equipment_ids(db: AsyncSession, user_id: int) -> set[int] |
     if profile is None:
         return None
     return set(profile.equipment_ids or [])
+
+
+async def _staple_equipment_ids(db: AsyncSession, user_id: int) -> set[int]:
+    """Equipment the user demonstrably trains with, taken from their staples.
+
+    Used as a fallback for novelty suggestions when no equipment profile
+    exists. The catalogue is heavy on unconventional implements - Clubbell,
+    Macebell, Bulgarian Bag - and proposing one to somebody who owns none is
+    noise. What they already do is the best available evidence of what they
+    can reach.
+    """
+    rows = (
+        await db.execute(
+            select(Exercise.primary_equipment_id)
+            .join(StapleExercise, StapleExercise.exercise_id == Exercise.id)
+            .where(
+                StapleExercise.user_id == user_id,
+                Exercise.primary_equipment_id.isnot(None),
+            )
+            .distinct()
+        )
+    ).scalars().all()
+    return set(rows)
 
 
 async def _weekly_sets_by_muscle_group(
@@ -542,6 +572,12 @@ async def _novelty_candidate(
     restrictions = await _injury_restrictions(db, user_id)
     weekly = await _weekly_sets_by_muscle_group(db, user_id)
 
+    # Novelty is held to a higher bar than a staple suggestion. A staple is
+    # something the user chose; a novelty is something we are proposing, so an
+    # unreachable implement or an elite movement is worse than no suggestion.
+    if available is None:
+        available = await _staple_equipment_ids(db, user_id) or None
+
     # Exclusions that can be expressed in SQL are, so the row cap applies to
     # genuine candidates rather than being spent on staples and blacklisted
     # rows. The ordering rotates weekly: deterministic within a week (so the
@@ -559,6 +595,10 @@ async def _novelty_candidate(
         .where(
             ExercisePatternMap.pattern_id.in_(pattern_ids),
             Exercise.mechanics == "Compound",
+            # Approachable movements only. NULL is excluded alongside
+            # Advanced/Expert because unrated is unvetted - the catalogue's
+            # two-finger planche push-up carries no difficulty at all.
+            Exercise.difficulty.in_(NOVELTY_DIFFICULTIES),
         )
         .options(
             selectinload(Exercise.primary_equipment),

@@ -10,7 +10,7 @@ from app.models import (
     TrainingSession, SupersetRound, RoundEntry, EntrySet, SessionState,
     InjuryType, MovementRestriction, UserInjury,
 )
-from app.models.exercise import exercise_muscle_groups
+from app.models.exercise import exercise_muscle_groups, DifficultyLevel
 from app.services.pattern_taxonomy import seed_movement_patterns, seed_exercise_pattern_map
 from app.services.suggestion_service import (
     anchor_suggestions, partner_suggestions, _diverse_limit,
@@ -31,14 +31,20 @@ async def _setup(test_db):
     test_db.add_all([user, cable, db_bell])
     await test_db.flush()
 
+    # difficulty is set because the real catalogue rates 98% of its rows, and
+    # novelty suggestions deliberately skip unrated exercises.
     row = Exercise(name="Seated Cable Row", movement_pattern_1="Horizontal Pull",
-                   mechanics="Compound", primary_equipment_id=cable.id)
+                   mechanics="Compound", primary_equipment_id=cable.id,
+                   difficulty=DifficultyLevel.NOVICE)
     bench = Exercise(name="Dumbbell Bench Press", movement_pattern_1="Horizontal Push",
-                     mechanics="Compound", primary_equipment_id=db_bell.id)
+                     mechanics="Compound", primary_equipment_id=db_bell.id,
+                     difficulty=DifficultyLevel.NOVICE)
     pushup = Exercise(name="Push Up", movement_pattern_1="Horizontal Push",
-                      mechanics="Compound", primary_equipment_id=None)  # bodyweight
+                      mechanics="Compound", primary_equipment_id=None,  # bodyweight
+                      difficulty=DifficultyLevel.BEGINNER)
     bb_bench = Exercise(name="Barbell Bench Press", movement_pattern_1="Horizontal Push",
-                        mechanics="Compound", primary_equipment_id=cable.id)
+                        mechanics="Compound", primary_equipment_id=cable.id,
+                        difficulty=DifficultyLevel.NOVICE)
     test_db.add_all([row, bench, pushup, bb_bench])
     await test_db.flush()
     await seed_exercise_pattern_map(test_db)
@@ -237,7 +243,8 @@ async def test_position_three_offers_neutral_patterns(test_db):
 @pytest.mark.asyncio
 async def test_novelty_candidate_is_non_staple_compound(test_db):
     user, session, d = await _setup(test_db)
-    incline = Exercise(name="Incline Dumbbell Bench Press", movement_pattern_1="Horizontal Push",
+    incline = Exercise(difficulty=DifficultyLevel.NOVICE,
+                       name="Incline Dumbbell Bench Press", movement_pattern_1="Horizontal Push",
                        mechanics="Compound", primary_equipment_id=None)
     test_db.add(incline)
     await test_db.flush()
@@ -359,7 +366,8 @@ async def test_novelty_pick_is_valid_and_deterministic_within_a_run(test_db):
     user, session, d = await _setup(test_db)
     candidates = [
         Exercise(name=f"Machine Chest Press {i}", movement_pattern_1="Horizontal Push",
-                 mechanics="Compound", primary_equipment_id=None)
+                 mechanics="Compound", primary_equipment_id=None,
+                 difficulty=DifficultyLevel.NOVICE)
         for i in range(6)
     ]
     # An isolation movement and a wrong-pattern movement must never be picked
@@ -391,7 +399,8 @@ async def test_novelty_pick_is_valid_and_deterministic_within_a_run(test_db):
 async def test_novelty_respects_weekly_volume(test_db):
     """A 'try something new' pick is not exempt from the volume limit."""
     user, session, d = await _setup(test_db)
-    incline = Exercise(name="Incline Dumbbell Bench Press",
+    incline = Exercise(difficulty=DifficultyLevel.NOVICE,
+                       name="Incline Dumbbell Bench Press",
                        movement_pattern_1="Horizontal Push",
                        mechanics="Compound", primary_equipment_id=None)
     chest = MuscleGroup(name="Chest", level=1)
@@ -455,3 +464,70 @@ async def test_weekly_volume_filter_handles_unloaded_exercises(test_db):
 
     result = await anchor_suggestions(test_db, user_id, session_id)
     assert len(result["groups"]) == 2
+
+
+async def test_novelty_skips_equipment_the_user_has_never_used(test_db):
+    """With no equipment profile, fall back to what the staples demonstrably use.
+
+    The catalogue is full of unconventional implements (Clubbell, Macebell,
+    Bulgarian Bag). Suggesting one to somebody who owns none of them is noise
+    in the gym, and 'no profile' should not mean 'anything goes'.
+    """
+    user, session, _d = await _setup(test_db)
+    macebell = Equipment(name="Macebell")
+    test_db.add(macebell)
+    await test_db.flush()
+    db_bell = (
+        await test_db.execute(select(Equipment).where(Equipment.name == "Dumbbell"))
+    ).scalar_one()
+    exotic = Exercise(
+        name="Macebell 360 Swing", movement_pattern_1="Horizontal Push",
+        mechanics="Compound", primary_equipment_id=macebell.id,
+        difficulty=DifficultyLevel.INTERMEDIATE,
+    )
+    # A reachable alternative, so the assertion below proves the macebell was
+    # filtered out rather than that nothing was eligible.
+    reachable = Exercise(
+        name="Dumbbell Floor Press", movement_pattern_1="Horizontal Push",
+        mechanics="Compound", primary_equipment_id=db_bell.id,
+        difficulty=DifficultyLevel.NOVICE,
+    )
+    test_db.add_all([exotic, reachable])
+    await test_db.flush()
+    await seed_exercise_pattern_map(test_db)
+
+    await test_db.commit()
+    result = await partner_suggestions(test_db, user.id, session.id,
+                                       anchor_exercise_id=_d["row"].id, position=2)
+
+    # Not a vacuous pass: something is still suggested, just not the macebell.
+    assert result["novelty"] is not None
+    assert result["novelty"]["exercise_name"] != "Macebell 360 Swing"
+
+
+async def test_novelty_skips_unrated_and_elite_exercises(test_db):
+    """Unknown difficulty is unvetted, and Expert moves are not 'try something new'.
+
+    A two-finger planche push-up has NULL difficulty in the real catalogue, so
+    excluding only Advanced/Expert would let it through.
+    """
+    user, session, _d = await _setup(test_db)
+    db_bell = (
+        await test_db.execute(select(Equipment).where(Equipment.name == "Dumbbell"))
+    ).scalar_one()
+    for name, level in [("Planche Push Up", None), ("One Arm Push Up", DifficultyLevel.EXPERT),
+                        ("Dumbbell Floor Press", DifficultyLevel.NOVICE)]:
+        test_db.add(Exercise(
+            name=name, movement_pattern_1="Horizontal Push", mechanics="Compound",
+            primary_equipment_id=db_bell.id, difficulty=level,
+        ))
+    await test_db.flush()
+    await seed_exercise_pattern_map(test_db)
+
+    await test_db.commit()
+    result = await partner_suggestions(test_db, user.id, session.id,
+                                       anchor_exercise_id=_d["row"].id, position=2)
+
+    # Not a vacuous pass: a rated candidate is still offered.
+    assert result["novelty"] is not None
+    assert result["novelty"]["exercise_name"] not in {"Planche Push Up", "One Arm Push Up"}

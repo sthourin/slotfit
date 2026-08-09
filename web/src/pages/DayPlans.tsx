@@ -158,8 +158,11 @@ export default function DayPlans() {
           </label>
           <div className="mb-4">
             <span className="text-sm text-gray-600 block mb-2">Pattern goals</span>
+            {/* Every pattern is selectable, conditioning included. It was once
+                excluded on the assumption that conditioning is only ever the
+                warm-up, but interval work (rower, HIIT AMRAP circuits) is real
+                training with its own volume worth planning for. */}
             {patterns
-              .filter((p) => p.slug !== 'conditioning')
               .map((p) => {
                 const goal = draft.goals.find((g) => g.pattern_id === p.id)
                 return (
