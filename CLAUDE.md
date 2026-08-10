@@ -149,13 +149,21 @@ Exercises with `primary_equipment_id = NULL` (bodyweight exercises) are **ALWAYS
 Routine templates with pre-planned muscle-group slots are retired. A session is
 built live in the gym instead:
 1. A **Day Plan** carries pattern goals (target sets per movement pattern), not an exercise list
-2. In the gym the user starts a **superset round** and picks an **anchor** - whatever station is free
-3. The app suggests a **partner** working the OPPOSITE movement pattern, drawn from the user's staple pool
+2. Starting a session **proposes a whole workout** - anchor, partner, and optional third per round - which the user adjusts by swapping any slot for whatever station is free
+3. Each proposed **partner** works the OPPOSITE movement pattern, drawn from the user's staple pool
 4. Sets are logged per round entry; pattern coverage updates against the day plan's goals
+5. Unstarted rounds re-propose as the session progresses; slots the user chose explicitly are pinned and survive
 
-Nothing is pre-filled from a previous workout, and there is no "save as new
-routine" prompt: the session is composed on the spot, so there is no template to
-diverge from.
+**Informed by many workouts, a copy of none.** Proposals come from evidence
+accumulated across history - which staples are least recently performed, which
+patterns are under-covered, what progression the logged sets support. What is
+ruled out is replaying the most recent session, which is how the retired routine
+templates behaved. There is no "save as new routine" prompt, because there is no
+template to diverge from.
+
+An earlier version of this section said "nothing is pre-filled," which overshot
+the intent and read as a prohibition on proposing anything at all. See
+`docs/superpowers/specs/2026-08-02-proposed-sessions-design.md`.
 
 ### Staple Pool
 Anchor and partner suggestions come exclusively from the user's **staples** -
