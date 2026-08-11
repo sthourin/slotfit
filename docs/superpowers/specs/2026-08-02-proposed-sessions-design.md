@@ -51,6 +51,13 @@ prohibition on the feature being built here.
    when a station is taken. A "what's busy today" gate would sit between the
    user and starting, and gym availability changes minute to minute anyway.
 4. **The proposal is computed, never stored.**
+5. **Interval variants and their base lifts are peers in the rotation.** A
+   `Kettlebell Swing (HIIT AMRAP)` and a plain `Kettlebell Swing` are both
+   hip-hinge staples, and the proposal may offer either. Being handed an
+   interval option in the middle of a standard routine is wanted, not a defect,
+   so no preference is given to base variants. Swap covers the days it is wrong.
+   For scale: 50 of the 57 seeded staples are ordinary rep-based lifts, so this
+   surfaces interval work occasionally rather than steering toward it.
 
 ## Why the Proposal Is Not Persisted
 
