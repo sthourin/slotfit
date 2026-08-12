@@ -159,12 +159,12 @@ test('create day plan, run a dynamic session with a superset round, finish', asy
   await anchorCard.getByPlaceholder('weight').fill('135')
   await anchorCard.getByPlaceholder('reps').fill('8')
   await anchorCard.getByRole('button', { name: 'Log Set' }).click()
-  await expect(anchorCard).toContainText('1 sets', { timeout: 10_000 })
+  await expect(anchorCard).toContainText('1 set', { timeout: 10_000 })
 
   await partnerCard.getByPlaceholder('weight').fill('185')
   await partnerCard.getByPlaceholder('reps').fill('5')
   await partnerCard.getByRole('button', { name: 'Log Set' }).click()
-  await expect(partnerCard).toContainText('1 sets', { timeout: 10_000 })
+  await expect(partnerCard).toContainText('1 set', { timeout: 10_000 })
 
   // --- Coverage reflects the logged work
   await expect(chips).toContainText('Horizontal Pull 1/3')
@@ -177,6 +177,6 @@ test('create day plan, run a dynamic session with a superset round, finish', asy
   })
   const summary = page.getByText(/Round 1:/)
   await expect(summary).toBeVisible()
-  await expect(page.getByText(`${ANCHOR} (1 sets)`)).toBeVisible()
-  await expect(page.getByText(`${PARTNER} (1 sets)`)).toBeVisible()
+  await expect(page.getByText(`${ANCHOR} (1 set)`)).toBeVisible()
+  await expect(page.getByText(`${PARTNER} (1 set)`)).toBeVisible()
 })
