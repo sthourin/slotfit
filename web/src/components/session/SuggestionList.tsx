@@ -20,6 +20,10 @@ interface Props {
  * Second line of a card: equipment, then history, then the progression target.
  * `target` is null when the exercise has no history, and `target.weight` is
  * null for bodyweight work — neither may render as "null" or "0".
+ *
+ * The target clause is driven by `reps_goal`: time-only work carries none and
+ * so prescribes nothing, rather than rendering an invented rep count for a
+ * rowing machine.
  */
 function cardDetail(card: SuggestionCard): string {
   const parts: string[] = [card.is_bodyweight ? 'Bodyweight' : card.equipment_name ?? 'No equipment']
@@ -30,9 +34,14 @@ function cardDetail(card: SuggestionCard): string {
     parts.push('Never performed')
   }
 
-  if (card.target) {
-    const weight = card.target.weight != null ? ` @ ${card.target.weight}` : ''
-    parts.push(`Target: ${card.target.sets}x${card.target.reps}${weight}`)
+  const target = card.target
+  if (target) {
+    const weight = target.weight != null ? ` @ ${target.weight}` : ''
+    if (target.reps_goal === 'beat') {
+      parts.push(`Beat ${target.reps}${weight}`)
+    } else if (target.reps_goal === 'target') {
+      parts.push(`Target: ${target.sets}x${target.reps}${weight}`)
+    }
   }
 
   return parts.join(' · ')

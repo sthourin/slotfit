@@ -38,6 +38,9 @@ class AnchorGroup(BaseModel):
 
 class AnchorSuggestionsResponse(BaseModel):
     groups: List[AnchorGroup]
+    # Patterns the day plan does not ask for, offered below the plan's own
+    # groups so a taken station never blocks the session.
+    other_groups: List[AnchorGroup] = []
     not_recommended: List[NotRecommendedEntry]
 
 

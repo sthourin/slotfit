@@ -457,9 +457,15 @@ async def _staples_with_exercises(
 async def anchor_suggestions(db: AsyncSession, user_id: int, session_id: int) -> dict:
     """Staples grouped by the session's pattern goals, uncovered required goals first.
 
+    Patterns the plan does not ask for come back separately in `other_groups`,
+    below the plan's own. Restricting the picker to plan goals made a free
+    station unreachable: if the only thing open is the pull-up bar and vertical
+    pull is not in today's plan, there was no way to anchor on it.
+
     A free-form session - no day plan, or a day plan with no pattern goals -
     has no coverage to chase, so it falls back to every pattern the user has
-    active staples for, in taxonomy display order, all reported uncovered.
+    active staples for, in taxonomy display order, all reported uncovered, and
+    `other_groups` is empty because nothing is left over.
     """
     session, goals, sets_by_pattern, rep_ranges = await _session_context(
         db, user_id, session_id
@@ -493,12 +499,12 @@ async def anchor_suggestions(db: AsyncSession, user_id: int, session_id: int) ->
     for staple in staples:
         staples_by_pattern[staple.pattern_id].append(staple)
 
-    groups = []
     all_rejected: list[dict] = []
-    for pattern_id, covered in ordered_patterns:
+
+    async def _build_group(pattern_id: int, covered: bool) -> dict | None:
         pattern_staples = staples_by_pattern.get(pattern_id, [])
         if not pattern_staples:
-            continue
+            return None
         pattern = pattern_staples[0].pattern
         exercises = [s.exercise for s in pattern_staples]
         pattern_by_exercise = {s.exercise_id: s.pattern for s in pattern_staples}
@@ -507,18 +513,51 @@ async def anchor_suggestions(db: AsyncSession, user_id: int, session_id: int) ->
             db, user_id, exercises, pattern_by_exercise, staple_ids, rep_ranges
         )
         all_rejected.extend(rejected)
-        groups.append(
-            {
-                "pattern": {
-                    "id": pattern.id,
-                    "slug": pattern.slug,
-                    "name": pattern.name,
-                },
-                "covered": covered,
-                "staples": cards,
-            }
-        )
-    return {"groups": groups, "not_recommended": _diverse_limit(all_rejected)}
+        return {
+            "pattern": {
+                "id": pattern.id,
+                "slug": pattern.slug,
+                "name": pattern.name,
+            },
+            "covered": covered,
+            "staples": cards,
+        }
+
+    groups = []
+    for pattern_id, covered in ordered_patterns:
+        group = await _build_group(pattern_id, covered)
+        if group is not None:
+            groups.append(group)
+
+    # Patterns outside the plan. Reachable but deliberately subordinate: the
+    # plan is still the point, this is the "that rack is taken" escape hatch.
+    # A free-form session already offers every pattern as a goal group, so it
+    # has nothing left over.
+    other_groups: list[dict] = []
+    if goals:
+        planned_ids = {pattern_id for pattern_id, _covered in ordered_patterns}
+        off_plan = [
+            s
+            for s in await _staples_with_exercises(db, user_id, None)
+            if s.pattern_id not in planned_ids
+        ]
+        for staple in off_plan:
+            staples_by_pattern[staple.pattern_id].append(staple)
+        seen: dict[int, MovementPattern] = {}
+        for staple in off_plan:
+            seen.setdefault(staple.pattern_id, staple.pattern)
+        for pattern_id, _pattern in sorted(
+            seen.items(), key=lambda item: (item[1].display_order, item[1].id)
+        ):
+            group = await _build_group(pattern_id, False)
+            if group is not None:
+                other_groups.append(group)
+
+    return {
+        "groups": groups,
+        "other_groups": other_groups,
+        "not_recommended": _diverse_limit(all_rejected),
+    }
 
 
 async def partner_suggestions(

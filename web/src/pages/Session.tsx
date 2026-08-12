@@ -65,7 +65,13 @@ export default function Session() {
   const warmupKey = (dayPlan?.warmup_preferences ?? []).join(',')
   // Groups with no staples are dropped server-side, so an empty staple pool
   // arrives here as `groups: []` and the picker would otherwise render nothing.
-  const anchorCardCount = (anchorData?.groups ?? []).reduce((n, g) => n + g.staples.length, 0)
+  // Off-plan groups count too: a pool that only covers patterns outside today's
+  // plan is still a pool, and telling that user it is "currently empty" while
+  // rendering their staples underneath would be plainly wrong.
+  const anchorCardCount = [
+    ...(anchorData?.groups ?? []),
+    ...(anchorData?.other_groups ?? []),
+  ].reduce((n, g) => n + g.staples.length, 0)
 
   // Resume an in-progress session when the page is opened cold (refresh, or
   // the phone screen locking mid-workout).
@@ -492,6 +498,27 @@ export default function Session() {
                   )}
                 </div>
               ))}
+              {/* Patterns outside today's plan. Kept below the plan's own
+                  groups and visually quieter: the plan is still the point,
+                  this is the "that rack is taken" escape hatch. */}
+              {(anchorData?.other_groups?.length ?? 0) > 0 && (
+                <div className="mt-4 pt-3 border-t">
+                  <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">
+                    Other patterns — not in this day plan
+                  </div>
+                  {anchorData?.other_groups.map((group) => (
+                    <div key={group.pattern.id} className="mb-3">
+                      <div className="text-sm text-gray-500 mb-1">{group.pattern.name}</div>
+                      <SuggestionList
+                        cards={group.staples}
+                        notRecommended={[]}
+                        onSelect={selectExercise}
+                        disabled={busy}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
               {anchorData && (
                 <SuggestionList
                   cards={[]}

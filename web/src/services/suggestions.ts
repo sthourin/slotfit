@@ -29,6 +29,8 @@ export interface AnchorGroup {
 
 export interface AnchorSuggestions {
   groups: AnchorGroup[]
+  /** Patterns this day plan does not ask for, offered below its own groups. */
+  other_groups: AnchorGroup[]
   not_recommended: NotRecommendedEntry[]
 }
 

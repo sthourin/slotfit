@@ -241,6 +241,51 @@ async def test_position_three_offers_neutral_patterns(test_db):
     assert (self_paired["novelty"] or {}).get("exercise_name") != "Plank"
 
 
+@pytest.mark.asyncio
+async def test_anchor_suggestions_offer_off_plan_patterns_separately(test_db):
+    """A staple in a pattern the plan omits must still be reachable.
+
+    Regression guard: the picker only listed plan goals, so if the squat rack
+    was taken and the only free station was the pull-up bar, there was no way
+    to anchor on vertical pull.
+    """
+    user, session, d = await _setup(test_db)
+    vpull = await _pattern(test_db, "vertical_pull")
+
+    chin = Exercise(name="Test Chin Up", movement_pattern_1="Vertical Pull",
+                    mechanics="Compound", primary_equipment_id=None,
+                    difficulty=DifficultyLevel.NOVICE)
+    test_db.add(chin)
+    await test_db.flush()
+    await seed_exercise_pattern_map(test_db)
+    test_db.add(StapleExercise(user_id=user.id, pattern_id=vpull.id, exercise_id=chin.id))
+    await test_db.commit()
+
+    result = await anchor_suggestions(test_db, user.id, session.id)
+
+    goal_slugs = [g["pattern"]["slug"] for g in result["groups"]]
+    other_slugs = [g["pattern"]["slug"] for g in result["other_groups"]]
+    assert set(goal_slugs) == {"horizontal_pull", "horizontal_push"}
+    assert "vertical_pull" in other_slugs
+    # An off-plan pattern must never be duplicated into the goal groups.
+    assert "vertical_pull" not in goal_slugs
+    names = [c["exercise_name"] for g in result["other_groups"] for c in g["staples"]]
+    assert "Test Chin Up" in names
+
+
+@pytest.mark.asyncio
+async def test_freeform_session_has_no_leftover_other_groups(test_db):
+    """A free-form session already offers every pattern, so nothing is left over."""
+    user, session, d = await _setup(test_db)
+    free = TrainingSession(user_id=user.id, day_plan_id=None,
+                           state=SessionState.ACTIVE, started_at=datetime(2026, 7, 29, 9))
+    test_db.add(free)
+    await test_db.commit()
+
+    result = await anchor_suggestions(test_db, user.id, free.id)
+    assert result["other_groups"] == []
+
+
 def test_finisher_compatibility_matrix():
     """Interval anchors want interval finishers; straight sets never want AMRAP."""
     assert finisher_is_compatible(SetProtocol.AMRAP, SetProtocol.AMRAP)
