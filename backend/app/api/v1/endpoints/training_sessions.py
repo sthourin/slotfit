@@ -33,6 +33,7 @@ from app.schemas.training_session import (
     CoverageResponse,
     CoverageGoal,
 )
+from app.services.exercise_helpers import bodyweight_equipment_id, is_bodyweight
 from app.services.progression_service import compute_entry_target
 
 router = APIRouter()
@@ -100,9 +101,12 @@ async def _entry_response(
     here rather than via model_validate.
     """
     rep_min, rep_max = await _rep_range_for(db, session, entry.pattern_id)
+    # The entry's denormalised protocol, not the exercise's: reclassifying an
+    # exercise later must not change how past sets are read.
     target = await compute_entry_target(
-        db, user.id, entry.exercise_id, rep_min, rep_max
+        db, user.id, entry.exercise_id, rep_min, rep_max, protocol=entry.set_protocol
     )
+    bodyweight_id = await bodyweight_equipment_id(db)
     return RoundEntryResponse(
         id=entry.id,
         round_id=entry.round_id,
@@ -112,6 +116,7 @@ async def _entry_response(
         pattern_id=entry.pattern_id,
         pattern_slug=entry.pattern.slug,
         set_protocol=entry.set_protocol.value,
+        is_bodyweight=is_bodyweight(entry.exercise, bodyweight_id),
         default_time_seconds=entry.exercise.default_time_seconds,
         sets=[EntrySetResponse.model_validate(s) for s in entry.sets],
         target=TargetResponse(**target) if target else None,

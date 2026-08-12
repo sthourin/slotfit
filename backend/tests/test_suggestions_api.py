@@ -24,6 +24,7 @@ from app.models import (
     EntrySet,
     SessionState,
 )
+from app.models.exercise import SetProtocol
 from app.services.pattern_taxonomy import seed_exercise_pattern_map
 
 
@@ -223,9 +224,78 @@ async def test_partner_target_schema_round_trip_with_non_null_target(
         "weight",
         "reps",
         "sets",
+        "time_seconds",
+        "reps_goal",
         "last_summary",
     }
     assert bench_card["target"]["reps"] == 11  # double progression: 10 + 1
+    assert bench_card["target"]["reps_goal"] == "target"
+
+
+@pytest.mark.asyncio
+async def test_time_only_staple_target_has_no_rep_prescription(
+    client_with_data, seeded_db, device_id
+):
+    """A rower staple with history must not come back with an invented rep target.
+
+    Regression guard: time-only history reached the progression math as
+    (None, None), which produced 'Last: 0@bw, 0@bw' and a rep target of 9 for
+    a rowing machine.
+    """
+    client, _seed = client_with_data
+    test_db, _ = seeded_db
+    headers = {"X-Device-ID": device_id}
+    me = await client.get("/api/v1/users/me", headers=headers)
+    user_id = me.json()["id"]
+
+    rower = Exercise(
+        name="Test Rowing Machine",
+        movement_pattern_1="Conditioning",
+        mechanics="Compound",
+        set_protocol=SetProtocol.TIME,
+    )
+    test_db.add(rower)
+    await test_db.commit()
+    await seed_exercise_pattern_map(test_db)
+    conditioning_id = await _pattern_id(client, headers, "conditioning")
+
+    await client.post(
+        "/api/v1/staples/", json={"exercise_id": rower.id}, headers=headers
+    )
+
+    done = TrainingSession(
+        user_id=user_id,
+        state=SessionState.COMPLETED,
+        started_at=datetime(2026, 7, 27, 9),
+        completed_at=datetime(2026, 7, 27, 10),
+    )
+    rnd = SupersetRound(order=1)
+    entry = RoundEntry(
+        position=1,
+        exercise_id=rower.id,
+        pattern_id=conditioning_id,
+        set_protocol=SetProtocol.TIME,
+    )
+    entry.sets.append(EntrySet(set_number=1, time_seconds=300))
+    entry.sets.append(EntrySet(set_number=2, time_seconds=300))
+    rnd.entries.append(entry)
+    done.rounds.append(rnd)
+    test_db.add(done)
+    await test_db.commit()
+
+    session = (await client.post("/api/v1/sessions/", json={}, headers=headers)).json()
+    response = await client.get(
+        f"/api/v1/suggestions/anchors?session_id={session['id']}", headers=headers
+    )
+    assert response.status_code == 200
+    cards = [c for g in response.json()["groups"] for c in g["staples"]]
+    card = next(c for c in cards if c["exercise_name"] == "Test Rowing Machine")
+
+    assert card["target"] is not None
+    assert card["target"]["reps"] is None
+    assert card["target"]["reps_goal"] is None
+    assert card["target"]["weight"] is None
+    assert card["target"]["last_summary"] == "2x300s"
 
 
 @pytest.mark.asyncio

@@ -25,9 +25,14 @@ class RoundEntryCreate(BaseModel):
 
 class TargetResponse(BaseModel):
     weight: Optional[float]
-    reps: int
+    # None for time-only work, which gets no rep prescription at all.
+    reps: Optional[int] = None
     sets: int
-    last_summary: Optional[str]  # e.g. "3x10 @ 120"
+    time_seconds: Optional[int] = None
+    # "target" = do exactly this many reps; "beat" = exceed this many (AMRAP);
+    # None = no rep prescription.
+    reps_goal: Optional[str] = None
+    last_summary: Optional[str]  # e.g. "3x10 @ 120", "2x300s"
 
 
 class RoundEntryResponse(BaseModel):
@@ -40,6 +45,9 @@ class RoundEntryResponse(BaseModel):
     pattern_id: int
     pattern_slug: str
     set_protocol: str
+    # The web card labels the weight input "+ weight" for bodyweight movements,
+    # and nothing else on this response exposes equipment.
+    is_bodyweight: bool = False
     default_time_seconds: Optional[int] = None
     sets: List[EntrySetResponse] = []
     target: Optional[TargetResponse] = None

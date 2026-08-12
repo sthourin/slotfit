@@ -277,7 +277,8 @@ async def _filter_cards(
                 "last_performed": last_map.get(exercise.id),
                 "is_staple": exercise.id in staple_ids,
                 "target": await compute_entry_target(
-                    db, user_id, exercise.id, rep_min, rep_max
+                    db, user_id, exercise.id, rep_min, rep_max,
+                    protocol=exercise.set_protocol,
                 ),
             }
         )
@@ -660,7 +661,8 @@ async def _novelty_candidate(
             "last_performed": last,
             "is_staple": False,
             "target": await compute_entry_target(
-                db, user_id, exercise.id, rep_min, rep_max
+                db, user_id, exercise.id, rep_min, rep_max,
+                protocol=exercise.set_protocol,
             ),
         }
     return None
