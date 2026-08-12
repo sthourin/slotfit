@@ -103,3 +103,31 @@ async def test_seed_preserves_overrides(test_db):
     await seed_exercise_pattern_map(test_db)  # re-seed must not clobber
     await test_db.refresh(row)
     assert row.pattern_id == conditioning.id
+
+
+@pytest.mark.asyncio
+async def test_plyometric_and_core_movements_are_not_isolation(test_db):
+    """Two staples were filed under isolation that are conditioning and core.
+
+    Both fell through to the `isolation` fallback, which is also the largest
+    bucket, so the wrong answer was easy to miss. They are corrected by exact
+    name rather than by loosening a rule that classifies 3,244 exercises.
+    """
+    await seed_movement_patterns(test_db)
+    test_db.add_all([
+        Exercise(name="Bodyweight Skater Jump (HIIT AMRAP)",
+                 movement_pattern_1="Lateral Bound", mechanics="Compound"),
+        Exercise(name="Bodyweight Copenhagen Plank",
+                 movement_pattern_1="Adduction", mechanics="Isolation"),
+    ])
+    await test_db.commit()
+    await seed_exercise_pattern_map(test_db)
+
+    result = await test_db.execute(
+        select(ExercisePatternMap, Exercise.name, MovementPattern.slug)
+        .join(Exercise, Exercise.id == ExercisePatternMap.exercise_id)
+        .join(MovementPattern, MovementPattern.id == ExercisePatternMap.pattern_id)
+    )
+    by_name = {name: slug for _, name, slug in result.all()}
+    assert by_name["Bodyweight Skater Jump (HIIT AMRAP)"] == "conditioning"
+    assert by_name["Bodyweight Copenhagen Plank"] == "core"

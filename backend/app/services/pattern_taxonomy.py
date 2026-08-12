@@ -70,11 +70,37 @@ DIRECT_MAP = {
 }
 
 
-def classify_exercise(raw_pattern: str | None, mechanics: str | None) -> str:
+# Exercises the rules get wrong, corrected by exact name.
+#
+# These are deliberately name-keyed rather than rule changes: the rules classify
+# 3,244 exercises and loosening one to catch a single movement moves others
+# silently. Both of these landed in `isolation` - the catch-all fallback, and
+# also the biggest bucket - so a wrong answer here is easy to miss.
+#
+# NOTE: these lose to an existing `is_override` row, which is correct. That flag
+# marks a pattern a human assigned by hand (the Hevy import sets it when
+# creating a variant), and a curated table must not silently overrule a person.
+# On a database where such a row already exists, the row itself has to be
+# corrected - which is what was done for the skater jump.
+NAME_OVERRIDES: dict[str, str] = {
+    # A plyometric lateral bound is conditioning, not an isolation exercise.
+    "Bodyweight Skater Jump (HIIT AMRAP)": "conditioning",
+    # An adductor-loaded side plank is core: it is an anti-lateral-flexion
+    # hold, and the raw data simply does not say so.
+    "Bodyweight Copenhagen Plank": "core",
+}
+
+
+def classify_exercise(
+    raw_pattern: str | None, mechanics: str | None, name: str | None = None
+) -> str:
     """Roll up a raw movement pattern + mechanics into a curated pattern slug.
 
-    Rule order matters: core > carry/conditioning > isolation mechanics > direct map > isolation fallback.
+    Rule order matters: name override > core > carry/conditioning >
+    isolation mechanics > direct map > isolation fallback.
     """
+    if name is not None and name in NAME_OVERRIDES:
+        return NAME_OVERRIDES[name]
     raw = (raw_pattern or "").strip()
     if raw in CORE_RAW:
         return "core"
@@ -98,7 +124,9 @@ async def seed_exercise_pattern_map(db: AsyncSession) -> int:
     result = await db.execute(select(Exercise))
     written = 0
     for exercise in result.scalars().all():
-        slug = classify_exercise(exercise.movement_pattern_1, exercise.mechanics)
+        slug = classify_exercise(
+            exercise.movement_pattern_1, exercise.mechanics, exercise.name
+        )
         pattern_id = pattern_by_slug[slug].id
         row = existing.get(exercise.id)
         if row is None:
