@@ -14,7 +14,8 @@ const EMPTY: DayPlanInput = {
 }
 
 export default function DayPlans() {
-  const { plans, patterns, loading, error, fetchAll, save, remove } = useDayPlanStore()
+  const { plans, patterns, stapleCountsByPattern, loading, error, fetchAll, save, remove } =
+    useDayPlanStore()
   const { start: startSession } = useSessionStore()
   const navigate = useNavigate()
   const [editing, setEditing] = useState<DayPlan | null>(null)
@@ -45,6 +46,25 @@ export default function DayPlans() {
     if (!draft.name.trim()) {
       setLocalError('Name is required.')
       return
+    }
+    const inverted = draft.goals.find((g) => (g.rep_range_min ?? 8) > (g.rep_range_max ?? 12))
+    if (inverted) {
+      const name = patterns.find((p) => p.id === inverted.pattern_id)?.name ?? 'a pattern'
+      setLocalError(`Rep range minimum cannot exceed the maximum (${name}).`)
+      return
+    }
+    // Allowed on purpose: ticking a pattern before adding staples for it is a
+    // legitimate way to state intent. It just cannot be filled yet, and a plan
+    // that silently never proposes anything for a goal is worse than a prompt.
+    const unfillable = draft.goals
+      .filter((g) => (stapleCountsByPattern[g.pattern_id] ?? 0) === 0)
+      .map((g) => patterns.find((p) => p.id === g.pattern_id)?.name ?? String(g.pattern_id))
+    if (unfillable.length > 0) {
+      const proceed = window.confirm(
+        `No staples yet for: ${unfillable.join(', ')}. ` +
+          `These goals can't be filled until you add staples for them. Save anyway?`
+      )
+      if (!proceed) return
     }
     setLocalError(null)
     try {
@@ -170,11 +190,21 @@ export default function DayPlans() {
             {patterns
               .map((p) => {
                 const goal = draft.goals.find((g) => g.pattern_id === p.id)
+                const stapleCount = stapleCountsByPattern[p.id] ?? 0
                 return (
-                  <div key={p.id} className="flex items-center gap-3 py-1">
-                    <label className="flex items-center gap-2 flex-1">
+                  <div key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1">
+                    <label className="flex items-center gap-2 flex-1 min-w-0">
                       <input type="checkbox" checked={!!goal} onChange={() => toggleGoal(p.id)} />
-                      {p.name}
+                      <span className="truncate">{p.name}</span>
+                      {/* Suggestions come only from staples, so a pattern with
+                          none cannot fill a goal no matter what is set here. */}
+                      <span
+                        className={
+                          stapleCount === 0 ? 'text-xs text-amber-600' : 'text-xs text-gray-400'
+                        }
+                      >
+                        ({stapleCount} {stapleCount === 1 ? 'staple' : 'staples'})
+                      </span>
                     </label>
                     {goal && (
                       <>
@@ -209,6 +239,51 @@ export default function DayPlans() {
                           }}
                           className="w-16 border rounded-md px-2 py-1 text-sm"
                           title="Target sets"
+                          aria-label={`${p.name} target sets`}
+                        />
+                        {/* Rep range drives the progression targets proposed
+                            for this pattern; unset it defaults to 8-12. */}
+                        <span className="text-xs text-gray-400">reps</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={goal.rep_range_min ?? 8}
+                          onChange={(e) => {
+                            if (e.target.value === '') return
+                            setDraft({
+                              ...draft,
+                              goals: draft.goals.map((g) =>
+                                g.pattern_id === p.id
+                                  ? { ...g, rep_range_min: Number(e.target.value) }
+                                  : g
+                              ),
+                            })
+                          }}
+                          className="w-14 border rounded-md px-2 py-1 text-sm"
+                          title="Rep range min"
+                          aria-label={`${p.name} rep range minimum`}
+                        />
+                        <span className="text-xs text-gray-400">-</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={goal.rep_range_max ?? 12}
+                          onChange={(e) => {
+                            if (e.target.value === '') return
+                            setDraft({
+                              ...draft,
+                              goals: draft.goals.map((g) =>
+                                g.pattern_id === p.id
+                                  ? { ...g, rep_range_max: Number(e.target.value) }
+                                  : g
+                              ),
+                            })
+                          }}
+                          className="w-14 border rounded-md px-2 py-1 text-sm"
+                          title="Rep range max"
+                          aria-label={`${p.name} rep range maximum`}
                         />
                       </>
                     )}
