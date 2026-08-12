@@ -58,8 +58,38 @@ async def test_history_spans_legacy_and_new(test_db):
     history = await exercise_set_history(test_db, user.id, ex.id)
     assert len(history) == 2
     assert history[0]["performed_at"] == datetime(2026, 2, 1, 10)  # newest first
-    assert history[0]["sets"] == [(110.0, 10)]
-    assert history[1]["sets"] == [(100.0, 10), (100.0, 9)]
+    # (weight, reps, time_seconds); legacy workout_sets has no duration column.
+    assert history[0]["sets"] == [(110.0, 10, None)]
+    assert history[1]["sets"] == [(100.0, 10, None), (100.0, 9, None)]
+
+
+@pytest.mark.asyncio
+async def test_exercise_set_history_includes_time_seconds(test_db):
+    """Time-based work must survive into history or progression cannot see it.
+
+    Regression guard: the query never selected time_seconds, so a rower logged
+    in seconds arrived at the progression math as (None, None) and had a rep
+    target invented for it from thin air.
+    """
+    user, ex, hp = await _setup(test_db)
+    rower = Exercise(name="Test Rower", movement_pattern_1="Conditioning", mechanics="Compound")
+    test_db.add(rower)
+    await test_db.flush()
+
+    session = TrainingSession(user_id=user.id, state=SessionState.COMPLETED,
+                              started_at=datetime(2026, 8, 1, 9), completed_at=datetime(2026, 8, 1, 10))
+    rnd = SupersetRound(order=1)
+    entry = RoundEntry(position=1, exercise_id=rower.id, pattern_id=hp.id)
+    entry.sets.append(EntrySet(set_number=1, time_seconds=300))
+    entry.sets.append(EntrySet(set_number=2, time_seconds=240))
+    rnd.entries.append(entry)
+    session.rounds.append(rnd)
+    test_db.add(session)
+    await test_db.commit()
+
+    history = await exercise_set_history(test_db, user.id, rower.id)
+    assert len(history) == 1
+    assert history[0]["sets"] == [(None, None, 300), (None, None, 240)]
 
 
 @pytest.mark.asyncio
@@ -151,7 +181,7 @@ async def test_exercise_set_history_distinguishes_identical_timestamps(test_db):
     history = await exercise_set_history(test_db, user.id, ex.id)
     assert len(history) == 2
     sets_seen = {tuple(h["sets"]) for h in history}
-    assert sets_seen == {((110.0, 10),), ((120.0, 8),)}
+    assert sets_seen == {((110.0, 10, None),), ((120.0, 8, None),)}
     assert all(h["performed_at"] == same_time for h in history)
 
 

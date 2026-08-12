@@ -8,6 +8,7 @@ from app.models import (
     User, Exercise, MovementPattern, StapleExercise,
     TrainingSession, SupersetRound, RoundEntry, EntrySet, SessionState,
 )
+from app.models.exercise import SetProtocol
 from app.services.pattern_taxonomy import seed_movement_patterns
 from app.services.progression_service import (
     estimate_1rm, next_target, compute_entry_target, pattern_trend,
@@ -38,18 +39,100 @@ def test_estimate_1rm_epley():
 def test_next_target_adds_rep_below_range_top():
     # Last: 3x10 @ 120, range 8-12 -> same weight, 11 reps
     target = next_target([(120.0, 10), (120.0, 10), (120.0, 10)])
-    assert target == {"weight": 120.0, "reps": 11, "sets": 3, "last_summary": "3x10 @ 120"}
+    assert target == {
+        "weight": 120.0, "reps": 11, "sets": 3, "time_seconds": None,
+        "reps_goal": "target", "last_summary": "3x10 @ 120",
+    }
 
 
 def test_next_target_bumps_weight_at_range_top():
     # All sets at rep_max -> +increment, back to rep_min
     target = next_target([(120.0, 12), (120.0, 12), (120.0, 12)], increment=5.0)
-    assert target == {"weight": 125.0, "reps": 8, "sets": 3, "last_summary": "3x12 @ 120"}
+    assert target == {
+        "weight": 125.0, "reps": 8, "sets": 3, "time_seconds": None,
+        "reps_goal": "target", "last_summary": "3x12 @ 120",
+    }
 
 
 def test_next_target_no_history():
     target = next_target([])
-    assert target == {"weight": None, "reps": 8, "sets": 3, "last_summary": None}
+    assert target == {
+        "weight": None, "reps": 8, "sets": 3, "time_seconds": None,
+        "reps_goal": "target", "last_summary": None,
+    }
+
+
+def test_next_target_bodyweight_never_regresses_past_rep_max():
+    """Bodyweight has no load to add, so reps must keep climbing past rep_max.
+
+    Regression guard: this returned 12 after a logged 15, i.e. prescribed less
+    work than was just performed, and would have done so forever.
+    """
+    target = next_target([(None, 15), (None, 15)], rep_max=12)
+    assert target["reps"] == 16
+    assert target["reps_goal"] == "target"
+    assert target["weight"] is None
+    assert target["sets"] == 2
+    assert target["last_summary"] == "2x15"
+
+
+def test_next_target_bodyweight_below_rep_max_still_adds_one():
+    target = next_target([(None, 9), (None, 9)], rep_max=12)
+    assert target["reps"] == 10
+
+
+def test_next_target_amrap_beats_last_count_without_touching_load():
+    """AMRAP always clears a 12-rep ceiling, so rep-range logic must not drive load.
+
+    Regression guard: this returned weight 40 from a logged 35, and escalated
+    by the increment every session indefinitely.
+    """
+    target = next_target(
+        [(35.0, 22), (35.0, 22)], rep_max=12, protocol=SetProtocol.AMRAP
+    )
+    assert target["weight"] == 35.0
+    assert target["reps"] == 22
+    assert target["reps_goal"] == "beat"
+    assert target["last_summary"] == "2x22 @ 35"
+
+
+def test_next_target_amrap_uses_best_set_as_the_bar():
+    """The number to beat is the best set performed, not the worst."""
+    target = next_target([(35.0, 22), (35.0, 18)], protocol=SetProtocol.AMRAP)
+    assert target["reps"] == 22
+    assert target["reps_goal"] == "beat"
+
+
+def test_next_target_time_only_prescribes_nothing():
+    """A rower logged in seconds gets no rep target and no invented load.
+
+    Regression guard: this returned reps 9 and a summary of '0@bw, 0@bw'.
+    """
+    target = next_target(
+        [(None, None, 300), (None, None, 240)], protocol=SetProtocol.TIME
+    )
+    assert target["reps"] is None
+    assert target["reps_goal"] is None
+    assert target["weight"] is None
+    assert target["time_seconds"] is None
+    assert target["last_summary"] == "300s, 240s"
+
+
+def test_next_target_time_only_uniform_durations_summarise_compactly():
+    target = next_target(
+        [(None, None, 300), (None, None, 300)], protocol=SetProtocol.TIME
+    )
+    assert target["last_summary"] == "2x300s"
+
+
+def test_next_target_emom_behaves_like_reps():
+    """EMOM reps are prescribed, so double progression still applies."""
+    target = next_target(
+        [(50.0, 12), (50.0, 12)], rep_max=12, increment=5.0, protocol=SetProtocol.EMOM
+    )
+    assert target["weight"] == 55.0
+    assert target["reps"] == 8
+    assert target["reps_goal"] == "target"
 
 
 def test_next_target_bodyweight_sets():
@@ -122,7 +205,10 @@ async def test_compute_entry_target_with_history(test_db):
     await test_db.commit()
 
     target = await compute_entry_target(test_db, user.id, row.id)
-    assert target == {"weight": 120.0, "reps": 11, "sets": 3, "last_summary": "3x10 @ 120"}
+    assert target == {
+        "weight": 120.0, "reps": 11, "sets": 3, "time_seconds": None,
+        "reps_goal": "target", "last_summary": "3x10 @ 120",
+    }
 
 
 @pytest.mark.asyncio
