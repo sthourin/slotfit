@@ -93,8 +93,8 @@ async def backfill_bodyweight(
 
 async def backfill_workouts(
     db: AsyncSession, user: User, workouts: list[dict], title_to_exercise: dict[str, int]
-) -> tuple[int, int, int]:
-    """Import completed workouts into the legacy tables. Returns (sessions, sets, unmapped_sets).
+) -> tuple[int, int, int, int]:
+    """Import completed workouts. Returns (sessions, sets, unmapped_sets, setless_sets).
 
     The legacy tables are the right home: their shape (session -> exercises ->
     sets) is exactly Hevy's, and `history_service` already unions them with the
@@ -117,7 +117,7 @@ async def backfill_workouts(
         ).all()
     }
 
-    sessions_created = sets_created = unmapped_sets = 0
+    sessions_created = sets_created = unmapped_sets = skipped_setless = 0
 
     for workout in workouts:
         raw_start = (workout.get("start_time") or "").replace("Z", "+00:00")
@@ -151,18 +151,31 @@ async def backfill_workouts(
             workout_exercise = WorkoutExercise(
                 exercise_id=exercise_id, started_at=started_at
             )
-            for number, raw in enumerate(raw_sets, start=1):
+            number = 0
+            for raw in raw_sets:
+                # A set with no reps records nothing the legacy schema can hold:
+                # Hevy's duration and distance have no columns here, so it would
+                # import as an empty row and read back as "0 reps @ bodyweight".
+                # The same rule already governs new logging - a set must record
+                # reps or a duration - and legacy cannot record a duration.
+                if raw.get("reps") is None:
+                    skipped_setless += 1
+                    continue
+                number += 1
                 workout_exercise.sets.append(
                     WorkoutSet(
                         set_number=number,
                         weight=kg_to_lbs(raw.get("weight_kg")),
-                        reps=raw.get("reps"),
+                        reps=raw["reps"],
                     )
                 )
                 session_sets += 1
+            # The exercise row is kept even with no importable sets, because
+            # last_performed reads it and "you rowed that day" is true and
+            # useful even when the distance is unrepresentable.
             session.exercises.append(workout_exercise)
 
-        if session_sets == 0:
+        if not session.exercises:
             # Nothing resolvable in this workout; an empty session would only
             # pollute counts and history.
             continue
@@ -173,7 +186,7 @@ async def backfill_workouts(
         sets_created += session_sets
 
     await db.commit()
-    return sessions_created, sets_created, unmapped_sets
+    return sessions_created, sets_created, unmapped_sets, skipped_setless
 
 
 def title_map_from_document(document: dict, exercises_by_name: dict[str, int]) -> dict[str, int]:

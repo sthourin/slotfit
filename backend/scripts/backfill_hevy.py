@@ -79,12 +79,13 @@ async def main(device_id: str, commit: bool) -> None:
             print("\nRe-run with --commit to write.")
             return
 
-        sessions, sets, unmapped_sets = await backfill_workouts(
+        sessions, sets, unmapped_sets, setless = await backfill_workouts(
             db, user, workouts, mapping
         )
         created, skipped = await backfill_bodyweight(db, user, measurements)
         print(f"\nWorkouts:   {sessions} sessions, {sets} sets imported.")
         print(f"            {unmapped_sets} sets skipped (title not in the reviewed map).")
+        print(f"            {setless} sets skipped (no reps; duration/distance has no column here).")
         print(f"Bodyweight: {created} readings imported, {skipped} skipped.")
 
 

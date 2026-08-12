@@ -107,10 +107,10 @@ async def test_workout_backfill_creates_sessions_and_converts_weights(test_db):
         _workout("2026-01-05T09:00:00Z", "Bench Press (Barbell)",
                  [{"weight_kg": 40.8233, "reps": 10}, {"weight_kg": 40.8233, "reps": 8}]),
     ]
-    sessions, sets, unmapped = await backfill_workouts(
+    sessions, sets, unmapped, setless = await backfill_workouts(
         test_db, user, workouts, {"Bench Press (Barbell)": bench.id}
     )
-    assert (sessions, sets, unmapped) == (1, 2, 0)
+    assert (sessions, sets, unmapped, setless) == (1, 2, 0, 0)
 
     rows = (await test_db.execute(select(WorkoutSet))).scalars().all()
     assert {r.weight for r in rows} == {90.0}
@@ -130,7 +130,7 @@ async def test_workout_backfill_is_idempotent_on_start_time(test_db):
     mapping = {"Bench": bench.id}
 
     await backfill_workouts(test_db, user, workouts, mapping)
-    sessions, sets, _ = await backfill_workouts(test_db, user, workouts, mapping)
+    sessions, sets, _u, _s = await backfill_workouts(test_db, user, workouts, mapping)
     assert (sessions, sets) == (0, 0)
     assert len((await test_db.execute(select(WorkoutSession))).scalars().all()) == 1
 
@@ -151,7 +151,7 @@ async def test_unmapped_titles_are_counted_not_guessed(test_db):
             {"title": "Something Unreviewed", "sets": [{"weight_kg": 20.0, "reps": 5}]},
         ],
     }]
-    sessions, sets, unmapped = await backfill_workouts(
+    sessions, sets, unmapped, _setless = await backfill_workouts(
         test_db, user, workouts, {"Bench": bench.id}
     )
     assert (sessions, sets, unmapped) == (1, 1, 1)
@@ -164,7 +164,7 @@ async def test_a_workout_with_nothing_resolvable_creates_no_session(test_db):
     await test_db.flush()
 
     workouts = [_workout("2026-01-05T09:00:00Z", "Unknown", [{"weight_kg": 20.0, "reps": 5}])]
-    sessions, sets, unmapped = await backfill_workouts(test_db, user, workouts, {})
+    sessions, sets, unmapped, _setless = await backfill_workouts(test_db, user, workouts, {})
     assert (sessions, sets, unmapped) == (0, 0, 1)
     assert (await test_db.execute(select(WorkoutSession))).scalars().all() == []
 
@@ -187,3 +187,33 @@ async def test_backfilled_history_feeds_last_performed(test_db):
 
     last = await last_performed_map(test_db, user.id, [bench.id])
     assert last[bench.id] == datetime(2026, 1, 5, 9, 0)
+
+
+@pytest.mark.asyncio
+async def test_sets_without_reps_are_skipped_but_the_exercise_is_kept(test_db):
+    """Hevy's duration/distance sets have no columns here.
+
+    Regression guard: importing them stored an empty row that read back as
+    "Last: 0@bw, 0@bw" - the same fabricated-zero problem the logging path
+    already refuses. The exercise row stays so last_performed still knows the
+    day happened.
+    """
+    from app.models import WorkoutExercise
+    from app.services.history_service import last_performed_map
+
+    user = User(device_id="bf-w-0006")
+    rower = Exercise(name="Backfill Rower", mechanics="Compound")
+    test_db.add_all([user, rower])
+    await test_db.flush()
+
+    workouts = [_workout("2026-01-05T09:00:00Z", "Row", [
+        {"weight_kg": None, "reps": None, "distance_meters": 500, "duration_seconds": 108},
+        {"weight_kg": 20.0, "reps": None, "duration_seconds": 60},
+    ])]
+    sessions, sets, _unmapped, setless = await backfill_workouts(
+        test_db, user, workouts, {"Row": rower.id}
+    )
+    assert (sessions, sets, setless) == (1, 0, 2)
+    assert (await test_db.execute(select(WorkoutSet))).scalars().all() == []
+    assert len((await test_db.execute(select(WorkoutExercise))).scalars().all()) == 1
+    assert rower.id in await last_performed_map(test_db, user.id, [rower.id])
