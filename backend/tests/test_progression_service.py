@@ -5,8 +5,9 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import select
 
 from app.models import (
-    User, Exercise, MovementPattern, StapleExercise,
+    User, Exercise, Equipment, MovementPattern, StapleExercise,
     TrainingSession, SupersetRound, RoundEntry, EntrySet, SessionState,
+    BodyweightReading,
 )
 from app.models.exercise import SetProtocol
 from app.services.pattern_taxonomy import seed_movement_patterns
@@ -143,6 +144,24 @@ def test_next_target_bodyweight_sets():
     assert target["sets"] == 2
 
 
+async def _cable_id(test_db) -> int:
+    """Id of a Cable Machine equipment row, created on demand.
+
+    Loaded-lift fixtures must carry real equipment. Every row in the real
+    catalogue has some; NULL means bodyweight, and bodyweight work with no
+    weigh-in is deliberately unscoreable for e1RM - so an equipment-less
+    "Cable Row" would silently exercise the bodyweight path instead.
+    """
+    result = await test_db.execute(select(Equipment).where(Equipment.name == "Cable Machine"))
+    existing = result.scalar_one_or_none()
+    if existing is not None:
+        return existing.id
+    equipment = Equipment(name="Cable Machine")
+    test_db.add(equipment)
+    await test_db.flush()
+    return equipment.id
+
+
 async def _completed_session(test_db, user, ex, pattern, when, weight, reps):
     s = TrainingSession(user_id=user.id, state=SessionState.COMPLETED, started_at=when, completed_at=when)
     r = SupersetRound(order=1)
@@ -158,8 +177,11 @@ async def _completed_session(test_db, user, ex, pattern, when, weight, reps):
 async def test_pattern_trend_normalizes_across_staples(test_db):
     await seed_movement_patterns(test_db)
     user = User(device_id="test-device-12345")
-    row = Exercise(name="Cable Row", movement_pattern_1="Horizontal Pull", mechanics="Compound")
-    test_db.add_all([user, row])
+    test_db.add(user)
+    cable_id = await _cable_id(test_db)
+    row = Exercise(name="Cable Row", movement_pattern_1="Horizontal Pull", mechanics="Compound",
+                   primary_equipment_id=cable_id)
+    test_db.add(row)
     await test_db.flush()
     result = await test_db.execute(select(MovementPattern).where(MovementPattern.slug == "horizontal_pull"))
     hp = result.scalar_one()
@@ -179,6 +201,71 @@ async def test_pattern_trend_normalizes_across_staples(test_db):
     assert trend[0]["index"] == pytest.approx(1.0)
     assert trend[1]["index"] == pytest.approx(1.1, abs=0.001)
     assert trend[0]["week_start"] < trend[1]["week_start"]
+
+
+@pytest.mark.asyncio
+async def test_pattern_trend_includes_bodyweight_staples_via_leverage(test_db):
+    """A push-up-only pattern must produce a trend once bodyweight is known.
+
+    Before leverage every set had weight=None and was skipped outright, so the
+    series came back empty no matter how much work was logged.
+    """
+    await seed_movement_patterns(test_db)
+    user = User(device_id="trend-bw-0001")
+    bodyweight_equipment = Equipment(name="Bodyweight")
+    test_db.add_all([user, bodyweight_equipment])
+    await test_db.flush()
+    push_up = Exercise(
+        name="Trend Push Up", movement_pattern_1="Horizontal Push", mechanics="Compound",
+        primary_equipment_id=bodyweight_equipment.id, bodyweight_fraction=0.64,
+    )
+    test_db.add(push_up)
+    await test_db.flush()
+    result = await test_db.execute(
+        select(MovementPattern).where(MovementPattern.slug == "horizontal_push")
+    )
+    hpush = result.scalar_one()
+    test_db.add(StapleExercise(user_id=user.id, pattern_id=hpush.id, exercise_id=push_up.id))
+    test_db.add(BodyweightReading(
+        user_id=user.id, weight=200.0,
+        recorded_at=_dt(_monday_weeks_ago(6)), source="manual",
+    ))
+    await test_db.commit()
+
+    # Same bodyweight, more reps: 10 then 20.
+    await _completed_session(test_db, user, push_up, hpush, _dt(_monday_weeks_ago(4)), None, 10)
+    await _completed_session(test_db, user, push_up, hpush, _dt(_monday_weeks_ago(2)), None, 20)
+
+    trend = await pattern_trend(test_db, user.id, hpush.id, weeks=52)
+    assert len(trend) == 2
+    assert trend[0]["index"] == pytest.approx(1.0)
+    assert trend[1]["index"] > 1.0
+
+
+@pytest.mark.asyncio
+async def test_pattern_trend_skips_bodyweight_work_with_no_readings(test_db):
+    """With no weigh-in there is no honest number, so it is left out."""
+    await seed_movement_patterns(test_db)
+    user = User(device_id="trend-nobw-0001")
+    bodyweight_equipment = Equipment(name="Bodyweight")
+    test_db.add_all([user, bodyweight_equipment])
+    await test_db.flush()
+    push_up = Exercise(
+        name="Trend Push Up", movement_pattern_1="Horizontal Push", mechanics="Compound",
+        primary_equipment_id=bodyweight_equipment.id, bodyweight_fraction=0.64,
+    )
+    test_db.add(push_up)
+    await test_db.flush()
+    result = await test_db.execute(
+        select(MovementPattern).where(MovementPattern.slug == "horizontal_push")
+    )
+    hpush = result.scalar_one()
+    test_db.add(StapleExercise(user_id=user.id, pattern_id=hpush.id, exercise_id=push_up.id))
+    await test_db.commit()
+
+    await _completed_session(test_db, user, push_up, hpush, _dt(_monday_weeks_ago(4)), None, 10)
+
+    assert await pattern_trend(test_db, user.id, hpush.id, weeks=52) == []
 
 
 @pytest.mark.asyncio
@@ -233,9 +320,13 @@ async def test_pattern_trend_averages_across_multiple_staples(test_db):
     """
     await seed_movement_patterns(test_db)
     user = User(device_id="test-device-12345")
-    row = Exercise(name="Cable Row", movement_pattern_1="Horizontal Pull", mechanics="Compound")
-    csr = Exercise(name="Chest-Supported Row", movement_pattern_1="Horizontal Pull", mechanics="Compound")
-    test_db.add_all([user, row, csr])
+    test_db.add(user)
+    cable_id = await _cable_id(test_db)
+    row = Exercise(name="Cable Row", movement_pattern_1="Horizontal Pull", mechanics="Compound",
+                   primary_equipment_id=cable_id)
+    csr = Exercise(name="Chest-Supported Row", movement_pattern_1="Horizontal Pull", mechanics="Compound",
+                   primary_equipment_id=cable_id)
+    test_db.add_all([row, csr])
     await test_db.flush()
     result = await test_db.execute(select(MovementPattern).where(MovementPattern.slug == "horizontal_pull"))
     hp = result.scalar_one()
@@ -270,9 +361,13 @@ async def test_pattern_trend_excludes_staple_with_no_usable_weights(test_db):
     """
     await seed_movement_patterns(test_db)
     user = User(device_id="test-device-12345")
-    row = Exercise(name="Cable Row", movement_pattern_1="Horizontal Pull", mechanics="Compound")
+    test_db.add(user)
+    cable_id = await _cable_id(test_db)
+    row = Exercise(name="Cable Row", movement_pattern_1="Horizontal Pull", mechanics="Compound",
+                   primary_equipment_id=cable_id)
+    # Deliberately no equipment: this is the bodyweight staple the test excludes.
     inverted_row = Exercise(name="Inverted Row", movement_pattern_1="Horizontal Pull", mechanics="Compound")
-    test_db.add_all([user, row, inverted_row])
+    test_db.add_all([row, inverted_row])
     await test_db.flush()
     result = await test_db.execute(select(MovementPattern).where(MovementPattern.slug == "horizontal_pull"))
     hp = result.scalar_one()
@@ -318,8 +413,11 @@ async def test_pattern_trend_baseline_survives_high_frequency_staple(test_db):
     """
     await seed_movement_patterns(test_db)
     user = User(device_id="test-device-12345")
-    rower = Exercise(name="Rower Warm-Up", movement_pattern_1="Horizontal Pull", mechanics="Compound")
-    test_db.add_all([user, rower])
+    test_db.add(user)
+    cable_id = await _cable_id(test_db)
+    rower = Exercise(name="Rower Warm-Up", movement_pattern_1="Horizontal Pull", mechanics="Compound",
+                     primary_equipment_id=cable_id)
+    test_db.add(rower)
     await test_db.flush()
     result = await test_db.execute(select(MovementPattern).where(MovementPattern.slug == "horizontal_pull"))
     hp = result.scalar_one()

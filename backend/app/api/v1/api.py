@@ -22,6 +22,7 @@ from app.api.v1.endpoints import (
     staples,
     training_sessions,
     suggestions,
+    bodyweight,
 )
 
 api_router = APIRouter()
@@ -58,3 +59,4 @@ api_router.include_router(
 api_router.include_router(
     suggestions.router, prefix="/suggestions", tags=["suggestions"]
 )
+api_router.include_router(bodyweight.router, prefix="/bodyweight", tags=["bodyweight"])

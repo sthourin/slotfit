@@ -49,6 +49,11 @@ alembic revision --autogenerate -m "description"  # Create migration
 # REQUIRED after migrations, on every database (dev, e2e, CI):
 # seeds movement_patterns and the exercise -> pattern map.
 ./venv/Scripts/python.exe -m scripts.seed_patterns
+
+# Seeds exercises.bodyweight_fraction for curated bodyweight movements.
+# Without it every bodyweight exercise falls back to the default fraction,
+# which is usable but undifferentiated.
+./venv/Scripts/python.exe -m scripts.seed_leverage
 ```
 
 The pattern seed is not run by app startup, Alembic, or CI. On a database where
@@ -159,6 +164,48 @@ These exercises are **ALWAYS** available regardless of equipment profile
 selection. They should never be filtered out for equipment reasons in
 recommendations or exercise selection. Use the predicate — do not open-code an
 equipment comparison.
+
+### Bodyweight Load and Leverage
+Bodyweight exercises carry real load, and that load is scored rather than
+ignored:
+
+- Bodyweight is a **dated time series** (`bodyweight_readings`), not a profile
+  field. Each set resolves against the reading in effect on the day it was
+  performed, so a new weigh-in never retroactively rewrites past volume or
+  e1RM. Readings carry a `source` (`manual`, `health_connect`) and upsert on
+  (user, instant, source) so a sync is idempotent. Health Connect will
+  eventually write here.
+- A per-exercise `bodyweight_fraction` scales that reading to the load actually
+  moved — a push-up is ~0.64 of bodyweight, a squat ~0.85, an arm circle ~0.05.
+  Curated values live in `app/services/leverage.py` and are seeded by
+  `scripts.seed_leverage`. Uncurated exercises fall back to
+  `DEFAULT_BODYWEIGHT_FRACTION` (0.64), deliberately not 1.0.
+- External load **adds** to the bodyweight component: a weighted vest is extra
+  load on top of what you already carry.
+- With no readings, bodyweight work is **excluded** from e1RM and volume rather
+  than assigned a guessed bodyweight.
+- `avg_weight` in analytics stays the **logged** weight. It is what the user
+  typed, and reporting a leverage-derived number under that name would
+  misrepresent their history back to them.
+- Progression targets are unaffected. Bodyweight progression stays rep-based
+  (last reps + 1, no ceiling); leverage changes how work is scored, not what is
+  prescribed.
+
+### Set Protocols and Progression
+`next_target` is protocol-aware, and each protocol means something different:
+
+- **REPS / EMOM** — double progression: add a rep until every set is at
+  `rep_max`, then add load and reset to `rep_min`.
+- **Bodyweight** — no load to add, so reps keep climbing past `rep_max`.
+  Clamping to the ceiling prescribed 12 reps to somebody who had just done 15.
+- **AMRAP** — beat the best rep count at the same load. Rep ranges do not
+  apply: an AMRAP always clears a 12-rep ceiling, so double progression
+  escalated load every session without bound.
+- **TIME** — no prescription at all. Inventing a rep target from `rep_min`
+  produced a rep goal for a rowing machine.
+
+Every logged set must record reps or a duration. Weight alone is not a result,
+and a set with neither still credited pattern coverage.
 
 ### Pattern-Based Dynamic Sessions
 Routine templates with pre-planned muscle-group slots are retired. A session is

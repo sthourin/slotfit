@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useUserStore } from '../stores/userStore'
 import ProfileSection from '../components/settings/ProfileSection'
+import BodyweightSection from '../components/settings/BodyweightSection'
 import EquipmentProfilesSection from '../components/settings/EquipmentProfilesSection'
 import InjuriesSection from '../components/settings/InjuriesSection'
 
@@ -33,6 +34,7 @@ function Settings() {
 
         <div className="space-y-8">
           <ProfileSection key={`profile-${refreshKey}`} />
+          <BodyweightSection key={`bodyweight-${refreshKey}`} />
           <EquipmentProfilesSection key={`equipment-${refreshKey}`} onUpdate={handleRefresh} />
           <InjuriesSection key={`injuries-${refreshKey}`} onUpdate={handleRefresh} />
         </div>

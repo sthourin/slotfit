@@ -18,6 +18,12 @@ from app.models import (
     PersonalRecord,
     Exercise,
 )
+from app.services.bodyweight_service import (
+    bodyweight_timeline,
+    effective_load,
+    resolve_bodyweight,
+)
+from app.services.exercise_helpers import bodyweight_equipment_id
 
 
 class AnalyticsService:
@@ -212,7 +218,14 @@ class AnalyticsService:
         
         workouts_result = await self.db.execute(workouts_query)
         workout_rows = workouts_result.all()
-        
+
+        # Fetched once, not per set. Bodyweight work carries real load, and
+        # counting it as zero tonnage understated whole sessions of push-ups
+        # and squats; each set is scored against the reading in effect on the
+        # day it was performed.
+        timeline = await bodyweight_timeline(self.db, user_id)
+        bodyweight_id = await bodyweight_equipment_id(self.db)
+
         recent_workouts = []
         for we, completed_at in workout_rows:
             # Get sets for this workout exercise
@@ -223,7 +236,15 @@ class AnalyticsService:
             sets_result = await self.db.execute(sets_query)
             sets = sets_result.scalars().all()
             
-            total_volume = sum((s.weight or 0) * (s.reps or 0) for s in sets)
+            bodyweight = resolve_bodyweight(timeline, completed_at) if completed_at else None
+            total_volume = sum(
+                (effective_load(exercise, s.weight, bodyweight, bodyweight_id) or 0)
+                * (s.reps or 0)
+                for s in sets
+            )
+            # avg_weight stays the LOGGED weight: it is what the user typed, and
+            # silently reporting a leverage-derived number under that name would
+            # misrepresent their own history back to them.
             avg_weight = sum(s.weight or 0 for s in sets) / len(sets) if sets else 0
             avg_reps = sum(s.reps or 0 for s in sets) / len(sets) if sets else 0
             

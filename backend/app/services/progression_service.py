@@ -9,8 +9,14 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.exercise import SetProtocol
+from app.models.exercise import Exercise, SetProtocol
 from app.models.staple import StapleExercise
+from app.services.bodyweight_service import (
+    bodyweight_timeline,
+    effective_load,
+    resolve_bodyweight,
+)
+from app.services.exercise_helpers import bodyweight_equipment_id
 from app.services.history_service import exercise_set_history
 
 DEFAULT_REP_MIN = 8
@@ -198,17 +204,28 @@ async def pattern_trend(
 
     Each staple's weekly best e1RM is divided by its own first observed
     e1RM (baseline), then staple indices are averaged per week.
+
+    Bodyweight staples contribute via leverage-scaled load, so a pattern
+    trained mostly with push-ups still produces a trend. Without any bodyweight
+    readings they are skipped rather than assigned a guessed bodyweight, which
+    is the same as the old behaviour of ignoring every weightless set.
     """
     result = await db.execute(
-        select(StapleExercise.exercise_id).where(
+        select(Exercise)
+        .join(StapleExercise, StapleExercise.exercise_id == Exercise.id)
+        .where(
             StapleExercise.user_id == user_id,
             StapleExercise.pattern_id == pattern_id,
             StapleExercise.is_active == True,  # noqa: E712
         )
     )
-    staple_ids = [row[0] for row in result.all()]
-    if not staple_ids:
+    staples = result.scalars().all()
+    if not staples:
         return []
+
+    # Fetched once, not per set: bodyweight resolution is a lookup, not a query.
+    timeline = await bodyweight_timeline(db, user_id)
+    bodyweight_id = await bodyweight_equipment_id(db)
 
     # Window correctness must come from a date filter, not a session-count
     # guess: a staple logged more often than ~weeks*3 times total (e.g. a
@@ -220,27 +237,33 @@ async def pattern_trend(
 
     # weekly best e1RM per staple: {exercise_id: {week_start: best_e1rm}}
     weekly_best: dict[int, dict[date, float]] = defaultdict(dict)
-    for exercise_id in staple_ids:
+    for exercise in staples:
         history = await exercise_set_history(
             db,
             user_id,
-            exercise_id,
+            exercise.id,
             limit_sessions=PATTERN_TREND_SAFETY_LIMIT_SESSIONS,
             since=cutoff_dt,
         )
         for perf in history:
             week = _week_start(perf["performed_at"].date())
-            best = max(
-                (estimate_1rm(w, r) for w, r, _t in perf["sets"] if w is not None and r),
-                default=None,
-            )
+            bodyweight = resolve_bodyweight(timeline, perf["performed_at"])
+            estimates = []
+            for w, r, _t in perf["sets"]:
+                if not r:
+                    continue
+                load = effective_load(exercise, w, bodyweight, bodyweight_id)
+                if load is None:
+                    continue
+                estimates.append(estimate_1rm(load, r))
+            best = max(estimates, default=None)
             if best is None:
                 continue
             if (
-                week not in weekly_best[exercise_id]
-                or best > weekly_best[exercise_id][week]
+                week not in weekly_best[exercise.id]
+                or best > weekly_best[exercise.id][week]
             ):
-                weekly_best[exercise_id][week] = best
+                weekly_best[exercise.id][week] = best
 
     # normalize each staple to its earliest week's value
     indices_by_week: dict[date, list[float]] = defaultdict(list)
