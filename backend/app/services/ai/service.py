@@ -13,7 +13,8 @@ from app.services.ai.base import AIProvider, RecommendationResponse
 from app.services.ai.claude_provider import ClaudeProvider
 from app.services.ai.gemini_provider import GeminiProvider
 from app.services.ai.fallback_provider import FallbackProvider
-from app.models import WeeklyVolume, WorkoutSession, WorkoutExercise, Exercise
+from app.models import WorkoutSession, WorkoutExercise, Exercise
+from app.services.volume_service import weekly_volume_by_muscle_group
 from app.models.injury import UserInjury, InjuryType, MovementRestriction
 from sqlalchemy.orm import selectinload
 
@@ -73,28 +74,17 @@ class AIRecommendationService:
         
         Returns:
             Dict mapping muscle_group_id to volume data (total_sets, total_reps, total_volume)
+
+        Computed live from logged sets, same as the analytics endpoint. This
+        read the `weekly_volume` aggregate table, which nothing writes, so the
+        recommendation prompt was always told the user had trained nothing.
         """
         if not user_id:
             return {}
-        
-        week_start = self._get_current_week_start()
-        
-        query = select(WeeklyVolume).where(
-            WeeklyVolume.week_start == week_start,
-            WeeklyVolume.user_id == user_id
+
+        return await weekly_volume_by_muscle_group(
+            self.db, user_id, self._get_current_week_start()
         )
-        result = await self.db.execute(query)
-        volumes = result.scalars().all()
-        
-        volume_dict = {}
-        for volume in volumes:
-            volume_dict[volume.muscle_group_id] = {
-                "total_sets": volume.total_sets,
-                "total_reps": volume.total_reps,
-                "total_volume": volume.total_volume,
-            }
-        
-        return volume_dict
     
     async def _get_user_injury_restrictions(self, user_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """

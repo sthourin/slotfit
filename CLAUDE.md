@@ -191,6 +191,23 @@ ignored:
   (last reps + 1, no ceiling); leverage changes how work is scored, not what is
   prescribed.
 
+### Weekly Volume
+Volume is computed live from logged sets by
+`app/services/volume_service.py`, across both the legacy workout tables and the
+training-session tables. It does **not** read the `weekly_volume` aggregate
+table: nothing has ever written that table, so every figure the analytics page
+and the AI recommendation prompt reported was zero regardless of training.
+
+A set is credited to its **target** muscle group only. The four roles are
+levels of a hierarchy over one movement, not a list of muscles worked — a bench
+press has target "Chest" (level 1) and prime mover "Pectoralis Major" (level 2),
+so counting both reports the same set twice, and adding secondary and tertiary
+contributors inflates the chart into noise.
+
+Tonnage uses effective load, so bodyweight work counts. A bodyweight set with
+no weigh-in to price it still contributes its sets and reps — those are known —
+and simply adds no tonnage.
+
 ### Set Protocols and Progression
 `next_target` is protocol-aware, and each protocol means something different:
 

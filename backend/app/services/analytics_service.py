@@ -8,7 +8,6 @@ from sqlalchemy import select, func, and_, desc, case
 from sqlalchemy.orm import selectinload
 
 from app.models import (
-    WeeklyVolume,
     MuscleGroup,
     WorkoutSession,
     WorkoutExercise,
@@ -24,6 +23,7 @@ from app.services.bodyweight_service import (
     resolve_bodyweight,
 )
 from app.services.exercise_helpers import bodyweight_equipment_id
+from app.services.volume_service import weekly_volume_by_muscle_group
 
 
 class AnalyticsService:
@@ -40,33 +40,37 @@ class AnalyticsService:
             
         Returns:
             Dict with week_start and muscle_groups array
+
+        Computed live from logged sets. This used to read the `weekly_volume`
+        aggregate table, which nothing has ever written, so every figure the
+        chart showed was zero no matter how much training was logged.
         """
-        # Query weekly volume records for the week
-        query = (
-            select(WeeklyVolume, MuscleGroup.name)
-            .join(MuscleGroup, WeeklyVolume.muscle_group_id == MuscleGroup.id)
-            .where(
-                and_(
-                    WeeklyVolume.week_start == week_start,
-                    WeeklyVolume.user_id == user_id
+        totals = await weekly_volume_by_muscle_group(self.db, user_id, week_start)
+        if not totals:
+            return {"week_start": week_start.isoformat(), "muscle_groups": []}
+
+        names = dict(
+            (
+                await self.db.execute(
+                    select(MuscleGroup.id, MuscleGroup.name).where(
+                        MuscleGroup.id.in_(totals.keys())
+                    )
                 )
-            )
-            .order_by(MuscleGroup.name)
+            ).all()
         )
-        
-        result = await self.db.execute(query)
-        rows = result.all()
-        
-        muscle_groups = []
-        for volume, muscle_group_name in rows:
-            muscle_groups.append({
-                "muscle_group_id": volume.muscle_group_id,
-                "name": muscle_group_name,
-                "total_sets": volume.total_sets,
-                "total_reps": volume.total_reps,
-                "total_volume": volume.total_volume,
-            })
-        
+
+        muscle_groups = [
+            {
+                "muscle_group_id": muscle_group_id,
+                "name": names.get(muscle_group_id, str(muscle_group_id)),
+                "total_sets": bucket["total_sets"],
+                "total_reps": bucket["total_reps"],
+                "total_volume": round(bucket["total_volume"], 2),
+            }
+            for muscle_group_id, bucket in totals.items()
+        ]
+        muscle_groups.sort(key=lambda entry: entry["name"])
+
         return {
             "week_start": week_start.isoformat(),
             "muscle_groups": muscle_groups,
