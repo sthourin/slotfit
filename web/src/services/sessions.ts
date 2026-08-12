@@ -6,8 +6,15 @@ import { apiClient } from './api'
 
 export interface Target {
   weight: number | null
-  reps: number
+  /** null for time-only work, which gets no rep prescription. */
+  reps: number | null
   sets: number
+  time_seconds: number | null
+  /**
+   * 'target' = do exactly this many reps; 'beat' = exceed this many (AMRAP);
+   * null = no rep prescription at all.
+   */
+  reps_goal: 'target' | 'beat' | null
   last_summary: string | null
 }
 
@@ -30,6 +37,8 @@ export interface RoundEntry {
   pattern_id: number
   pattern_slug: string
   set_protocol: 'reps' | 'time' | 'amrap' | 'emom'
+  /** Drives the "+ weight" label: on these, weight means ADDED load. */
+  is_bodyweight: boolean
   default_time_seconds: number | null
   sets: EntrySet[]
   target: Target | null

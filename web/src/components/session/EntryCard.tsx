@@ -34,17 +34,27 @@ interface Props {
 }
 
 /**
- * Which inputs each protocol asks for. Weight is always offered — bodyweight
- * work simply leaves it blank, which the API already reads as bodyweight.
+ * Which inputs each protocol asks for.
+ *
+ * `weight` is about whether load is a meaningful measurement for the protocol
+ * at all. A rower's resistance setting is not a load you progress, so asking
+ * for it is one more box to skip past one-handed mid-session. Everywhere else
+ * weight stays optional: bodyweight work simply leaves it blank, which the API
+ * already reads as bodyweight.
  *
  * EMOM and REPS look identical here on purpose: for EMOM the minute is
  * structural, not a measured result, so there is nothing to type.
  */
-const PROTOCOL_FIELDS: Record<string, { reps: boolean; time: boolean }> = {
-  reps: { reps: true, time: false },
-  time: { reps: false, time: true },
-  amrap: { reps: true, time: true },
-  emom: { reps: true, time: false },
+const PROTOCOL_FIELDS: Record<string, { reps: boolean; time: boolean; weight: boolean }> = {
+  reps: { reps: true, time: false, weight: true },
+  time: { reps: false, time: true, weight: false },
+  amrap: { reps: true, time: true, weight: true },
+  emom: { reps: true, time: false, weight: true },
+}
+
+/** "1 set", "2 sets" — a count read mid-session shouldn't be sloppy. */
+function setCountLabel(count: number): string {
+  return `${count} ${count === 1 ? 'set' : 'sets'}`
 }
 
 /** "8 @ 135", "12", "45s" — never "null" or a misleading 0. */
@@ -75,9 +85,9 @@ export default function EntryCard({ entry, onLogSet, busy, error }: Props) {
   const logSet = async () => {
     await onLogSet(entry.id, {
       set_number: entry.sets.length + 1,
-      weight: parse(weight),
       // Send null for a field this protocol doesn't use, so a stale value left
       // over from a protocol change cannot leak into a logged set.
+      weight: fields.weight ? parse(weight) : null,
       reps: fields.reps ? parse(reps) : null,
       time_seconds: fields.time ? parse(timeSec) : null,
     })
@@ -93,14 +103,27 @@ export default function EntryCard({ entry, onLogSet, busy, error }: Props) {
           <span className="font-semibold">{entry.exercise_name}</span>
           <span className="ml-2 text-xs text-gray-500">{entry.pattern_slug.replace(/_/g, ' ')}</span>
         </div>
-        <span className="text-sm text-gray-500 whitespace-nowrap">{entry.sets.length} sets</span>
+        <span className="text-sm text-gray-500 whitespace-nowrap">{setCountLabel(entry.sets.length)}</span>
       </div>
 
+      {/* A time-only target carries no reps_goal: it reports the last durations
+          and prescribes nothing, rather than inventing a rep count. */}
       {target && (
         <div className="text-sm text-gray-500 mt-1">
-          {target.last_summary ? `Last: ${target.last_summary} → ` : ''}
-          Target: {target.sets}x{target.reps}
-          {target.weight != null ? ` @ ${target.weight}` : ''}
+          {target.last_summary ? `Last: ${target.last_summary}` : ''}
+          {target.reps_goal && target.last_summary ? ' → ' : ''}
+          {target.reps_goal === 'beat' && (
+            <>
+              Beat {target.reps}
+              {target.weight != null ? ` @ ${target.weight}` : ''}
+            </>
+          )}
+          {target.reps_goal === 'target' && (
+            <>
+              Target: {target.sets}x{target.reps}
+              {target.weight != null ? ` @ ${target.weight}` : ''}
+            </>
+          )}
         </div>
       )}
       {!target && <div className="text-sm text-gray-400 mt-1">No history yet — log your first set.</div>}
@@ -108,14 +131,16 @@ export default function EntryCard({ entry, onLogSet, busy, error }: Props) {
       {/* Touch heights are deliberately generous (>= 44px): this row is tapped
           dozens of times per session, one-handed, with sweaty hands. */}
       <div className="flex flex-wrap gap-2 mt-3 items-center">
-        <input
-          value={weight}
-          onChange={(e) => setWeight(e.target.value)}
-          placeholder="weight"
-          aria-label="weight"
-          className="w-24 border rounded-md px-3 py-3 min-h-[44px]"
-          inputMode="decimal"
-        />
+        {fields.weight && (
+          <input
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
+            placeholder={entry.is_bodyweight ? '+ weight' : 'weight'}
+            aria-label={entry.is_bodyweight ? 'added weight' : 'weight'}
+            className="w-24 border rounded-md px-3 py-3 min-h-[44px]"
+            inputMode="decimal"
+          />
+        )}
         {fields.reps && (
           <input
             value={reps}
