@@ -105,6 +105,10 @@ class Exercise(Base):
     force_type = Column(String, nullable=True)  # e.g., "Push", "Pull", "Other"
     mechanics = Column(String, nullable=True)  # "Compound" or "Isolation"
     laterality = Column(String, nullable=True)  # e.g., "Bilateral", "Unilateral"
+    # Fraction of bodyweight this movement actually loads: a push-up is ~0.64,
+    # a pull-up ~1.0. NULL means uncurated - readers apply
+    # DEFAULT_BODYWEIGHT_FRACTION rather than assuming full bodyweight.
+    bodyweight_fraction = Column(Float, nullable=True)
     
     # Media URLs
     short_demo_url = Column(String, nullable=True)

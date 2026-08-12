@@ -25,6 +25,7 @@ from app.models.training_session import (
     TrainingSession, SupersetRound, RoundEntry, EntrySet, SessionState
 )
 from app.models.staple import StapleExercise, ExercisePreference
+from app.models.bodyweight_reading import BodyweightReading
 
 __all__ = [
     "Base",
@@ -59,4 +60,5 @@ __all__ = [
     "SessionState",
     "StapleExercise",
     "ExercisePreference",
+    "BodyweightReading",
 ]
