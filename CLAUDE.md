@@ -143,7 +143,22 @@ DATABASE_URL=postgresql+asyncpg://postgres:slotfit@localhost:5432/slotfit
 These decisions have been made during development and should be followed consistently.
 
 ### Bodyweight Exercises
-Exercises with `primary_equipment_id = NULL` (bodyweight exercises) are **ALWAYS** available regardless of equipment profile selection. They should never be filtered out for equipment reasons in recommendations or exercise selection.
+Bodyweight exercises are identified by `is_bodyweight()` in
+`app/services/exercise_helpers.py`. The catalogue represents bodyweight as an
+equipment row named `Bodyweight`: all 209 bodyweight exercises point at it and
+**none** use `NULL`. An earlier version of this note claimed
+`primary_equipment_id = NULL` was the marker, and the code implemented exactly
+that, so the rule below silently never applied to a single exercise.
+
+Resolve the row's id with `bodyweight_equipment_id(db)` once per request and
+pass it in. Do not hardcode the id — equipment ids come from whatever seeded the
+table, and in the test fixtures id 2 is `Dumbbell`. `NULL` still counts as
+bodyweight so a hand-created exercise without equipment is not treated as loaded.
+
+These exercises are **ALWAYS** available regardless of equipment profile
+selection. They should never be filtered out for equipment reasons in
+recommendations or exercise selection. Use the predicate — do not open-code an
+equipment comparison.
 
 ### Pattern-Based Dynamic Sessions
 Routine templates with pre-planned muscle-group slots are retired. A session is

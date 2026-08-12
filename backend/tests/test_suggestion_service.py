@@ -299,6 +299,42 @@ async def test_equipment_profile_filters_candidates_but_never_bodyweight(test_db
 
 
 @pytest.mark.asyncio
+async def test_equipment_profile_never_filters_the_bodyweight_equipment_row(test_db):
+    """Bodyweight is a real equipment row, not a NULL, and must survive a profile.
+
+    Regression guard: the predicate tested for `primary_equipment_id IS NULL`,
+    which no catalogue row satisfies - all 209 bodyweight exercises point at
+    the "Bodyweight" equipment row. So the always-available rule never fired,
+    and the first equipment profile the user created would have hidden every
+    push-up, plank and squat jump.
+    """
+    user, session, d = await _setup(test_db)
+    cable_id = d["row"].primary_equipment_id
+
+    bodyweight = Equipment(name="Bodyweight")
+    test_db.add(bodyweight)
+    await test_db.flush()
+    dip = Exercise(name="Bodyweight Dip", movement_pattern_1="Horizontal Push",
+                   mechanics="Compound", primary_equipment_id=bodyweight.id,
+                   difficulty=DifficultyLevel.BEGINNER)
+    test_db.add(dip)
+    await test_db.flush()
+    await seed_exercise_pattern_map(test_db)
+    test_db.add(StapleExercise(user_id=user.id, pattern_id=d["hpush"].id, exercise_id=dip.id))
+    # A profile with only a cable - deliberately no Bodyweight row.
+    test_db.add(EquipmentProfile(user_id=user.id, name="Hotel Gym",
+                                 equipment_ids=[cable_id], is_default=True))
+    await test_db.commit()
+
+    result = await partner_suggestions(test_db, user.id, session.id,
+                                       anchor_exercise_id=d["row"].id, position=2)
+    names = [c["exercise_name"] for c in result["candidates"]]
+    assert "Bodyweight Dip" in names
+    card = next(c for c in result["candidates"] if c["exercise_name"] == "Bodyweight Dip")
+    assert card["is_bodyweight"] is True
+
+
+@pytest.mark.asyncio
 async def test_injury_restriction_excludes_with_disclaimer(test_db):
     """Conservative exclusion, disclaimer attached, and severity gating honored."""
     user, session, d = await _setup(test_db)

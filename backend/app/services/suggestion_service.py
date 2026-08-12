@@ -32,6 +32,7 @@ from app.models.injury import (
     MovementRestriction,
     injury_movement_restrictions,
 )
+from app.services.exercise_helpers import bodyweight_equipment_id, is_bodyweight
 from app.services.history_service import last_performed_map
 from app.services.progression_service import compute_entry_target
 
@@ -215,6 +216,7 @@ async def _filter_cards(
     available = await _available_equipment_ids(db, user_id)
     weekly = await _weekly_sets_by_muscle_group(db, user_id)
     last_map = await last_performed_map(db, user_id, [e.id for e in exercises])
+    bodyweight_id = await bodyweight_equipment_id(db)
 
     cards: list[dict] = []
     rejected: list[dict] = []
@@ -231,9 +233,9 @@ async def _filter_cards(
         if reason:
             rejected.append({"exercise_name": exercise.name, "reason": reason})
             continue
-        is_bodyweight = exercise.primary_equipment_id is None
+        is_bw = is_bodyweight(exercise, bodyweight_id)
         if (
-            not is_bodyweight
+            not is_bw
             and available is not None
             and exercise.primary_equipment_id not in available
         ):
@@ -271,7 +273,7 @@ async def _filter_cards(
                     if exercise.primary_equipment
                     else None
                 ),
-                "is_bodyweight": is_bodyweight,
+                "is_bodyweight": is_bw,
                 "last_performed": last_map.get(exercise.id),
                 "is_staple": exercise.id in staple_ids,
                 "target": await compute_entry_target(
@@ -571,6 +573,7 @@ async def _novelty_candidate(
     available = await _available_equipment_ids(db, user_id)
     restrictions = await _injury_restrictions(db, user_id)
     weekly = await _weekly_sets_by_muscle_group(db, user_id)
+    bodyweight_id = await bodyweight_equipment_id(db)
 
     # Novelty is held to a higher bar than a staple suggestion. A staple is
     # something the user chose; a novelty is something we are proposing, so an
@@ -629,9 +632,9 @@ async def _novelty_candidate(
     for exercise, pattern_id in rows:
         if _injury_reason(exercise, restrictions):
             continue
-        is_bodyweight = exercise.primary_equipment_id is None
+        is_bw = is_bodyweight(exercise, bodyweight_id)
         if (
-            not is_bodyweight
+            not is_bw
             and available is not None
             and exercise.primary_equipment_id not in available
         ):
@@ -653,7 +656,7 @@ async def _novelty_candidate(
             "equipment_name": (
                 exercise.primary_equipment.name if exercise.primary_equipment else None
             ),
-            "is_bodyweight": is_bodyweight,
+            "is_bodyweight": is_bw,
             "last_performed": last,
             "is_staple": False,
             "target": await compute_entry_target(
