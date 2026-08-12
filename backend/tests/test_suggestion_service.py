@@ -10,10 +10,11 @@ from app.models import (
     TrainingSession, SupersetRound, RoundEntry, EntrySet, SessionState,
     InjuryType, MovementRestriction, UserInjury,
 )
-from app.models.exercise import exercise_muscle_groups, DifficultyLevel
+from app.models.exercise import exercise_muscle_groups, DifficultyLevel, SetProtocol
 from app.services.pattern_taxonomy import seed_movement_patterns, seed_exercise_pattern_map
 from app.services.suggestion_service import (
     anchor_suggestions, partner_suggestions, _diverse_limit,
+    finisher_is_compatible, FINISHER_PER_PATTERN_CAP,
 )
 
 
@@ -238,6 +239,100 @@ async def test_position_three_offers_neutral_patterns(test_db):
                                             anchor_exercise_id=plank.id, position=3)
     assert "Plank" not in [c["exercise_name"] for c in self_paired["candidates"]]
     assert (self_paired["novelty"] or {}).get("exercise_name") != "Plank"
+
+
+def test_finisher_compatibility_matrix():
+    """Interval anchors want interval finishers; straight sets never want AMRAP."""
+    assert finisher_is_compatible(SetProtocol.AMRAP, SetProtocol.AMRAP)
+    assert finisher_is_compatible(SetProtocol.AMRAP, SetProtocol.TIME)
+    assert finisher_is_compatible(SetProtocol.AMRAP, SetProtocol.EMOM)
+    assert not finisher_is_compatible(SetProtocol.AMRAP, SetProtocol.REPS)
+
+    assert finisher_is_compatible(SetProtocol.REPS, SetProtocol.REPS)
+    assert finisher_is_compatible(SetProtocol.REPS, SetProtocol.TIME)
+    assert not finisher_is_compatible(SetProtocol.REPS, SetProtocol.AMRAP)
+
+    # A plank or carry closes either kind of round.
+    assert finisher_is_compatible(SetProtocol.TIME, SetProtocol.TIME)
+
+
+@pytest.mark.asyncio
+async def test_slot_three_excludes_protocol_incompatible_staples(test_db):
+    """A straight-set anchor must not be offered an AMRAP variant as a finisher.
+
+    Regression guard: pattern opposition alone proposed a barbell front squat
+    to finish a 40-second kettlebell swing AMRAP.
+    """
+    user, session, d = await _setup(test_db)
+    core = await _pattern(test_db, "core")
+
+    steady = Exercise(name="Test Cable Face Pull", movement_pattern_1="Isometric Hold",
+                      mechanics="Isolation", primary_equipment_id=None,
+                      difficulty=DifficultyLevel.NOVICE, set_protocol=SetProtocol.REPS)
+    interval = Exercise(name="Test Front Raise (HIIT AMRAP)", movement_pattern_1="Isometric Hold",
+                        mechanics="Isolation", primary_equipment_id=None,
+                        difficulty=DifficultyLevel.NOVICE, set_protocol=SetProtocol.AMRAP)
+    test_db.add_all([steady, interval])
+    await test_db.flush()
+    await seed_exercise_pattern_map(test_db)
+    test_db.add_all([
+        StapleExercise(user_id=user.id, pattern_id=core.id, exercise_id=steady.id),
+        StapleExercise(user_id=user.id, pattern_id=core.id, exercise_id=interval.id),
+    ])
+    await test_db.commit()
+
+    # d["row"] is a straight-set exercise (default REPS protocol).
+    result = await partner_suggestions(test_db, user.id, session.id,
+                                       anchor_exercise_id=d["row"].id, position=3)
+    names = [c["exercise_name"] for c in result["candidates"]]
+    assert "Test Cable Face Pull" in names
+    assert "Test Front Raise (HIIT AMRAP)" not in names
+
+
+@pytest.mark.asyncio
+async def test_slot_three_caps_candidates_per_pattern(test_db):
+    """Isolation holds half the neutral pool; it must not fill the whole list."""
+    user, session, d = await _setup(test_db)
+    core = await _pattern(test_db, "core")
+
+    for n in range(FINISHER_PER_PATTERN_CAP + 3):
+        extra = Exercise(name=f"Test Core Move {n}", movement_pattern_1="Isometric Hold",
+                         mechanics="Isolation", primary_equipment_id=None,
+                         difficulty=DifficultyLevel.NOVICE, set_protocol=SetProtocol.REPS)
+        test_db.add(extra)
+        await test_db.flush()
+        test_db.add(StapleExercise(user_id=user.id, pattern_id=core.id,
+                                   exercise_id=extra.id))
+    await seed_exercise_pattern_map(test_db)
+    await test_db.commit()
+
+    result = await partner_suggestions(test_db, user.id, session.id,
+                                       anchor_exercise_id=d["row"].id, position=3)
+    by_pattern: dict[int, int] = {}
+    for c in result["candidates"]:
+        by_pattern[c["pattern_id"]] = by_pattern.get(c["pattern_id"], 0) + 1
+    assert by_pattern
+    assert max(by_pattern.values()) <= FINISHER_PER_PATTERN_CAP
+
+
+@pytest.mark.asyncio
+async def test_slot_two_still_ignores_protocol(test_db):
+    """Position 2 is deliberately pattern-only: the user judges the pairing."""
+    user, session, d = await _setup(test_db)
+    hpush = d["hpush"]
+
+    interval = Exercise(name="Test Push Up (HIIT AMRAP)", movement_pattern_1="Horizontal Push",
+                        mechanics="Compound", primary_equipment_id=None,
+                        difficulty=DifficultyLevel.NOVICE, set_protocol=SetProtocol.AMRAP)
+    test_db.add(interval)
+    await test_db.flush()
+    await seed_exercise_pattern_map(test_db)
+    test_db.add(StapleExercise(user_id=user.id, pattern_id=hpush.id, exercise_id=interval.id))
+    await test_db.commit()
+
+    result = await partner_suggestions(test_db, user.id, session.id,
+                                       anchor_exercise_id=d["row"].id, position=2)
+    assert "Test Push Up (HIIT AMRAP)" in [c["exercise_name"] for c in result["candidates"]]
 
 
 @pytest.mark.asyncio

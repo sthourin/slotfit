@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.exercise import DifficultyLevel, Exercise
+from app.models.exercise import DifficultyLevel, Exercise, SetProtocol
 from app.models.equipment_profile import EquipmentProfile
 from app.models.movement_pattern import MovementPattern, ExercisePatternMap
 from app.models.staple import StapleExercise, ExercisePreference
@@ -38,6 +38,31 @@ from app.services.progression_service import compute_entry_target
 
 WEEKLY_SET_LIMIT = 20
 NOVELTY_STALENESS_DAYS = 90
+
+# Most candidates any one pattern may contribute to a finisher list. Isolation
+# holds 12 of the 24 neutral staples in a representative pool, so without a cap
+# it fills slot 3 outright and the other neutral patterns never get a look in.
+FINISHER_PER_PATTERN_CAP = 4
+
+# Interval work and straight sets are different jobs. AMRAP and EMOM are
+# clock-driven; REPS is not. TIME sits in both families - a plank or a carry
+# closes a strength round as happily as a conditioning one.
+_INTERVAL_PROTOCOLS = {SetProtocol.AMRAP, SetProtocol.EMOM}
+
+
+def finisher_is_compatible(anchor: SetProtocol, candidate: SetProtocol) -> bool:
+    """Whether `candidate` suits closing a round anchored by `anchor`.
+
+    Pattern opposition alone proposed a barbell front squat to finish a
+    40-second kettlebell swing AMRAP. Nobody supersets those, so protocol is a
+    filter at position 3 - deliberately unlike position 2, where the user picks
+    the true superset partner and is trusted to judge it themselves.
+    """
+    if candidate is SetProtocol.TIME:
+        return True
+    if anchor in _INTERVAL_PROTOCOLS or anchor is SetProtocol.TIME:
+        return candidate in _INTERVAL_PROTOCOLS
+    return candidate is SetProtocol.REPS
 
 # Difficulty levels a 'try something new' suggestion may come from.
 NOVELTY_DIFFICULTIES = (
@@ -293,6 +318,23 @@ async def _filter_cards(
     return cards, _diverse_limit(rejected)
 
 
+def _cap_per_pattern(cards: list[dict], cap: int) -> list[dict]:
+    """At most `cap` cards per pattern, preserving the incoming order.
+
+    `cards` arrives least-recently-performed first, so truncating per pattern
+    keeps each pattern's stalest options and drops its freshest.
+    """
+    taken: dict[int, int] = defaultdict(int)
+    kept: list[dict] = []
+    for card in cards:
+        pattern_id = card["pattern_id"]
+        if taken[pattern_id] >= cap:
+            continue
+        taken[pattern_id] += 1
+        kept.append(card)
+    return kept
+
+
 def _diverse_limit(rejected: list[dict], limit: int = 10) -> list[dict]:
     """Cap why-not entries at `limit`, spread across reason types.
 
@@ -488,8 +530,13 @@ async def partner_suggestions(
 ) -> dict:
     """Partner candidates for a superset entry.
 
-    position 2: opposite pattern of the anchor's pattern.
-    position 3: neutral patterns plus any uncovered goals (never the anchor's pair).
+    position 2: opposite pattern of the anchor's pattern. Deliberately does NOT
+    filter on set protocol - this is the true superset partner and the user is
+    trusted to judge the pairing at the rack.
+
+    position 3: a finisher. Neutral patterns plus any uncovered goals (never
+    the anchor's pair), narrowed to protocols that suit the round's character
+    and capped per pattern so isolation cannot fill the list on its own.
     """
     session, goals, sets_by_pattern, rep_ranges = await _session_context(
         db, user_id, session_id
@@ -541,12 +588,29 @@ async def partner_suggestions(
     # The anchor is never its own partner. It can reach the target set when it
     # is neutral (its own pattern is in the neutral list at position 3, or is
     # an uncovered goal at position 2), so screen it out explicitly.
-    exercises = [s.exercise for s in staples if s.exercise_id != anchor_exercise_id]
+    candidate_staples = [s for s in staples if s.exercise_id != anchor_exercise_id]
+
+    if position == 3:
+        anchor_protocol = (
+            await db.execute(
+                select(Exercise.set_protocol).where(Exercise.id == anchor_exercise_id)
+            )
+        ).scalar_one()
+        candidate_staples = [
+            s
+            for s in candidate_staples
+            if finisher_is_compatible(anchor_protocol, s.exercise.set_protocol)
+        ]
+
+    exercises = [s.exercise for s in candidate_staples]
     pattern_by_exercise = {s.exercise_id: s.pattern for s in staples}
     staple_ids = {s.exercise_id for s in staples}
     cards, rejected = await _filter_cards(
         db, user_id, exercises, pattern_by_exercise, staple_ids, rep_ranges
     )
+
+    if position == 3:
+        cards = _cap_per_pattern(cards, FINISHER_PER_PATTERN_CAP)
 
     novelty = await _novelty_candidate(
         db, user_id, target_pattern_ids, staple_ids | {anchor_exercise_id}, rep_ranges
