@@ -298,8 +298,19 @@ export default function Session() {
           {session.rounds.map((r) => (
             <div key={r.id} className="mb-2">
               <span className="text-sm text-gray-400 mr-2">Round {r.order}:</span>
-              {r.entries.length > 0
-                ? r.entries.map((e) => `${e.exercise_name} (${e.sets.length} sets)`).join(' + ')
+              {/* Slots picked but never logged are omitted: reporting
+                  "(0 sets)" claims work as part of the round that never
+                  happened. */}
+              {r.entries.some((e) => e.sets.length > 0)
+                ? r.entries
+                    .filter((e) => e.sets.length > 0)
+                    .map(
+                      (e) =>
+                        `${e.exercise_name} (${e.sets.length} ${
+                          e.sets.length === 1 ? 'set' : 'sets'
+                        })`
+                    )
+                    .join(' + ')
                 : 'no exercises'}
             </div>
           ))}
@@ -349,9 +360,10 @@ export default function Session() {
 
   return (
     <div className="container mx-auto p-6 max-w-2xl">
-      <div className="flex justify-between items-center mb-4 gap-2">
-        <h1 className="text-2xl font-bold">Active Session</h1>
-        <div className="flex items-center gap-3">
+      {/* Stacks on a phone: side by side, Finish Session overlapped the heading. */}
+      <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:justify-between sm:items-center">
+        <h1 className="text-2xl font-bold min-w-0">Active Session</h1>
+        <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={finish}
             disabled={busy}

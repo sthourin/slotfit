@@ -104,9 +104,14 @@ export default function DayPlans() {
       {error && <div className="text-red-600 mb-4">{error}</div>}
       {localError && <div className="text-red-600 mb-4">{localError}</div>}
 
+      {/* Cards stack on a phone: side by side, the pattern list and the three
+          buttons overlapped each other at 390px. */}
       {plans.map((plan) => (
-        <div key={plan.id} className="bg-white rounded-lg shadow p-4 mb-3 flex justify-between items-center">
-          <div>
+        <div
+          key={plan.id}
+          className="bg-white rounded-lg shadow p-4 mb-3 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center"
+        >
+          <div className="min-w-0">
             <div className="font-semibold">{plan.name}</div>
             <div className="text-sm text-gray-500">
               {plan.rounds_target} rounds ·{' '}
@@ -115,7 +120,7 @@ export default function DayPlans() {
                 .join(', ')}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => handleStart(plan)}
               disabled={starting}
