@@ -1,10 +1,10 @@
 """Pydantic schemas for training sessions"""
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-class EntrySetCreate(BaseModel):
+class EntrySetBase(BaseModel):
     set_number: int = Field(..., ge=1, le=50)
     weight: Optional[float] = Field(None, ge=0)
     reps: Optional[int] = Field(None, ge=0, le=500)
@@ -12,7 +12,28 @@ class EntrySetCreate(BaseModel):
     completed: bool = True
 
 
-class EntrySetResponse(EntrySetCreate):
+class EntrySetCreate(EntrySetBase):
+    @model_validator(mode="after")
+    def require_a_result(self):
+        """Every logged set must record reps or a duration.
+
+        Weight alone is not a result - "50kg" says nothing about what was done.
+        A set with neither renders as an em dash and still credits pattern
+        coverage, so the day plan reports work that never happened.
+        """
+        if self.reps is None and self.time_seconds is None:
+            raise ValueError("A set must record reps or time_seconds")
+        return self
+
+
+class EntrySetResponse(EntrySetBase):
+    """Deliberately NOT derived from EntrySetCreate.
+
+    The rule above governs what may be written. Applying it on the way out too
+    would make rows logged before it existed unreadable, taking whole sessions
+    down with them rather than just showing the one bad set.
+    """
+
     model_config = ConfigDict(from_attributes=True)
     id: int
     entry_id: int

@@ -82,7 +82,20 @@ export default function EntryCard({ entry, onLogSet, busy, error }: Props) {
     return Number.isFinite(n) ? n : null
   }
 
+  /**
+   * The field carrying the actual result for this protocol: reps where reps are
+   * counted, duration where they are not. For AMRAP the window is fixed and
+   * pre-filled, so the reps are still the result.
+   *
+   * Without it a set can be logged entirely empty — it renders as "—" and, worse,
+   * still credits pattern coverage, so the day plan reports work that never
+   * happened. Weight stays optional throughout: bodyweight sets legitimately
+   * have none.
+   */
+  const hasResult = parse(fields.reps ? reps : timeSec) != null
+
   const logSet = async () => {
+    if (!hasResult) return
     await onLogSet(entry.id, {
       set_number: entry.sets.length + 1,
       // Send null for a field this protocol doesn't use, so a stale value left
@@ -163,7 +176,8 @@ export default function EntryCard({ entry, onLogSet, busy, error }: Props) {
         )}
         <button
           onClick={logSet}
-          disabled={busy}
+          disabled={busy || !hasResult}
+          title={hasResult ? undefined : `Enter ${fields.reps ? 'reps' : 'seconds'} to log this set`}
           className="bg-blue-600 text-white px-5 py-3 min-h-[44px] rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Log Set

@@ -144,6 +144,31 @@ async def test_session_lifecycle_api(client_with_data, device_id):
     )
     assert set_resp.status_code == 201
 
+    # A set recording neither reps nor a duration is not a set. It renders as an
+    # em dash and still credits pattern coverage, so the day plan would report
+    # work that never happened.
+    empty = await client.post(
+        f"/api/v1/sessions/entries/{entry['id']}/sets",
+        json={"set_number": 2},
+        headers=headers,
+    )
+    assert empty.status_code == 422
+
+    weight_only = await client.post(
+        f"/api/v1/sessions/entries/{entry['id']}/sets",
+        json={"set_number": 2, "weight": 100},
+        headers=headers,
+    )
+    assert weight_only.status_code == 422
+
+    # A duration with no reps is a legitimate set: that is how the rower logs.
+    timed = await client.post(
+        f"/api/v1/sessions/entries/{entry['id']}/sets",
+        json={"set_number": 2, "time_seconds": 300},
+        headers=headers,
+    )
+    assert timed.status_code == 201
+
     # Coverage reports one goal entry per day-plan pattern goal. Whether the
     # logged set actually lands in one of those buckets is exercised
     # precisely (not conditionally) by test_coverage_counts_only_completed_sets
