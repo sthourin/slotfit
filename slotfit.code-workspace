@@ -4,5 +4,35 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"workbench.colorCustomizations": {
+			"titleBar.activeBackground": "#4B5320",
+			"titleBar.activeForeground": "#E8E6D9",
+			"titleBar.inactiveBackground": "#4B5320AA",
+			"titleBar.inactiveForeground": "#E8E6D9AA",
+			"titleBar.border": "#8A9A3B",
+
+			"activityBar.background": "#3E4419",
+			"activityBar.foreground": "#E8E6D9",
+			"activityBar.inactiveForeground": "#E8E6D988",
+			"activityBar.activeBorder": "#A8B84A",
+			"activityBarBadge.background": "#8A9A3B",
+			"activityBarBadge.foreground": "#1B1F0C",
+
+			"statusBar.background": "#3E4419",
+			"statusBar.foreground": "#E8E6D9",
+			"statusBar.border": "#8A9A3B",
+			"statusBarItem.hoverBackground": "#5A6327",
+			"statusBar.debuggingBackground": "#8A9A3B",
+			"statusBar.debuggingForeground": "#1B1F0C",
+			"statusBar.noFolderBackground": "#3E4419",
+			"statusBarItem.remoteBackground": "#5A6327",
+			"statusBarItem.remoteForeground": "#E8E6D9",
+
+			"focusBorder": "#8A9A3B",
+			"sash.hoverBorder": "#8A9A3B",
+			"panelTitle.activeBorder": "#8A9A3B",
+			"tab.activeBorderTop": "#8A9A3B"
+		}
+	}
 }
