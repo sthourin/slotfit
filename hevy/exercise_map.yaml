@@ -796,3 +796,34 @@ exercises:
     name: Single-leg Alternating Kettlebell Around the World
     pattern: core
     equipment: Kettlebell
+
+# Added by hand 2026-08-22, after a fresh pull surfaced three titles the
+# 2026-08-02 generation did not cover. All three resolve to exercises that
+# already exist in SlotFit; none needs a `create:`.
+#
+# `Cable Core Pallof Press` carries hevy_template_id CC55119B - the same id as
+# the `Cable Core Palloff Press` entry above. Hevy corrected its own spelling,
+# so this is one exercise under two names, not two exercises.
+#
+# `Face Pulls` and `Single-arm Cable Front Raise` are custom Hevy exercises
+# (UUID template ids) distinct from the built-in `Face Pull` entry above. Both
+# names describe the same movement, and mapping many Hevy titles onto one
+# SlotFit exercise is expected.
+- hevy: Cable Core Pallof Press
+  hevy_template_id: CC55119B
+  sessions: 3
+  last_performed: '2026-08-02'
+  hevy_equipment: machine
+  slotfit: Cable Pallof Press
+- hevy: Face Pulls
+  hevy_template_id: 4447eb7a-bdbb-46ac-a0bf-dd81ecc29732
+  sessions: 7
+  last_performed: '2026-08-16'
+  hevy_equipment: machine
+  slotfit: Cable Face Pull
+- hevy: Single-arm Cable Front Raise
+  hevy_template_id: 7174dd37-78b5-4660-9d63-f72d2afda6e3
+  sessions: 8
+  last_performed: '2026-08-16'
+  hevy_equipment: machine
+  slotfit: Single Arm Cable Front Raise

@@ -2,7 +2,9 @@
 Backfill SlotFit history from the local Hevy export.
 
 Imports completed workouts into the legacy workout tables and dated bodyweight
-readings, converting Hevy's kilograms to pounds on the way in.
+readings, converting Hevy's kilograms to pounds on the way in. Reps, durations
+and distances all import; distance stays in metres, which is what both sides
+already use.
 
 Reads `hevy/data/workouts.json`, `hevy/data/body_measurements.json` and the
 reviewed `hevy/exercise_map.yaml`. No Hevy API call is made.
@@ -85,7 +87,7 @@ async def main(device_id: str, commit: bool) -> None:
         created, skipped = await backfill_bodyweight(db, user, measurements)
         print(f"\nWorkouts:   {sessions} sessions, {sets} sets imported.")
         print(f"            {unmapped_sets} sets skipped (title not in the reviewed map).")
-        print(f"            {setless} sets skipped (no reps; duration/distance has no column here).")
+        print(f"            {setless} sets recorded nothing at all (no reps, no duration, no distance).")
         print(f"Bodyweight: {created} readings imported, {skipped} skipped.")
 
 
