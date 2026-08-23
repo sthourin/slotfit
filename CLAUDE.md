@@ -54,6 +54,11 @@ alembic revision --autogenerate -m "description"  # Create migration
 # Without it every bodyweight exercise falls back to the default fraction,
 # which is usable but undifferentiated.
 ./venv/Scripts/python.exe -m scripts.seed_leverage
+
+# Creates the conditioning movements the CSV catalogue has no row for
+# (Rucking, Bodyweight Walk, Bodyweight Run) and sets TIME on the static
+# holds. Dry-run by default. Without it there is nothing to log a ruck against.
+./venv/Scripts/python.exe -m scripts.seed_conditioning --commit
 ```
 
 The pattern seed is not run by app startup, Alembic, or CI. On a database where
@@ -219,10 +224,53 @@ and simply adds no tonnage.
   apply: an AMRAP always clears a 12-rep ceiling, so double progression
   escalated load every session without bound.
 - **TIME** — no prescription at all. Inventing a rep target from `rep_min`
-  produced a rep goal for a rowing machine.
+  produced a rep goal for a rowing machine. The load is still carried forward,
+  because a weighted plank or loaded march is held at a weight; remembering a
+  load is not prescribing one.
+- **DISTANCE** — pace, but only when exactly one variable is free. Fixed
+  distance → beat the time (the rower is always 500m, so "500m in 2:05" asks
+  for less). Fixed time → beat the distance. Both moving, or no clock recorded
+  → no prescription, because guessing which variable was meant to be pushed is
+  how a rep goal ended up on a rowing machine in the first place. The weight
+  rides along so a ruck is prescribed at the pack it was carried with: pace at
+  a lighter load is not an improvement.
 
-Every logged set must record reps or a duration. Weight alone is not a result,
-and a set with neither still credited pattern coverage.
+Every logged set must record reps, a duration, **or a distance**. Weight alone
+is not a result, and a set with none of the three still credited pattern
+coverage.
+
+### Conditioning and Loaded Locomotion
+Conditioning is a **measurement mode, not a movement pattern**. Mountain
+climbers are core, KB swings are hip hinge, DB step-ups are knee dominant —
+ordinary strength patterns that happen to be measured in time. So it lives
+entirely in `SetProtocol`, and pattern coverage needs no special case:
+`RoundEntry.pattern_id` is denormalised per entry, so a KB swing logged for 40
+seconds still credits hip hinge. The `Conditioning` pattern row means "the
+movement itself is locomotion or ergometer work" (rower, ruck), not "measured
+in time".
+
+Rucking needs no new load model. It is a bodyweight exercise with
+`bodyweight_fraction = 1.0` — walking carries all of you — and the pack **adds**,
+which is what `effective_load()` already does. Loaded marches and carries with
+real equipment stay loaded exercises: their logged weight *is* the load.
+Ergometers are deliberately absent from `leverage.py`; a rower has its own
+equipment row, so `is_bodyweight` is false and it contributes no tonnage without
+needing a fraction.
+
+**Conditioning never enters strength tonnage.** `load × reps` and
+`load × distance` are different units. One 5 km ruck at 235 lb effective would
+produce ~1.2M against roughly 50k for a hard lifting week — the same "inflate
+the chart into noise" failure already documented for muscle roles. A
+conditioning set counts as a **set** in muscle-group volume (the work happened
+and the target muscle is known) and adds **zero tonnage**. Distance, duration,
+pace and load-distance are reported separately by
+`volume_service.weekly_conditioning` and `/analytics/weekly-conditioning`.
+
+Pace is computed only from sets recording **both** a duration and a distance.
+Dividing total seconds by total metres let 600 s of distance-less rowing turn a
+2:05/km effort into 24:10/km. A plank is not slow.
+
+See `docs/superpowers/specs/2026-08-23-conditioning-and-loaded-locomotion-design.md`.
 
 ### Pattern-Based Dynamic Sessions
 Routine templates with pre-planned muscle-group slots are retired. A session is
@@ -266,6 +314,38 @@ The recommendation response includes a `not_recommended` array explaining why ex
 - May aggravate user's injury (see below)
 
 Limit to ~10 entries with diverse reason types. This powers the "Why Not" expandable section in the Exercise Selection Modal.
+
+### AI Providers: Grounding and Configuration
+Recommendations are **grounded in a candidate list**. The provider queries the
+exercises matching the requested muscle groups and available equipment
+(bodyweight always included), puts that list in the prompt, and then validates
+the response against it — dropping any exercise outside the set and reading
+names back from the database rather than trusting the model's label.
+
+This is not defensive decoration. Before grounding, the prompt passed bare
+integer ids (`Target muscle groups: [17]`) with no names and no catalogue, so
+the model invented exercises *and* ids: a Chest request returned "Dumbbell
+Lateral Raise" at id 1101, which is really `Bar Pull Up`. Every field looked
+plausible; the UI would have shown one exercise and logged another. **The id is
+the model's only choice; the name is always read from the database.**
+
+`total_candidates` is counted from the query, never taken from the model — it is
+a fact about the database, and a model asked for it just guesses.
+
+Prompt construction and the response schema live in
+`app/services/ai/prompting.py`, shared by every provider. They used to be
+duplicated ~155 lines apiece in the Claude and Gemini providers and had already
+drifted. Providers that can constrain output to `RecommendationPayload` (Claude,
+via `messages.parse`) leave the prose JSON description off; providers that parse
+free text (Gemini) pass `include_json_shape=True`, for which it is load-bearing.
+
+The model id is `settings.AI_MODEL` (`AI_MODEL` in `.env`), not a literal. It
+was hardcoded to `claude-3-sonnet-20240229`, which Anthropic retired on
+2025-07-21 — every request 404'd, fell through to Gemini, which then crashed on
+a `datetime` that `json.dumps` could not serialize, and landed on the rule-based
+provider. Two silent failures in series meant the AI path was dead for months
+while the app looked fine. A refusal (`stop_reason == "refusal"`) is raised
+rather than swallowed, so it enters the same fallback chain.
 
 ### Injury-Aware Recommendations
 Users can add injuries to their profile, which filters exercise recommendations:

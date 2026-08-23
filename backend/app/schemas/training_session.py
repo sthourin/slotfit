@@ -9,20 +9,25 @@ class EntrySetBase(BaseModel):
     weight: Optional[float] = Field(None, ge=0)
     reps: Optional[int] = Field(None, ge=0, le=500)
     time_seconds: Optional[int] = Field(None, ge=0)
+    distance_meters: Optional[float] = Field(None, ge=0)
     completed: bool = True
 
 
 class EntrySetCreate(EntrySetBase):
     @model_validator(mode="after")
     def require_a_result(self):
-        """Every logged set must record reps or a duration.
+        """Every logged set must record reps, a duration, or a distance.
 
         Weight alone is not a result - "50kg" says nothing about what was done.
-        A set with neither renders as an em dash and still credits pattern
-        coverage, so the day plan reports work that never happened.
+        A set with none of the three renders as an em dash and still credits
+        pattern coverage, so the day plan reports work that never happened.
+
+        Distance joins the rule rather than bypassing it: "500m" is a complete
+        result on its own, and a ruck logged by distance with the clock left
+        running is a real way to train.
         """
-        if self.reps is None and self.time_seconds is None:
-            raise ValueError("A set must record reps or time_seconds")
+        if self.reps is None and self.time_seconds is None and self.distance_meters is None:
+            raise ValueError("A set must record reps, time_seconds, or distance_meters")
         return self
 
 
@@ -50,10 +55,16 @@ class TargetResponse(BaseModel):
     reps: Optional[int] = None
     sets: int
     time_seconds: Optional[int] = None
+    distance_meters: Optional[float] = None
     # "target" = do exactly this many reps; "beat" = exceed this many (AMRAP);
     # None = no rep prescription.
     reps_goal: Optional[str] = None
-    last_summary: Optional[str]  # e.g. "3x10 @ 120", "2x300s"
+    # How to read time_seconds / distance_meters on a conditioning target:
+    # "beat_time" = cover distance_meters faster than time_seconds;
+    # "beat_distance" = cover more than distance_meters within time_seconds;
+    # None = the numbers are the last performance, not a prescription.
+    pace_goal: Optional[str] = None
+    last_summary: Optional[str]  # e.g. "3x10 @ 120", "2x300s", "500m in 1:47"
 
 
 class RoundEntryResponse(BaseModel):

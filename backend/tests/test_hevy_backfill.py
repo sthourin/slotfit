@@ -190,17 +190,18 @@ async def test_backfilled_history_feeds_last_performed(test_db):
 
 
 @pytest.mark.asyncio
-async def test_sets_without_reps_are_skipped_but_the_exercise_is_kept(test_db):
-    """Hevy's duration/distance sets have no columns here.
+async def test_conditioning_sets_import_with_duration_and_distance(test_db):
+    """Hevy's duration/distance sets now have columns, so they import.
 
-    Regression guard: importing them stored an empty row that read back as
-    "Last: 0@bw, 0@bw" - the same fabricated-zero problem the logging path
-    already refuses. The exercise row stays so last_performed still knows the
-    day happened.
+    This test previously asserted the opposite, and was right to: `workout_sets`
+    had no duration or distance column, so importing such a set stored an empty
+    row that read back as "Last: 0@bw, 0@bw". The columns exist now, and the
+    numbers are the whole record of the work - 500m in 108s is a performance,
+    and dropping it lost three years of ergometer history.
+
+    Metres are not converted. Hevy stores metres and so does SlotFit; only
+    weight crosses a unit boundary.
     """
-    from app.models import WorkoutExercise
-    from app.services.history_service import last_performed_map
-
     user = User(device_id="bf-w-0006")
     rower = Exercise(name="Backfill Rower", mechanics="Compound")
     test_db.add_all([user, rower])
@@ -209,6 +210,42 @@ async def test_sets_without_reps_are_skipped_but_the_exercise_is_kept(test_db):
     workouts = [_workout("2026-01-05T09:00:00Z", "Row", [
         {"weight_kg": None, "reps": None, "distance_meters": 500, "duration_seconds": 108},
         {"weight_kg": 20.0, "reps": None, "duration_seconds": 60},
+    ])]
+    sessions, sets, _unmapped, setless = await backfill_workouts(
+        test_db, user, workouts, {"Row": rower.id}
+    )
+    assert (sessions, sets, setless) == (1, 2, 0)
+
+    stored = sorted(
+        (await test_db.execute(select(WorkoutSet))).scalars().all(),
+        key=lambda s: s.set_number,
+    )
+    assert [(s.reps, s.time_seconds, s.distance_meters) for s in stored] == [
+        (None, 108, 500.0),
+        (None, 60, None),
+    ]
+    # A weighted carry keeps its load, converted to pounds like any other.
+    assert stored[1].weight == pytest.approx(44.1, abs=0.05)
+
+
+@pytest.mark.asyncio
+async def test_sets_recording_nothing_are_skipped_but_the_exercise_is_kept(test_db):
+    """A set with no reps, no duration and no distance is still not a result.
+
+    Widening what counts as a result must not widen it to nothing. The exercise
+    row stays so last_performed still knows the day happened.
+    """
+    from app.models import WorkoutExercise
+    from app.services.history_service import last_performed_map
+
+    user = User(device_id="bf-w-0007")
+    rower = Exercise(name="Empty Set Rower", mechanics="Compound")
+    test_db.add_all([user, rower])
+    await test_db.flush()
+
+    workouts = [_workout("2026-01-05T09:00:00Z", "Row", [
+        {"weight_kg": 20.0, "reps": None},
+        {"weight_kg": None, "reps": None},
     ])]
     sessions, sets, _unmapped, setless = await backfill_workouts(
         test_db, user, workouts, {"Row": rower.id}

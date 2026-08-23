@@ -41,7 +41,23 @@ CURATED_FRACTIONS: dict[str, float] = {
     "Superman": 0.35,
     "High Knees": 0.30,
     "Arm Circles": 0.05,
+    # Locomotion. Walking and running carry the whole body over ground, so the
+    # fraction is 1.0 rather than the push-up default, which describes a
+    # supported movement and is meaningless here. External load adds on top -
+    # `effective_load` does that already - so a ruck resolves to bodyweight plus
+    # the pack, which is exactly what the legs are moving.
+    "Rucking": 1.0,
+    "Bodyweight Walk": 1.0,
+    "Bodyweight Run": 1.0,
+    "Bodyweight March": 1.0,
 }
+
+# Ergometers are deliberately absent. A rower, air bike or ski erg has its own
+# equipment row, so `is_bodyweight` is false and `effective_load` returns the
+# logged weight - which is None, because an erg reports no load. They therefore
+# contribute no tonnage without needing a fraction, and adding one here would be
+# dead configuration that reads as though it did something. Their duration and
+# distance are what describe the effort, and those are counted in full.
 
 
 def fraction_for(name: str, stored: float | None) -> float:

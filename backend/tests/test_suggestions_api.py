@@ -225,7 +225,9 @@ async def test_partner_target_schema_round_trip_with_non_null_target(
         "reps",
         "sets",
         "time_seconds",
+        "distance_meters",
         "reps_goal",
+        "pace_goal",
         "last_summary",
     }
     assert bench_card["target"]["reps"] == 11  # double progression: 10 + 1

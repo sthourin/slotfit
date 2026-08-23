@@ -96,6 +96,10 @@ async def backfill_workouts(
 ) -> tuple[int, int, int, int]:
     """Import completed workouts. Returns (sessions, sets, unmapped_sets, setless_sets).
 
+    `setless_sets` counts sets that recorded nothing measurable at all. It used
+    to also swallow every conditioning set, because duration and distance had
+    nowhere to go; they now have columns and import normally.
+
     The legacy tables are the right home: their shape (session -> exercises ->
     sets) is exactly Hevy's, and `history_service` already unions them with the
     training-session tables, so importing here lights up rotation, progression
@@ -153,12 +157,15 @@ async def backfill_workouts(
             )
             number = 0
             for raw in raw_sets:
-                # A set with no reps records nothing the legacy schema can hold:
-                # Hevy's duration and distance have no columns here, so it would
-                # import as an empty row and read back as "0 reps @ bodyweight".
-                # The same rule already governs new logging - a set must record
-                # reps or a duration - and legacy cannot record a duration.
-                if raw.get("reps") is None:
+                reps = raw.get("reps")
+                duration = raw.get("duration_seconds")
+                distance = raw.get("distance_meters")
+                # A set still has to record something. What counts as
+                # "something" now includes a duration and a distance, because
+                # `workout_sets` has columns for both - it did not when this
+                # rule was written, which is why three years of ergometer and
+                # carry work was silently dropped as "no reps".
+                if reps is None and duration is None and distance is None:
                     skipped_setless += 1
                     continue
                 number += 1
@@ -166,13 +173,17 @@ async def backfill_workouts(
                     WorkoutSet(
                         set_number=number,
                         weight=kg_to_lbs(raw.get("weight_kg")),
-                        reps=raw["reps"],
+                        reps=reps,
+                        time_seconds=duration,
+                        # Hevy stores metres and so does SlotFit, so distance is
+                        # the one measurement here that needs no conversion.
+                        distance_meters=distance,
                     )
                 )
                 session_sets += 1
             # The exercise row is kept even with no importable sets, because
-            # last_performed reads it and "you rowed that day" is true and
-            # useful even when the distance is unrepresentable.
+            # last_performed reads it and "you trained that movement that day"
+            # is true and useful even when nothing about the set was recorded.
             session.exercises.append(workout_exercise)
 
         if not session.exercises:

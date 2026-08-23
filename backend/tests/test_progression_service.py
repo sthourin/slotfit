@@ -42,7 +42,8 @@ def test_next_target_adds_rep_below_range_top():
     target = next_target([(120.0, 10), (120.0, 10), (120.0, 10)])
     assert target == {
         "weight": 120.0, "reps": 11, "sets": 3, "time_seconds": None,
-        "reps_goal": "target", "last_summary": "3x10 @ 120",
+        "distance_meters": None, "reps_goal": "target", "pace_goal": None,
+        "last_summary": "3x10 @ 120",
     }
 
 
@@ -51,7 +52,8 @@ def test_next_target_bumps_weight_at_range_top():
     target = next_target([(120.0, 12), (120.0, 12), (120.0, 12)], increment=5.0)
     assert target == {
         "weight": 125.0, "reps": 8, "sets": 3, "time_seconds": None,
-        "reps_goal": "target", "last_summary": "3x12 @ 120",
+        "distance_meters": None, "reps_goal": "target", "pace_goal": None,
+        "last_summary": "3x12 @ 120",
     }
 
 
@@ -59,7 +61,8 @@ def test_next_target_no_history():
     target = next_target([])
     assert target == {
         "weight": None, "reps": 8, "sets": 3, "time_seconds": None,
-        "reps_goal": "target", "last_summary": None,
+        "distance_meters": None, "reps_goal": "target", "pace_goal": None,
+        "last_summary": None,
     }
 
 
@@ -291,10 +294,13 @@ async def test_compute_entry_target_with_history(test_db):
     test_db.add(s)
     await test_db.commit()
 
-    target = await compute_entry_target(test_db, user.id, row.id)
+    target = await compute_entry_target(
+        test_db, user.id, row.id, protocol=SetProtocol.REPS
+    )
     assert target == {
         "weight": 120.0, "reps": 11, "sets": 3, "time_seconds": None,
-        "reps_goal": "target", "last_summary": "3x10 @ 120",
+        "distance_meters": None, "reps_goal": "target", "pace_goal": None,
+        "last_summary": "3x10 @ 120",
     }
 
 
@@ -306,7 +312,9 @@ async def test_compute_entry_target_no_history(test_db):
     test_db.add_all([user, row])
     await test_db.commit()
 
-    target = await compute_entry_target(test_db, user.id, row.id)
+    target = await compute_entry_target(
+        test_db, user.id, row.id, protocol=SetProtocol.REPS
+    )
     assert target is None
 
 
@@ -438,3 +446,93 @@ async def test_pattern_trend_baseline_survives_high_frequency_staple(test_db):
     assert len(trend) == 3
     assert trend[0]["week_start"] == week_older
     assert trend[0]["index"] == pytest.approx(1.0)
+
+
+def test_next_target_distance_constant_distance_beats_the_best_time():
+    """500m in 1:47 asks for 500m in less. This is the rower's whole progression.
+
+    Fixed distance leaves exactly one variable free, so unlike bare TIME there
+    is something to beat. The best (lowest) time is the mark, not the last one:
+    a slow session should not lower the bar.
+    """
+    target = next_target(
+        [(None, None, 114, 500.0), (None, None, 107, 500.0)],
+        protocol=SetProtocol.DISTANCE,
+    )
+    assert target["distance_meters"] == 500.0
+    assert target["time_seconds"] == 107
+    assert target["pace_goal"] == "beat_time"
+    assert target["reps"] is None
+    assert target["reps_goal"] is None
+
+
+def test_next_target_distance_constant_time_beats_the_distance():
+    target = next_target(
+        [(None, None, 600, 1800.0), (None, None, 600, 2000.0)],
+        protocol=SetProtocol.DISTANCE,
+    )
+    assert target["time_seconds"] == 600
+    assert target["distance_meters"] == 2000.0
+    assert target["pace_goal"] == "beat_distance"
+
+
+def test_next_target_distance_with_both_varying_prescribes_nothing():
+    """Two variables moving at once is not progression.
+
+    Guessing which one was meant to be pushed is how a rep goal ended up on a
+    rowing machine; this reports the last performance and prescribes nothing.
+    """
+    target = next_target(
+        [(None, None, 300, 1000.0), (None, None, 600, 2500.0)],
+        protocol=SetProtocol.DISTANCE,
+    )
+    assert target["pace_goal"] is None
+    assert target["time_seconds"] is None
+    assert target["distance_meters"] is None
+    assert target["last_summary"] == "1km in 5:00, 2.5km in 10:00"
+
+
+def test_next_target_distance_carries_the_pack_weight_forward():
+    """A ruck is prescribed at the load it was carried with.
+
+    Dropping the weight from the target would invite beating the pace by
+    carrying less, which is not an improvement.
+    """
+    target = next_target(
+        [(35.0, None, 3600, 5000.0)], protocol=SetProtocol.DISTANCE
+    )
+    assert target["weight"] == 35.0
+    assert target["pace_goal"] == "beat_time"
+    assert target["last_summary"] == "5km in 60:00 @ 35"
+
+
+def test_next_target_distance_without_a_clock_prescribes_nothing():
+    """Distance with no time recorded has no pace to improve on."""
+    target = next_target(
+        [(None, None, None, 5000.0)], protocol=SetProtocol.DISTANCE
+    )
+    assert target["pace_goal"] is None
+    assert target["last_summary"] == "5km"
+
+
+def test_next_target_time_remembers_the_load_without_prescribing_a_duration():
+    """A loaded march is held at a weight; forgetting it is a regression.
+
+    Remembering a load is not prescribing one - no duration target is offered,
+    which is the rule TIME has always followed.
+    """
+    target = next_target(
+        [(53.0, None, 45), (53.0, None, 45)], protocol=SetProtocol.TIME
+    )
+    assert target["weight"] == 53.0
+    assert target["time_seconds"] is None
+    assert target["reps"] is None
+    assert target["reps_goal"] is None
+
+
+def test_next_target_distance_no_history_invents_no_reps():
+    """Regression guard: conditioning must not fall through to rep_min."""
+    target = next_target([], protocol=SetProtocol.DISTANCE)
+    assert target["reps"] is None
+    assert target["reps_goal"] is None
+    assert target["pace_goal"] is None

@@ -34,9 +34,17 @@ class SetProtocol(str, enum.Enum):
     """
 
     REPS = "reps"      # weight optional, reps
-    TIME = "time"      # weight optional, seconds - rower, plank, carries
+    TIME = "time"      # weight optional, seconds - plank, loaded march, carry
     AMRAP = "amrap"    # weight optional, reps, seconds - fixed window, count reps
     EMOM = "emom"      # weight optional, reps - fixed reps per interval
+    DISTANCE = "distance"  # weight optional, metres and/or seconds - rower, ruck
+
+
+# Protocols measured in time or distance rather than reps. These are the sets a
+# rep count cannot describe, and the ones excluded from strength tonnage: a
+# load-distance product and a load-reps product are different units, and adding
+# them would let one ruck outweigh a month of lifting.
+CONDITIONING_PROTOCOLS = frozenset({SetProtocol.TIME, SetProtocol.DISTANCE})
 
 
 # A label carries two independent things: intent ("HIIT") and protocol

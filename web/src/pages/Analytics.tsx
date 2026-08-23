@@ -3,16 +3,23 @@
  * Shows workout analytics and insights
  */
 import { useState, useEffect } from 'react'
-import { analyticsApi, type WeeklyVolumeResponse, type SlotPerformanceResponse } from '../services/analytics'
+import {
+  analyticsApi,
+  type WeeklyVolumeResponse,
+  type WeeklyConditioningResponse,
+  type SlotPerformanceResponse,
+} from '../services/analytics'
 import { routineApi, type RoutineTemplate } from '../services/routines'
 import { getPatternProgress } from '../services/patterns'
 import type { PatternProgress } from '../services/patterns'
 import VolumeChart from '../components/analytics/VolumeChart'
 import MovementBalance from '../components/analytics/MovementBalance'
 import SlotPerformance from '../components/analytics/SlotPerformance'
+import ConditioningPanel from '../components/analytics/ConditioningPanel'
 
 export default function Analytics() {
   const [weeklyVolume, setWeeklyVolume] = useState<WeeklyVolumeResponse | null>(null)
+  const [conditioning, setConditioning] = useState<WeeklyConditioningResponse | null>(null)
   const [routines, setRoutines] = useState<RoutineTemplate[]>([])
   const [selectedRoutineId, setSelectedRoutineId] = useState<number | null>(null)
   const [slotPerformance, setSlotPerformance] = useState<SlotPerformanceResponse | null>(null)
@@ -35,9 +42,14 @@ export default function Analytics() {
     setLoading(true)
     setError(null)
     try {
-      // Load weekly volume
-      const volume = await analyticsApi.getWeeklyVolume()
+      // Strength and conditioning for the same week, fetched together so the
+      // two panels always describe the same seven days.
+      const [volume, cond] = await Promise.all([
+        analyticsApi.getWeeklyVolume(),
+        analyticsApi.getWeeklyConditioning(),
+      ])
       setWeeklyVolume(volume)
+      setConditioning(cond)
 
       // Load routines for slot performance
       const routinesResponse = await routineApi.list()
@@ -142,6 +154,14 @@ export default function Analytics() {
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-semibold mb-4">Weekly Volume</h2>
               <VolumeChart data={weeklyVolume} />
+            </div>
+          )}
+
+          {/* Conditioning - beside the volume chart, never folded into it. */}
+          {conditioning && (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-xl font-semibold mb-4">Weekly Conditioning</h2>
+              <ConditioningPanel data={conditioning} />
             </div>
           )}
 

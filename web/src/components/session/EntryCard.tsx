@@ -3,9 +3,9 @@
  * logs sets.
  *
  * Which inputs appear is driven by the entry's `set_protocol`, so the rower
- * asks for seconds rather than reps and an EMOM asks for reps rather than a
- * stopwatch. Weight is always offered and always optional: bodyweight work
- * leaves it blank.
+ * asks for metres and a clock rather than reps, and an EMOM asks for reps
+ * rather than a stopwatch. Weight is always offered and always optional:
+ * bodyweight work leaves it blank, and a ruck fills it with the pack.
  *
  * The Log Set button is disabled while a mutation is in flight so a sweaty
  * double-tap cannot record a duplicate set.
@@ -22,6 +22,7 @@ interface Props {
       weight?: number | null
       reps?: number | null
       time_seconds?: number | null
+      distance_meters?: number | null
     }
   ) => Promise<unknown>
   busy?: boolean
@@ -36,20 +37,37 @@ interface Props {
 /**
  * Which inputs each protocol asks for.
  *
- * `weight` is about whether load is a meaningful measurement for the protocol
- * at all. A rower's resistance setting is not a load you progress, so asking
- * for it is one more box to skip past one-handed mid-session. Everywhere else
- * weight stays optional: bodyweight work simply leaves it blank, which the API
- * already reads as bodyweight.
+ * Weight is offered on every protocol. It used to be suppressed for `time`,
+ * which made a weighted plank, a loaded march and a ruck all unloggable - the
+ * load is exactly what distinguishes them from their unloaded versions. It
+ * stays optional everywhere: blank means bodyweight, which the API already
+ * reads correctly.
  *
  * EMOM and REPS look identical here on purpose: for EMOM the minute is
  * structural, not a measured result, so there is nothing to type.
  */
-const PROTOCOL_FIELDS: Record<string, { reps: boolean; time: boolean; weight: boolean }> = {
-  reps: { reps: true, time: false, weight: true },
-  time: { reps: false, time: true, weight: false },
-  amrap: { reps: true, time: true, weight: true },
-  emom: { reps: true, time: false, weight: true },
+const PROTOCOL_FIELDS: Record<
+  string,
+  { reps: boolean; time: boolean; weight: boolean; distance: boolean }
+> = {
+  reps: { reps: true, time: false, weight: true, distance: false },
+  time: { reps: false, time: true, weight: true, distance: false },
+  amrap: { reps: true, time: true, weight: true, distance: false },
+  emom: { reps: true, time: false, weight: true, distance: false },
+  distance: { reps: false, time: true, weight: true, distance: true },
+}
+
+/** Seconds as m:ss - how a pace is read. Under a minute stays in seconds. */
+function formatClock(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+/** Metres below 1km, kilometres above. */
+function formatDistance(meters: number): string {
+  return meters < 1000 ? `${meters}m` : `${meters / 1000}km`
 }
 
 /** "1 set", "2 sets" — a count read mid-session shouldn't be sloppy. */
@@ -57,12 +75,28 @@ function setCountLabel(count: number): string {
   return `${count} ${count === 1 ? 'set' : 'sets'}`
 }
 
-/** "8 @ 135", "12", "45s" — never "null" or a misleading 0. */
-function formatSet(s: { weight: number | null; reps: number | null; time_seconds: number | null }): string {
+/** "8 @ 135", "12", "500m in 1:47" — never "null" or a misleading 0. */
+function formatSet(s: {
+  weight: number | null
+  reps: number | null
+  time_seconds: number | null
+  distance_meters?: number | null
+}): string {
   const bits: string[] = []
+  // Distance and time read as one phrase: "500m in 1:47" is the result, where
+  // the two numbers apart mean much less than they do together.
+  if (s.distance_meters != null) {
+    bits.push(
+      s.time_seconds != null
+        ? `${formatDistance(s.distance_meters)} in ${formatClock(s.time_seconds)}`
+        : formatDistance(s.distance_meters)
+    )
+    if (s.weight != null) bits.push(`@ ${s.weight}`)
+    return bits.join(' ')
+  }
   if (s.reps != null) bits.push(s.weight != null ? `${s.reps} @ ${s.weight}` : `${s.reps}`)
   else if (s.weight != null) bits.push(`@ ${s.weight}`)
-  if (s.time_seconds != null) bits.push(`${s.time_seconds}s`)
+  if (s.time_seconds != null) bits.push(formatClock(s.time_seconds))
   return bits.length > 0 ? bits.join(' · ') : '—'
 }
 
@@ -74,6 +108,11 @@ export default function EntryCard({ entry, onLogSet, busy, error }: Props) {
   const fields = PROTOCOL_FIELDS[entry.set_protocol] ?? PROTOCOL_FIELDS.reps
   const [timeSec, setTimeSec] = useState<string>(
     entry.default_time_seconds != null ? String(entry.default_time_seconds) : ''
+  )
+  // Pre-filled from the target so a fixed-distance interval - the rower is
+  // always 500m - needs no typing at all, only the clock.
+  const [distance, setDistance] = useState<string>(
+    entry.target?.distance_meters != null ? String(entry.target.distance_meters) : ''
   )
 
   const parse = (v: string): number | null => {
@@ -87,12 +126,18 @@ export default function EntryCard({ entry, onLogSet, busy, error }: Props) {
    * counted, duration where they are not. For AMRAP the window is fixed and
    * pre-filled, so the reps are still the result.
    *
-   * Without it a set can be logged entirely empty — it renders as "—" and, worse,
-   * still credits pattern coverage, so the day plan reports work that never
-   * happened. Weight stays optional throughout: bodyweight sets legitimately
-   * have none.
+   * Distance work accepts either number, matching the API rule. A distance with
+   * the clock left running is a real way to train, and so is a fixed-time piece
+   * where only the metres vary.
+   *
+   * Without this a set can be logged entirely empty — it renders as "—" and,
+   * worse, still credits pattern coverage, so the day plan reports work that
+   * never happened. Weight stays optional throughout: bodyweight sets
+   * legitimately have none.
    */
-  const hasResult = parse(fields.reps ? reps : timeSec) != null
+  const hasResult = fields.distance
+    ? parse(distance) != null || parse(timeSec) != null
+    : parse(fields.reps ? reps : timeSec) != null
 
   const logSet = async () => {
     if (!hasResult) return
@@ -103,6 +148,7 @@ export default function EntryCard({ entry, onLogSet, busy, error }: Props) {
       weight: fields.weight ? parse(weight) : null,
       reps: fields.reps ? parse(reps) : null,
       time_seconds: fields.time ? parse(timeSec) : null,
+      distance_meters: fields.distance ? parse(distance) : null,
     })
   }
 
@@ -137,6 +183,21 @@ export default function EntryCard({ entry, onLogSet, busy, error }: Props) {
               {target.weight != null ? ` @ ${target.weight}` : ''}
             </>
           )}
+          {target.pace_goal && target.last_summary ? ' → ' : ''}
+          {target.pace_goal === 'beat_time' && target.distance_meters != null && (
+            <>
+              Beat {formatClock(target.time_seconds ?? 0)} over{' '}
+              {formatDistance(target.distance_meters)}
+              {target.weight != null ? ` @ ${target.weight}` : ''}
+            </>
+          )}
+          {target.pace_goal === 'beat_distance' && target.time_seconds != null && (
+            <>
+              Beat {formatDistance(target.distance_meters ?? 0)} in{' '}
+              {formatClock(target.time_seconds)}
+              {target.weight != null ? ` @ ${target.weight}` : ''}
+            </>
+          )}
         </div>
       )}
       {!target && <div className="text-sm text-gray-400 mt-1">No history yet — log your first set.</div>}
@@ -164,6 +225,16 @@ export default function EntryCard({ entry, onLogSet, busy, error }: Props) {
             inputMode="numeric"
           />
         )}
+        {fields.distance && (
+          <input
+            value={distance}
+            onChange={(e) => setDistance(e.target.value)}
+            placeholder="distance (m)"
+            aria-label="distance (m)"
+            className="w-32 border rounded-md px-3 py-3 min-h-[44px]"
+            inputMode="decimal"
+          />
+        )}
         {fields.time && (
           <input
             value={timeSec}
@@ -177,7 +248,13 @@ export default function EntryCard({ entry, onLogSet, busy, error }: Props) {
         <button
           onClick={logSet}
           disabled={busy || !hasResult}
-          title={hasResult ? undefined : `Enter ${fields.reps ? 'reps' : 'seconds'} to log this set`}
+          title={
+            hasResult
+              ? undefined
+              : `Enter ${
+                  fields.distance ? 'distance or seconds' : fields.reps ? 'reps' : 'seconds'
+                } to log this set`
+          }
           className="bg-blue-600 text-white px-5 py-3 min-h-[44px] rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Log Set

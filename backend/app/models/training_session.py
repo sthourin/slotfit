@@ -98,6 +98,10 @@ class EntrySet(Base):
     weight = Column(Float, nullable=True)
     reps = Column(Integer, nullable=True)
     time_seconds = Column(Integer, nullable=True)
+    # Metres, matching Hevy's payload and the unit every ergometer reports.
+    # Float because a ruck is logged in kilometres and 5.2 km is not an integer
+    # count of anything the user typed.
+    distance_meters = Column(Float, nullable=True)
     completed = Column(Boolean, default=True, nullable=False)
 
     entry = relationship("RoundEntry", back_populates="sets")

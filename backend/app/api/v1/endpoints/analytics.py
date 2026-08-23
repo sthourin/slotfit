@@ -53,6 +53,34 @@ async def get_weekly_volume(
         raise HTTPException(status_code=500, detail=f"Failed to get weekly volume: {str(e)}")
 
 
+@router.get("/weekly-conditioning", response_model=Dict[str, Any])
+async def get_weekly_conditioning(
+    week_start: Optional[date] = Query(None, description="Monday date of the week (ISO week start). Defaults to current week's Monday."),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get weekly conditioning data: sets, duration, distance, pace, load-distance.
+
+    Parallel to /weekly-volume, not part of it. Tonnage and distance do not
+    share a unit, so they are reported side by side rather than summed.
+    """
+    if week_start is None:
+        week_start = get_current_week_monday()
+
+    if week_start.weekday() != 0:
+        raise HTTPException(
+            status_code=400,
+            detail="week_start must be a Monday (ISO week start)"
+        )
+
+    service = AnalyticsService(db)
+    try:
+        return await service.get_weekly_conditioning(week_start, user_id=current_user.id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get weekly conditioning: {str(e)}")
+
+
 @router.get("/slot-performance", response_model=Dict[str, Any])
 async def get_slot_performance(
     routine_id: int = Query(..., description="ID of the routine template"),

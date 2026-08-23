@@ -23,7 +23,10 @@ from app.services.bodyweight_service import (
     resolve_bodyweight,
 )
 from app.services.exercise_helpers import bodyweight_equipment_id
-from app.services.volume_service import weekly_volume_by_muscle_group
+from app.services.volume_service import (
+    weekly_conditioning,
+    weekly_volume_by_muscle_group,
+)
 
 
 class AnalyticsService:
@@ -75,6 +78,17 @@ class AnalyticsService:
             "week_start": week_start.isoformat(),
             "muscle_groups": muscle_groups,
         }
+
+    async def get_weekly_conditioning(self, week_start: date, user_id: int) -> Dict[str, Any]:
+        """Conditioning totals for a week: duration, distance, pace, load-distance.
+
+        A separate endpoint from weekly volume rather than another field on it.
+        The two describe different work in different units, and the whole point
+        of tracking strength and conditioning in one app is that neither gets
+        flattened into the other's number.
+        """
+        summary = await weekly_conditioning(self.db, user_id, week_start)
+        return {"week_start": week_start.isoformat(), **summary}
 
     async def get_slot_performance(self, routine_id: int, user_id: int) -> Dict[str, Any]:
         """

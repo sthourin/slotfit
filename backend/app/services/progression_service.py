@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.exercise import Exercise, SetProtocol
+from app.models.exercise import CONDITIONING_PROTOCOLS, Exercise, SetProtocol
 from app.models.staple import StapleExercise
 from app.services.bodyweight_service import (
     bodyweight_timeline,
@@ -39,14 +39,44 @@ def _fmt_weight(weight: float) -> str:
     return f"{weight:g}"
 
 
+def _fmt_clock(seconds: int) -> str:
+    """Seconds as m:ss, the way a pace is actually read.
+
+    "1:47" is how a 500m row is spoken and written; "107s" is arithmetic. Below
+    a minute there is nothing to convert, so it stays in seconds.
+    """
+    if seconds < 60:
+        return f"{seconds}s"
+    return f"{seconds // 60}:{seconds % 60:02d}"
+
+
+def _fmt_distance(meters: float) -> str:
+    """Metres below 1km, kilometres above it."""
+    if meters < 1000:
+        return f"{meters:g}m"
+    return f"{meters / 1000:g}km"
+
+
 def _normalise(
     last_sets: list[tuple],
-) -> list[tuple[float | None, int | None, int | None]]:
-    """Accept (weight, reps) or (weight, reps, time_seconds); always return triples."""
-    return [(s[0], s[1], s[2] if len(s) > 2 else None) for s in last_sets]
+) -> list[tuple[float | None, int | None, int | None, float | None]]:
+    """Accept 2-, 3- or 4-tuples; always return (weight, reps, time, distance).
+
+    Callers predating conditioning pass (weight, reps) or
+    (weight, reps, time_seconds) and must keep working unchanged.
+    """
+    return [
+        (
+            s[0],
+            s[1],
+            s[2] if len(s) > 2 else None,
+            s[3] if len(s) > 3 else None,
+        )
+        for s in last_sets
+    ]
 
 
-def _summarise(sets: list[tuple[float | None, int | None, int | None]]) -> str:
+def _summarise(sets: list[tuple[float | None, int | None, int | None, float | None]]) -> str:
     """Human summary of a performance, honest about what was actually recorded.
 
     Time-only sets summarise by duration. A set with no reps must never be
@@ -58,9 +88,28 @@ def _summarise(sets: list[tuple[float | None, int | None, int | None]]) -> str:
     weight) falls through to the per-set summary rather than being misread as
     clean via the pre-filtered `weights` list.
     """
-    reps = [r for _w, r, _t in sets if r is not None]
-    times = [t for _w, _r, t in sets if t is not None]
-    weights = [w for w, _r, _t in sets if w is not None]
+    reps = [r for _w, r, _t, _d in sets if r is not None]
+    times = [t for _w, _r, t, _d in sets if t is not None]
+    weights = [w for w, _r, _t, _d in sets if w is not None]
+    distances = [d for _w, _r, _t, d in sets if d is not None]
+
+    # Distance work reads as a pace, so it is summarised before the time-only
+    # branch: "500m in 1:47" is the whole point, and "1x107s" throws away the
+    # number that makes the time mean anything.
+    if not reps and distances:
+        load = f" @ {_fmt_weight(weights[0])}" if len(weights) == len(sets) and len(set(weights)) == 1 else ""
+        if len(set(distances)) == 1 and len(times) == len(sets) and len(set(times)) == 1:
+            prefix = f"{len(sets)}x" if len(sets) > 1 else ""
+            return f"{prefix}{_fmt_distance(distances[0])} in {_fmt_clock(times[0])}{load}"
+        parts = []
+        for _w, _r, t, d in sets:
+            if d is not None and t is not None:
+                parts.append(f"{_fmt_distance(d)} in {_fmt_clock(t)}")
+            elif d is not None:
+                parts.append(_fmt_distance(d))
+            elif t is not None:
+                parts.append(_fmt_clock(t))
+        return ", ".join(parts) + load
 
     if not reps and times:
         if len(set(times)) == 1:
@@ -76,7 +125,7 @@ def _summarise(sets: list[tuple[float | None, int | None, int | None]]) -> str:
         return f"{len(sets)}x{reps[0]}"
 
     parts = []
-    for w, r, t in sets:
+    for w, r, t, _d in sets:
         if r is None and t is not None:
             parts.append(f"{t}s")
         else:
@@ -96,7 +145,8 @@ def next_target(
     """The next performance to aim for, interpreted through the set protocol.
 
     last_sets is the most recent completed session's sets as
-    (weight, reps, time_seconds); two-element tuples are accepted too.
+    (weight, reps, time_seconds, distance_meters); shorter tuples are accepted
+    and padded with None, so callers predating conditioning need no change.
 
     REPS / EMOM: double progression - add a rep until every set is at rep_max,
     then add load and reset to rep_min. Bodyweight work has no load to add, so
@@ -110,30 +160,91 @@ def next_target(
     TIME: no prescription at all. Duration progression needs intent this
     function does not have, and inventing a rep target from rep_min produced a
     rep goal for a rowing machine.
+
+    DISTANCE: pace, when exactly one variable is free. Holding distance fixed
+    makes time a single ordered number to beat, which is a real prescription -
+    500m in 1:47 asks for 500m in less. Holding time fixed asks for more ground
+    covered. With both moving there is nothing to compare, so it prescribes
+    nothing rather than guessing which one was meant.
     """
+    conditioning = protocol in CONDITIONING_PROTOCOLS
     if not last_sets:
         return {
             "weight": None,
-            "reps": None if protocol is SetProtocol.TIME else rep_min,
+            "reps": None if conditioning else rep_min,
             "sets": DEFAULT_SETS,
             "time_seconds": None,
-            "reps_goal": None if protocol is SetProtocol.TIME else "target",
+            "distance_meters": None,
+            "reps_goal": None if conditioning else "target",
+            "pace_goal": None,
             "last_summary": None,
         }
 
     sets = _normalise(last_sets)
     last_summary = _summarise(sets)
-    weights = [w for w, _r, _t in sets if w is not None]
-    reps = [r for _w, r, _t in sets if r is not None]
+    weights = [w for w, _r, _t, _d in sets if w is not None]
+    reps = [r for _w, r, _t, _d in sets if r is not None]
     top_weight = max(weights) if weights else None
 
     if protocol is SetProtocol.TIME:
         return {
-            "weight": None,
+            # The load rides along without being progressed. A weighted plank or
+            # a loaded march is held at a weight, and forgetting it would ask the
+            # user to re-derive their own kettlebell every session. Remembering a
+            # load is not prescribing one: no duration target is offered.
+            "weight": top_weight,
             "reps": None,
             "sets": len(sets),
             "time_seconds": None,
+            "distance_meters": None,
             "reps_goal": None,
+            "pace_goal": None,
+            "last_summary": last_summary,
+        }
+
+    if protocol is SetProtocol.DISTANCE:
+        times = [t for _w, _r, t, _d in sets if t is not None]
+        distances = [d for _w, _r, _t, d in sets if d is not None]
+        # The weight rides along so a ruck is prescribed at the pack it was
+        # actually carried with. Pace at a lighter load is not an improvement,
+        # and dropping the weight from the target would invite exactly that.
+        carried = top_weight
+
+        # Both numbers are needed for a pace. A distance with no clock, or a
+        # clock with no distance, is a single measurement with nothing to
+        # improve against.
+        if distances and times and len(times) == len(sets) == len(distances):
+            if len(set(distances)) == 1:
+                return {
+                    "weight": carried,
+                    "reps": None,
+                    "sets": len(sets),
+                    "time_seconds": min(times),
+                    "distance_meters": distances[0],
+                    "reps_goal": None,
+                    "pace_goal": "beat_time",
+                    "last_summary": last_summary,
+                }
+            if len(set(times)) == 1:
+                return {
+                    "weight": carried,
+                    "reps": None,
+                    "sets": len(sets),
+                    "time_seconds": times[0],
+                    "distance_meters": max(distances),
+                    "reps_goal": None,
+                    "pace_goal": "beat_distance",
+                    "last_summary": last_summary,
+                }
+
+        return {
+            "weight": carried,
+            "reps": None,
+            "sets": len(sets),
+            "time_seconds": None,
+            "distance_meters": None,
+            "reps_goal": None,
+            "pace_goal": None,
             "last_summary": last_summary,
         }
 
@@ -143,14 +254,16 @@ def next_target(
             "reps": max(reps) if reps else None,
             "sets": len(sets),
             "time_seconds": None,
+            "distance_meters": None,
             "reps_goal": "beat" if reps else None,
+            "pace_goal": None,
             "last_summary": last_summary,
         }
 
     # REPS / EMOM: double progression.
     min_reps = min(reps) if reps else rep_min
     all_at_top = bool(reps) and all(
-        r is not None and r >= rep_max for _w, r, _t in sets
+        r is not None and r >= rep_max for _w, r, _t, _d in sets
     )
 
     if all_at_top and top_weight is not None:
@@ -159,7 +272,9 @@ def next_target(
             "reps": rep_min,
             "sets": len(sets),
             "time_seconds": None,
+            "distance_meters": None,
             "reps_goal": "target",
+            "pace_goal": None,
             "last_summary": last_summary,
         }
 
@@ -171,7 +286,9 @@ def next_target(
         "reps": next_reps,
         "sets": len(sets),
         "time_seconds": None,
+        "distance_meters": None,
         "reps_goal": "target",
+        "pace_goal": None,
         "last_summary": last_summary,
     }
 
@@ -182,9 +299,21 @@ async def compute_entry_target(
     exercise_id: int,
     rep_min: int = DEFAULT_REP_MIN,
     rep_max: int = DEFAULT_REP_MAX,
-    protocol: SetProtocol = SetProtocol.REPS,
+    *,
+    protocol: SetProtocol,
 ) -> dict | None:
-    """Target for the next performance of an exercise, from its own history."""
+    """Target for the next performance of an exercise, from its own history.
+
+    `protocol` is required and keyword-only. It used to default to REPS, which
+    silently prescribed 9 reps on a rowing machine for any caller that forgot
+    it - the exact failure the protocol branches exist to prevent. A missing
+    argument is now a TypeError at the call site instead.
+
+    Pass `RoundEntry.set_protocol` when logging against a round entry - it is
+    denormalised per entry so reclassifying an exercise never rewrites what past
+    sets meant - and `Exercise.set_protocol` when suggesting an exercise that
+    has no entry yet.
+    """
     history = await exercise_set_history(db, user_id, exercise_id, limit_sessions=1)
     if not history:
         return None
@@ -249,7 +378,7 @@ async def pattern_trend(
             week = _week_start(perf["performed_at"].date())
             bodyweight = resolve_bodyweight(timeline, perf["performed_at"])
             estimates = []
-            for w, r, _t in perf["sets"]:
+            for w, r, _t, _d in perf["sets"]:
                 if not r:
                     continue
                 load = effective_load(exercise, w, bodyweight, bodyweight_id)

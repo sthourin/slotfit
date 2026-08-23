@@ -2,11 +2,26 @@
 
 import pytest
 
-from app.models.exercise import SetProtocol, protocol_for_variant_type
+from app.models.exercise import (
+    CONDITIONING_PROTOCOLS,
+    SetProtocol,
+    protocol_for_variant_type,
+)
 
 
-def test_protocol_values_are_the_four_agreed_strings():
-    assert {p.value for p in SetProtocol} == {"reps", "time", "amrap", "emom"}
+def test_protocol_values_are_the_agreed_strings():
+    assert {p.value for p in SetProtocol} == {
+        "reps", "time", "amrap", "emom", "distance",
+    }
+
+
+def test_conditioning_protocols_are_the_ones_measured_without_reps():
+    """TIME and DISTANCE record no reps, so they earn no tonnage.
+
+    AMRAP records a duration too but counts reps inside it, so it is strength
+    and must stay out of this set - grouping it here would drop real tonnage.
+    """
+    assert CONDITIONING_PROTOCOLS == {SetProtocol.TIME, SetProtocol.DISTANCE}
 
 
 @pytest.mark.parametrize(

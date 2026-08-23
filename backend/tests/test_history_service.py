@@ -58,9 +58,10 @@ async def test_history_spans_legacy_and_new(test_db):
     history = await exercise_set_history(test_db, user.id, ex.id)
     assert len(history) == 2
     assert history[0]["performed_at"] == datetime(2026, 2, 1, 10)  # newest first
-    # (weight, reps, time_seconds); legacy workout_sets has no duration column.
-    assert history[0]["sets"] == [(110.0, 10, None)]
-    assert history[1]["sets"] == [(100.0, 10, None), (100.0, 9, None)]
+    # (weight, reps, time_seconds, distance_meters) - both generations carry
+    # all four now, so a plain rep set reports None for the conditioning pair.
+    assert history[0]["sets"] == [(110.0, 10, None, None)]
+    assert history[1]["sets"] == [(100.0, 10, None, None), (100.0, 9, None, None)]
 
 
 @pytest.mark.asyncio
@@ -89,7 +90,7 @@ async def test_exercise_set_history_includes_time_seconds(test_db):
 
     history = await exercise_set_history(test_db, user.id, rower.id)
     assert len(history) == 1
-    assert history[0]["sets"] == [(None, None, 300), (None, None, 240)]
+    assert history[0]["sets"] == [(None, None, 300, None), (None, None, 240, None)]
 
 
 @pytest.mark.asyncio
@@ -181,7 +182,7 @@ async def test_exercise_set_history_distinguishes_identical_timestamps(test_db):
     history = await exercise_set_history(test_db, user.id, ex.id)
     assert len(history) == 2
     sets_seen = {tuple(h["sets"]) for h in history}
-    assert sets_seen == {((110.0, 10, None),), ((120.0, 8, None),)}
+    assert sets_seen == {((110.0, 10, None, None),), ((120.0, 8, None, None),)}
     assert all(h["performed_at"] == same_time for h in history)
 
 

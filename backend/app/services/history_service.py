@@ -92,16 +92,20 @@ async def exercise_set_history(
     date isn't at the mercy of limit_sessions truncating before reaching
     the window's true edge. When None (default), behavior is unchanged.
 
-    Returns: [{"performed_at": datetime, "sets": [(weight, reps, time_seconds), ...]}]
+    Returns:
+        [{"performed_at": datetime,
+          "sets": [(weight, reps, time_seconds, distance_meters), ...]}]
 
-    time_seconds is always None for legacy rows: workout_sets has no duration
-    column, only rest_seconds. It is carried at all because progression must be
-    able to tell "logged 300 seconds on the rower" apart from "logged nothing".
+    Both generations now carry duration and distance. `workout_sets` gained the
+    columns so three years of imported ergometer and carry work is visible to
+    progression - a conditioning feature whose history starts empty can never
+    prescribe a pace.
     """
     legacy_query = (
         select(
             WorkoutSession.id, WorkoutSession.completed_at,
-            WorkoutSet.weight, WorkoutSet.reps, WorkoutSet.set_number,
+            WorkoutSet.weight, WorkoutSet.reps, WorkoutSet.time_seconds,
+            WorkoutSet.distance_meters, WorkoutSet.set_number,
         )
         .join(WorkoutExercise, WorkoutExercise.workout_session_id == WorkoutSession.id)
         .join(WorkoutSet, WorkoutSet.workout_exercise_id == WorkoutExercise.id)
@@ -118,7 +122,8 @@ async def exercise_set_history(
     new_query = (
         select(
             TrainingSession.id, TrainingSession.completed_at,
-            EntrySet.weight, EntrySet.reps, EntrySet.time_seconds, EntrySet.set_number,
+            EntrySet.weight, EntrySet.reps, EntrySet.time_seconds,
+            EntrySet.distance_meters, EntrySet.set_number,
         )
         .join(SupersetRound, SupersetRound.session_id == TrainingSession.id)
         .join(RoundEntry, RoundEntry.round_id == SupersetRound.id)
@@ -137,23 +142,25 @@ async def exercise_set_history(
     # Keyed by (generation, session_id) - not by completed_at - so two
     # distinct sessions that happen to share an identical completed_at
     # timestamp are never merged into a single reported performance.
-    # (set_number, weight, reps, time_seconds)
-    sets_by_session: dict[tuple[str, int], list[tuple[int, float | None, int | None, int | None]]] = defaultdict(list)
+    # (set_number, weight, reps, time_seconds, distance_meters)
+    sets_by_session: dict[
+        tuple[str, int],
+        list[tuple[int, float | None, int | None, int | None, float | None]],
+    ] = defaultdict(list)
     completed_at_by_session: dict[tuple[str, int], datetime] = {}
 
-    for session_id, completed_at, weight, reps, set_number in legacy_rows:
+    for session_id, completed_at, weight, reps, time_seconds, distance, set_number in legacy_rows:
         if completed_at is None:
             continue
         key = ("legacy", session_id)
-        # workout_sets has no duration column; legacy time is unknowable.
-        sets_by_session[key].append((set_number, weight, reps, None))
+        sets_by_session[key].append((set_number, weight, reps, time_seconds, distance))
         completed_at_by_session[key] = completed_at
 
-    for session_id, completed_at, weight, reps, time_seconds, set_number in new_rows:
+    for session_id, completed_at, weight, reps, time_seconds, distance, set_number in new_rows:
         if completed_at is None:
             continue
         key = ("new", session_id)
-        sets_by_session[key].append((set_number, weight, reps, time_seconds))
+        sets_by_session[key].append((set_number, weight, reps, time_seconds, distance))
         completed_at_by_session[key] = completed_at
 
     ordered_keys = sorted(
@@ -168,8 +175,8 @@ async def exercise_set_history(
         performances.append({
             "performed_at": completed_at_by_session[key],
             "sets": [
-                (weight, reps, time_seconds)
-                for _n, weight, reps, time_seconds in ordered_sets
+                (weight, reps, time_seconds, distance)
+                for _n, weight, reps, time_seconds, distance in ordered_sets
             ],
         })
     return performances

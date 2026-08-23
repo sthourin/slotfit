@@ -123,6 +123,12 @@ class WorkoutSet(Base):
     set_number = Column(Integer, nullable=False)
     reps = Column(Integer, nullable=True)
     weight = Column(Float, nullable=True)  # In user's preferred units
+    # Conditioning results. Present on the legacy tables as well as the
+    # training-session tables because `history_service` unions both, and three
+    # years of imported rowing is the baseline that makes pace progression
+    # possible on day one.
+    time_seconds = Column(Integer, nullable=True)
+    distance_meters = Column(Float, nullable=True)  # metres
     rest_seconds = Column(Integer, nullable=True)
     notes = Column(Text, nullable=True)
 

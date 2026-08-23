@@ -10,11 +10,19 @@ export interface Target {
   reps: number | null
   sets: number
   time_seconds: number | null
+  distance_meters: number | null
   /**
    * 'target' = do exactly this many reps; 'beat' = exceed this many (AMRAP);
    * null = no rep prescription at all.
    */
   reps_goal: 'target' | 'beat' | null
+  /**
+   * How to read time_seconds / distance_meters on a conditioning target.
+   * 'beat_time' = cover distance_meters faster; 'beat_distance' = cover more
+   * ground within time_seconds; null = the numbers describe the last
+   * performance and prescribe nothing.
+   */
+  pace_goal: 'beat_time' | 'beat_distance' | null
   last_summary: string | null
 }
 
@@ -25,6 +33,8 @@ export interface EntrySet {
   weight: number | null
   reps: number | null
   time_seconds: number | null
+  /** Metres. The unit every ergometer reports and what Hevy exports. */
+  distance_meters: number | null
   completed: boolean
 }
 
@@ -36,7 +46,7 @@ export interface RoundEntry {
   exercise_name: string
   pattern_id: number
   pattern_slug: string
-  set_protocol: 'reps' | 'time' | 'amrap' | 'emom'
+  set_protocol: 'reps' | 'time' | 'amrap' | 'emom' | 'distance'
   /** Drives the "+ weight" label: on these, weight means ADDED load. */
   is_bodyweight: boolean
   default_time_seconds: number | null
@@ -123,7 +133,13 @@ export async function createEntry(roundId: number, exerciseId: number, position:
 
 export async function createSet(
   entryId: number,
-  set: { set_number: number; weight?: number | null; reps?: number | null; time_seconds?: number | null }
+  set: {
+    set_number: number
+    weight?: number | null
+    reps?: number | null
+    time_seconds?: number | null
+    distance_meters?: number | null
+  }
 ): Promise<EntrySet> {
   const { data } = await apiClient.post(`/sessions/entries/${entryId}/sets`, set)
   return data
