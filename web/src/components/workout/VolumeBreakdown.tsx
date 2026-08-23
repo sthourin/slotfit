@@ -2,9 +2,9 @@
  * Volume Breakdown Component
  * Shows volume per muscle group for the workout
  */
-import { type WorkoutSession, type WorkoutExercise } from '../../services/workouts'
+import { type WorkoutSession } from '../../services/workouts'
 import { type Exercise } from '../../services/exercises'
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 
 interface VolumeBreakdownProps {
   workout: WorkoutSession

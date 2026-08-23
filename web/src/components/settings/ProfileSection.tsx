@@ -3,7 +3,7 @@ import { useUserStore } from '../../stores/userStore'
 import { getDeviceId } from '../../services/api'
 
 function ProfileSection() {
-  const { user, updateProfile, loading } = useUserStore()
+  const { user, updateProfile } = useUserStore()
   const [displayName, setDisplayName] = useState(user?.display_name || '')
   const [preferredUnits, setPreferredUnits] = useState<'lbs' | 'kg'>(user?.preferred_units || 'lbs')
   const [showDeviceId, setShowDeviceId] = useState(false)

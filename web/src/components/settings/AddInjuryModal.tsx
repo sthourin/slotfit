@@ -94,8 +94,6 @@ function AddInjuryModal({ injury, onClose }: AddInjuryModalProps) {
     }
   }
 
-  const _selectedInjuryType = injuryTypes.find((it) => it.id === selectedInjuryTypeId)
-
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

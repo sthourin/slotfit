@@ -31,7 +31,7 @@ export default function VolumeChart({ data }: VolumeChartProps) {
           />
           <YAxis />
           <Tooltip
-            formatter={(value: number | undefined, name: string) => {
+            formatter={(value: number | undefined, name: string | undefined) => {
               if (value === undefined) return ['', '']
               if (name === 'volume') {
                 return [`${value.toLocaleString()} lbs`, 'Volume']

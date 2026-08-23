@@ -37,7 +37,7 @@ export default function ProgressionChart({ data, exerciseName }: ProgressionChar
           <YAxis />
           <Tooltip
             labelFormatter={(value) => new Date(value).toLocaleDateString()}
-            formatter={(value: number | undefined, name: string) => {
+            formatter={(value: number | undefined, name: string | undefined) => {
               if (value === undefined) return ['', '']
               if (name === 'volume') {
                 return [`${value.toLocaleString()} lbs`, 'Volume']
