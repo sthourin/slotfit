@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     AI_PROVIDER: str = "claude"  # claude or ollama
     ANTHROPIC_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
+    # Configurable so a retired model is an env change, not a code change. The
+    # previous value was hardcoded as `claude-3-sonnet-20240229`, which Anthropic
+    # retired on 2025-07-21 - every recommendation request 404'd for months and
+    # fell through to the rule-based provider without anything surfacing it.
+    # Model IDs carry no date suffix.
+    AI_MODEL: str = "claude-opus-5"
+    # A recommendation payload is a JSON object with up to 15 entries. 2000 was
+    # the old value and truncates mid-object, which reads as a parse failure.
+    AI_MAX_TOKENS: int = 16000
 
     # API Settings
     API_V1_PREFIX: str = "/api/v1"

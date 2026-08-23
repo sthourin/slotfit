@@ -67,7 +67,15 @@ async def get_user_workout_history(
     return {
         "recent_exercises": recent_exercises,
         "exercise_frequency": exercise_frequency,
-        "last_performed": last_performed,
+        # ISO strings, not datetimes. Every provider renders this dict through
+        # `json.dumps` to build its prompt, and a raw datetime raises
+        # "Object of type datetime is not JSON serializable" - which took down
+        # the Claude and Gemini paths alike and left only the rule-based
+        # fallback working. Serialising at the source fixes both at once.
+        "last_performed": {
+            exercise_id: performed_at.isoformat() if performed_at else None
+            for exercise_id, performed_at in last_performed.items()
+        },
         "total_sessions": len(sessions),
     }
 

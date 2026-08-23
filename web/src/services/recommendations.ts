@@ -15,7 +15,7 @@ export interface ExerciseRecommendation {
     last_performed?: string
     progression_opportunity?: boolean
     variety_boost?: boolean
-    movement_balance?: string
+    movement_balance?: boolean
     weekly_volume_status?: string
     [key: string]: any
   }
