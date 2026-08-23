@@ -61,3 +61,20 @@ hevy/data/
 htmlcov/
 web/test-results/
 .playwright-cli/
+
+# Database dumps. They hold the full training history, so they stay local -
+# `Restore-SlotFit.ps1` reads them from wherever you keep the migration bundle.
+*.dump
+
+# The migration bundle's copy of the Hevy export. `hevy/data/` is already
+# ignored above; this is the same personal training data under the path the
+# bundle unpacks to, and it was NOT covered.
+hevy-data/
+
+# Local machine settings and scratch notes.
+claude-memory/
+slotfit-vscode-settings.json
+
+# Coverage report. Tracked historically, but every pytest run rewrites it, so
+# it shows up as a spurious diff in unrelated changesets.
+coverage.xml
