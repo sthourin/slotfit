@@ -169,6 +169,37 @@ async def main(commit: bool) -> None:
             else:
                 mapped.pattern_id = conditioning.id
 
+        # The march/carry family, re-applied here and not only in the migration
+        # that introduced it. `import_exercises` rewrites the catalogue from the
+        # CSV with the default protocol, so a fresh setup - migrate, import,
+        # seed - silently undid the migration's backfill and left all 80 of them
+        # measured in reps again. A seed script is the only place this survives a
+        # re-import.
+        #
+        # Exact rather than inferred: no name ending in " March" or " Carry"
+        # falls outside the carry and conditioning patterns.
+        marches_carries = (
+            await db.execute(
+                select(Exercise).where(
+                    Exercise.name.like("% March") | Exercise.name.like("% Carry")
+                )
+            )
+        ).scalars().all()
+        locomotion_fixed = 0
+        for exercise in marches_carries:
+            if exercise.set_protocol is not SetProtocol.DISTANCE:
+                exercise.set_protocol = SetProtocol.DISTANCE
+                locomotion_fixed += 1
+
+        # The rower logs 500m against a clock; distance is what makes the time
+        # comparable between sessions.
+        rower = (
+            await db.execute(select(Exercise).where(Exercise.name == "Rowing Machine"))
+        ).scalar_one_or_none()
+        if rower is not None and rower.set_protocol is not SetProtocol.DISTANCE:
+            rower.set_protocol = SetProtocol.DISTANCE
+            locomotion_fixed += 1
+
         holds = 0
         for name in STATIC_HOLDS:
             exercise = (
@@ -182,8 +213,9 @@ async def main(commit: bool) -> None:
                 holds += 1
 
         print(
-            f"\nLocomotion: {created} created, {updated} updated. "
-            f"Static holds set to TIME: {holds}."
+            f"\nLocomotion: {created} created, {updated} updated."
+            f"\nMarches/carries and ergometers set to DISTANCE: {locomotion_fixed}."
+            f"\nStatic holds set to TIME: {holds}."
         )
         if not commit:
             await db.rollback()
