@@ -8,10 +8,17 @@ SlotFit is a workout planning app with a novel "slot-based" approach. Users crea
 
 ## Key Documentation
 
+@CLAUDE.md is the authority on domain concepts, design decisions and current
+state. Read it first; this file only adds Cursor-specific conventions.
+
 Always reference these files for context:
-- @.cursor/plans/slotfit_plan.md - Complete project plan
-- @.cursor/plans/slotfit_plan_analysis.md - Technical analysis
-- @TASKS.md - Implementation task checklist
+- @CLAUDE.md - Domain concepts, design decisions, current state
+- @docs/superpowers/specs/ - Approved designs (newest wins)
+- @docs/superpowers/plans/ - Implementation plans driving current work
+
+RETIRED, do not take instructions from: @TASKS.md,
+@.cursor/plans/slotfit_plan.md, @.cursor/plans/slotfit_plan_analysis.md. All
+three describe the routine-template model retired on 2026-07-28.
 
 ## Tech Stack
 
@@ -75,19 +82,20 @@ Always reference these files for context:
 - AI recommendation service
 - Web interface foundation
 
-### 📋 Next Priority (see @TASKS.md)
-1. Equipment Profiles (model + API)
-2. Enhanced Slot Types
-3. Slot Templates
-4. Web workout execution interface
+### 📋 Next Priority
+See @docs/superpowers/specs/2026-08-22-android-client-decision.md — the phased
+plan from build hygiene through PWA, offline session logging, tailnet hosting,
+heart rate and public launch.
 
 ## Important Domain Concepts
 
-### Slot-Based System
-- **Routine Template**: Collection of slots defining a workout structure
-- **Slot**: A placeholder scoped to muscle group(s), filled with an exercise during workout
-- **Slot Types**: standard, warmup, finisher, active_recovery, wildcard
-- **1:1 Relationship**: One exercise per slot
+### Pattern-Based Dynamic Sessions
+Routine templates and muscle-group slots are RETIRED. A session is built live:
+- **Day Plan**: carries pattern goals (target sets per movement pattern), not an exercise list
+- **Movement Pattern**: every exercise maps to one of ten curated patterns
+- **Superset Round**: an anchor plus a partner working the OPPOSITE pattern, drawn from the user's staple pool
+- **Proposal**: starting a session proposes a whole workout, which the user adjusts by swapping slots
+See @CLAUDE.md "Pattern-Based Dynamic Sessions" for the full rules.
 
 ### Exercise Variants
 - Users can duplicate exercises to create variants (HIIT vs Strength)
@@ -153,7 +161,7 @@ npm run build
 - Reference existing code patterns before creating new ones
 - Run migrations after model changes
 - Add type hints to all new code
-- Update TASKS.md when completing tasks
+- Update the active plan in @docs/superpowers/plans/ when completing tasks
 - Test API changes at http://localhost:8000/docs
 
 ### Don't

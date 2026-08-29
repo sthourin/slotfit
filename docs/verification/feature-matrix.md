@@ -1,5 +1,18 @@
 # SlotFit Web Feature Matrix
 
+> **HISTORICAL — pre-pivot. Not the current state of the app.**
+>
+> This matrix was captured against the routine-template model, which was retired
+> on 2026-07-28 in favour of pattern-based dynamic sessions. Its rows for Routine
+> Designer, Workout Start and Active Workout describe pages that no longer exist,
+> and its P1 backlog is partly resolved and partly moot.
+>
+> Still accurate and worth keeping: the two P0 defects fixed during Phase 0, and
+> the bodyweight-equipment finding (since fixed via `is_bodyweight()`).
+>
+> Resolved since: the `npm run build` TypeScript failures were fixed 2026-08-22.
+> For current planning see `docs/superpowers/specs/2026-08-22-android-client-decision.md`.
+
 Date started: 2026-07-27
 Environment: local dev, backend on slotfit_e2e database (dev seeding verified on slotfit)
 

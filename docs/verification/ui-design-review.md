@@ -1,5 +1,17 @@
 # SlotFit UI Design Review
 
+> **HISTORICAL — pre-pivot. Not the current state of the app.**
+>
+> Captured against the routine-template UI retired on 2026-07-28. Items 5
+> (routine management), 6 (first-run on the Routine Designer) and 7 (exercise
+> modal default tab) describe screens that no longer exist. Item 1 (mobile
+> navigation) was fixed on 2026-08-11; the nav now collapses below `sm`.
+>
+> The method still stands as a template: Playwright capture at 1440x900 and
+> 390x844, then review. Phase B of
+> `docs/superpowers/specs/2026-08-22-android-client-decision.md` calls for
+> re-running exactly this exercise against the session flow.
+
 Date: 2026-07-28
 Method: Playwright-driven capture of all pages at desktop (1440x900) and mobile (390x844) viewports against the seeded e2e database, followed by visual and interaction review. Companion to `feature-matrix.md`; findings here feed the Phase 1 plan.
 

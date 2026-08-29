@@ -1,5 +1,20 @@
 # SlotFit Implementation Tasks
 
+> **RETIRED — historical record, not the plan of record.**
+>
+> These phases describe the routine-template and muscle-group-slot model that was
+> retired on 2026-07-28 in favour of pattern-based dynamic sessions. Their
+> statuses were never reconciled and are unreliable in both directions: work
+> marked "Not Started" shipped months ago, and work described here will never be
+> built.
+>
+> Current planning lives in `docs/superpowers/plans/` and `docs/superpowers/specs/`.
+> `CLAUDE.md` is the authority on domain concepts and design decisions.
+>
+> Kept because Phases 1–2 document how the backend models and the AI
+> recommendation service were originally specified, which is still useful
+> archaeology. Do not take instructions from it.
+
 > **For Cursor IDE**: Use `@` to reference files. Key references:
 > - @.cursor/plans/slotfit_plan.md - Full project plan
 > - @.cursor/context/schema.md - Database schema reference
