@@ -25,7 +25,18 @@ class User(Base):
     
     # Preferences (can expand later)
     preferred_units = Column(String, default="lbs")  # "lbs" or "kg"
-    
+
+    # Maximum heart rate, the basis for every zone boundary. A single column
+    # rather than a dated log like `bodyweight_readings`, because the two change
+    # for opposite reasons: a past weigh-in was true when taken, while a past
+    # max HR was only ever an estimate, so a better figure should recompute
+    # history rather than apply from its own date forward. Zones are derived
+    # from `bpm`, never stored, which makes that recompute cheap.
+    #
+    # Nullable on purpose: with no value, no zones are computed at all. A
+    # guessed maximum would define every boundary while looking authoritative.
+    max_hr = Column(Integer, nullable=True)
+
     # Metadata
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
