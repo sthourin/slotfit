@@ -119,8 +119,19 @@ client-architecture work that has to happen in whichever codebase ships.
 `heart_rate_readings` hangs off `workout_exercises`, and `heart_rate_analytics`
 off `workout_sessions` / `routine_slots` — all legacy, read-only history now.
 They arrived with `5084736020fd_initial_schema` and have no endpoints and no
-writers. Before BLE has anywhere to write they need re-parenting to
-`training_sessions` / `round_entries`. Conversely `bodyweight_readings.source`
+writers. Before BLE has anywhere to write they need re-parenting.
+
+**Resolved 2026-08-29** — and not to `training_sessions` / `round_entries` as
+guessed here. `round_entries` is wrong because a superset entry is interleaved
+rather than contiguous, and nothing below `TrainingSession` carries a timestamp
+to slice a stream with. `training_sessions` is wrong as a hard FK because the
+232 imported Hevy workouts live in the legacy `workout_sessions`. Readings
+became a per-user time series with association held in a separate link table.
+Plan: `docs/superpowers/plans/2026-08-29-heart-rate-reparenting.md`; it is a
+prerequisite for Phase E, and `users.max_hr` (migration `a3d81b6e4f27`) is
+already in place.
+
+Conversely `bodyweight_readings.source`
 already anticipates `health_connect`, which is the one capability with a
 genuinely native-only requirement.
 

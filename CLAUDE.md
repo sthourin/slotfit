@@ -272,6 +272,56 @@ Dividing total seconds by total metres let 600 s of distance-less rowing turn a
 
 See `docs/superpowers/specs/2026-08-23-conditioning-and-loaded-locomotion-design.md`.
 
+### Heart Rate
+Heart rate is a **per-user physiological time series**, not a child of a
+session. Three of the decisions below look like oversights if you only read the
+schema, so change none of them without reading the reasoning:
+
+- `heart_rate_readings` carries **no session foreign key**. A Garmin or Polar
+  recording exists independently of any SlotFit session — associating the two is
+  a separate, fallible judgement, which is what `hr_session_links` is for. It
+  also has to span both session models: 232 imported Hevy workouts live in the
+  legacy `workout_sessions`, so a `training_session_id NOT NULL` column could
+  not reference most of the history. Confining that split to the link table
+  keeps it out of ~1M reading rows, and gives a mispair one place to be
+  corrected instead of requiring every reading to be rewritten.
+- **Raw `bpm` is the truth; `heart_rate_analytics` is a rebuildable cache.**
+  Summarising and discarding the raw series would foreclose HR-recovery
+  learning, session charts, and any recomputation of zones. The cache exists
+  only because readings are ~100x denser than sets, so the live-computation
+  approach `volume_service` takes would scan millions of rows for a yearly
+  chart. It must always have a writer and must always be rebuildable from raw —
+  a pre-aggregated table with neither is exactly what `weekly_volume` was.
+- **Zones are derived at compute time, never stored.** Five zones by %HRmax
+  (50/60/70/80/90) plus a **below-Z1 bucket**, matching Garmin and Polar. The
+  retired `FAT_BURN / CARDIO / PEAK / MAXIMUM` enum was Fitbit's four-bucket
+  scheme: it lost a zone on every import and, having no below-zone bucket, did
+  not sum to session duration — a strength session spends much of its rest time
+  under 50% of max.
+- Attribution is to the **session**, not to an exercise. Nothing below
+  `TrainingSession` carries a timestamp, so entry-level attribution is not
+  expressible; and a superset entry is not a contiguous interval anyway, since
+  A1/B1/C1/A2 interleave. The unit that *is* an interval is the set, so any
+  future sub-session attribution joins on `entry_sets` by time window.
+
+`users.max_hr` is a **single nullable column, deliberately not a dated log**
+like `bodyweight_readings`. The two change for opposite reasons: a past weigh-in
+was *true when taken*, so a new one must not rewrite history, whereas a past max
+HR was only ever an *estimate* — when it changes, the old figure was simply
+wrong and the correction must propagate backward. A carry-forward log would
+freeze the wrong zones in the past and apply the right ones only going forward.
+Aging (~1 bpm/year) is the one genuine case for a log, and it loses on
+magnitude: zone bands are ~18 bpm wide against ~3 bpm of drift over this
+history. Because zones are derived rather than stored, promoting the column to a
+dated log later costs a rebuild and no data.
+
+With no `max_hr`, **no zones are computed at all** — average, peak and minimum
+still are, since they need no threshold. A guessed maximum would silently define
+every boundary while looking authoritative. Same rule as bodyweight work with no
+weigh-in: report what is known, guess nothing.
+
+See `docs/superpowers/plans/2026-08-29-heart-rate-reparenting.md`.
+
 ### Pattern-Based Dynamic Sessions
 Routine templates with pre-planned muscle-group slots are retired. A session is
 built live in the gym instead:

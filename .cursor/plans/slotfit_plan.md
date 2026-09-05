@@ -430,11 +430,21 @@ These features are deferred to the Android app phase.
 - **Device**: Polar H10 (Bluetooth Low Energy)
 - **Features**:
   - Real-time heart rate display during workout
-  - Heart rate zones (fat burn, cardio, peak, maximum)
-  - Time-series recording per exercise and slot (1Hz)
-  - **Data Retention**: Raw time-series kept until analysis complete, then dropped
-  - **Analytics**: Comprehensive metrics at exercise/slot/workout levels
+  - Heart rate zones: **five by %HRmax plus a below-Z1 bucket**, matching Garmin
+    and Polar. The earlier "fat burn / cardio / peak / maximum" scheme was
+    Fitbit's four buckets — it lost a zone on import and did not sum to session
+    duration.
+  - Time-series recording at 1 Hz, attributed to the **session**. Not to an
+    exercise or slot: nothing below `TrainingSession` carries a timestamp, and a
+    superset entry is interleaved rather than contiguous.
+  - **Data Retention**: raw 1 Hz series is **kept server-side**, not dropped
+    after summarising. Discarding it would foreclose the HR-recovery learning
+    this same plan asks for below, plus session charts and any recomputation of
+    zones. Summaries are a rebuildable cache over it.
+  - **Analytics**: session-level metrics, derived from raw at compute time
   - **HR-Based Rest Suggestions**: Extend rest if HR elevated
+
+  Schema and reasoning: `docs/superpowers/plans/2026-08-29-heart-rate-reparenting.md`.
 
 ---
 
@@ -772,8 +782,9 @@ routine_templates (...)
 workout_sessions (...)
 workout_exercises (...)
 workout_sets (...)
-heart_rate_readings (...)  -- For Android future
-heart_rate_analytics (...)  -- For Android future
+heart_rate_readings (...)  -- per-user time series; BLE, Garmin/Polar, Health Connect
+hr_session_links (...)     -- associates a stretch of stream with a session
+heart_rate_analytics (...) -- rebuildable summary cache over readings
 ```
 
 ---

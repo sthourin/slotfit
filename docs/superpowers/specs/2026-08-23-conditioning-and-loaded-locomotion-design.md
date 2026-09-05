@@ -37,6 +37,11 @@ This is deliberately a small change to a model that mostly anticipated it:
   bodyweight is already a dated time series.
 - `heart_rate_readings` and `heart_rate_analytics` are fully modelled (0 rows) —
   groundwork for the Garmin-parity story, out of scope here.
+  **Correction, 2026-08-29:** "fully modelled" was wrong. They were modelled
+  against the *retired* routine tables — `heart_rate_readings` hung off
+  `workout_exercises` with a NOT NULL FK — so nothing could write a row at all,
+  and the 0 rows were a symptom rather than simply an unstarted feature. Fixed
+  by `docs/superpowers/plans/2026-08-29-heart-rate-reparenting.md`.
 
 Three things are missing: a distance column, a protocol that measures distance
 against time, and a scoring path that does not corrupt strength tonnage.
