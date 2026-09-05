@@ -186,22 +186,32 @@ Android-only until a native shell exists.
 
 ## Plan
 
-### Phase A — Clear the ground
+### Phase A — Clear the ground — **COMPLETE (2026-09-05)**
 
-1. Delete `android/`. Replace it with nothing; record the decision here rather
-   than leaving a scaffold that looks like progress. (Recoverable from `a2c5bb4`
-   if ever wanted — but there is nothing there to want.)
-2. Fix the 7 TypeScript build errors so `npm run build` is green. This unblocks
-   every later phase.
-3. Reconcile the stale docs: mark `feature-matrix.md` and `ui-design-review.md`
-   as pre-pivot historical records, and either update `TASKS.md` (still
-   describing the retired routine/slot phases) or retire it in favour of the
-   `docs/superpowers/` plans that have actually driven the work.
+1. ~~Delete `android/`.~~ **Done** — `e50c978`. Replace it with nothing; record
+   the decision here rather than leaving a scaffold that looks like progress.
+   (Recoverable from `a2c5bb4` if ever wanted — but there is nothing there to
+   want.)
+2. ~~Fix the 7 TypeScript build errors so `npm run build` is green.~~ **Done** —
+   `a461972`. This unblocks every later phase.
+3. ~~Reconcile the stale docs.~~ **Done** — `feature-matrix.md` and
+   `ui-design-review.md` now carry a "HISTORICAL — pre-pivot" banner, and
+   `TASKS.md` is marked "RETIRED — historical record, not the plan of record"
+   in favour of the `docs/superpowers/` plans that have actually driven the work.
 
 Exit: `npm run build` and `pytest` both green; no dead Android module; no
 document claiming a retired feature is the plan of record.
 
 ### Phase B — Make the web app a phone app
+
+> **Prerequisite, added 2026-09-05: do step 12 (`tailscale serve` + HTTPS) from
+> Phase D first.** Phase D is described below as parallel to B and C. That holds
+> for steps 13–16, but *not* for step 12: every item in this phase needs a
+> secure context, which `http://100.x.y.z` is not. Attempting Phase B without it
+> produces a page that cannot install and a Wake Lock call that will not run —
+> and you will spend the time debugging the app rather than the URL. Step 12 is
+> the cheap half of Phase D (an admin-console toggle and one command); the
+> containerising and laptop-persistence work stays parallel.
 
 4. PWA baseline: `manifest.webmanifest`, real icons (maskable included), theme
    colour, `vite-plugin-pwa` for an app-shell service worker. Installable from
@@ -233,9 +243,17 @@ returns.
 
 ### Phase D — The tailnet host
 
-The spare laptop becomes the always-on host. This phase can run in parallel with
-B and C; nothing in it blocks them, and having a real phone-reachable URL early
-makes B and C much easier to test.
+The spare laptop becomes the always-on host. ~~This phase can run in parallel
+with B and C; nothing in it blocks them~~ — **corrected 2026-09-05: steps 13–16
+run in parallel with B and C, but step 12 does not. It gates them**, as step 12
+itself says a few lines down; the original framing contradicted its own detail.
+Do step 12 first, then treat the rest as parallel. Having a real
+phone-reachable URL early makes B and C much easier to test.
+
+Note the split in effort, because it is lopsided: step 12 is an admin-console
+toggle plus one command, while 13–16 are the substantial half (containerising
+the stack, wiring the un-skippable seeds, Windows persistence, backups). Being
+blocked on the cheap step is the thing to avoid.
 
 12. **HTTPS on the tailnet, via `tailscale serve`.** This is not a nicety, it is
     the enabler for the two phases around it. Service workers, PWA
