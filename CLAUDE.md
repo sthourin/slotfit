@@ -148,6 +148,32 @@ DATABASE_URL=postgresql+asyncpg://postgres:slotfit@localhost:5432/slotfit
 4. **Web-First**: Build all features for web before Android
 5. **No Auth Yet**: MVP uses browser local storage, auth deferred
 
+## Device Identity — read this before diagnosing "my history is gone"
+
+Every endpoint scopes data to a user resolved from the `X-Device-ID` header, and
+the web client keeps that id in `localStorage` under `slotfit_device_id`. The
+entire training history — 228 sessions, the day plans, the weigh-ins — belongs
+to **`user_id 1`, `device_id setup-verify-0001`**: a fixed hand-set id, not a
+UUID, because that is what `scripts.backfill_hevy` was pointed at.
+
+To see any history in a browser that has not been used with the app before:
+
+```js
+localStorage.setItem('slotfit_device_id','setup-verify-0001')
+```
+
+`get_current_user` in `app/core/deps.py` **creates** a user for an unrecognized
+device id rather than erroring, so a browser with no `localStorage` — a new
+machine, cleared site data, a different browser, incognito — silently gets a
+brand-new empty account and the UI looks exactly as though the data were lost.
+The `users` table has accumulated a dozen such orphans this way.
+
+So: before treating an empty UI as a database or API fault, run
+`SELECT id, device_id FROM users` and compare it against the browser's
+`localStorage`. This is the first thing to check, not the last. It bites hardest
+right after a machine migration, when the database restored perfectly and the
+browser is simply new.
+
 ## Design Decisions
 
 These decisions have been made during development and should be followed consistently.
