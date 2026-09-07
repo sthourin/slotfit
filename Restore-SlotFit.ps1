@@ -292,18 +292,42 @@ else {
     $tableCount = [int] (Get-Scalar 'slotfit' "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r';")
 
     if ($tableCount -gt 0 -and -not $Force) {
-        Write-Warn "database slotfit already has $tableCount tables - not restoring over it. Re-run with -Force to replace its contents."
+        # Report the existing schema's revision, not just a table count. Whether
+        # that database is older, newer or on a different lineage than the dump
+        # is the actual decision, and a bare count does not answer it.
+        $existingRev = Get-Scalar 'slotfit' "SELECT version_num FROM alembic_version;"
+        Write-Warn "database slotfit already has $tableCount tables at revision '$existingRev' (dump is '$ExpectedRevision') - not restoring over it. Re-run with -Force to replace its contents."
+        if ($existingRev -and $existingRev -ne $ExpectedRevision) {
+            Write-Warn "  those revisions differ - confirm which is newer before forcing, because -Force discards the existing database entirely"
+        }
     }
     else {
         docker cp $DumpFile "${Container}:/tmp/slotfit-restore.dump"
         Assert-Native 'docker cp'
 
-        # --clean only matters when replacing an existing schema.
         if ($tableCount -gt 0) {
-            docker exec $Container pg_restore -U postgres -d slotfit --clean --if-exists --no-owner /tmp/slotfit-restore.dump
-        } else {
-            docker exec $Container pg_restore -U postgres -d slotfit --no-owner /tmp/slotfit-restore.dump
+            # Drop and recreate rather than `pg_restore --clean` in place.
+            #
+            # --clean issues DROP per object, and every one of them fails if the
+            # target holds objects the dump does not know about: on 2026-09-07 a
+            # database carrying the abandoned dashboard/tags/RPE schema had
+            # *_tags tables with foreign keys onto exercises, routine_templates
+            # and workout_sessions, so those DROPs failed, the CREATEs then
+            # failed as "already exists", and the data copied into the OLD table
+            # shapes. The result was a hybrid of two schemas with
+            # workout_exercises rows referencing sessions that did not exist.
+            #
+            # An empty database has nothing to drop, so none of that can happen.
+            # The cost is that -Force is now unambiguously destructive, which is
+            # what it always claimed to be.
+            Write-Host '   dropping and recreating slotfit (-Force)' -ForegroundColor Yellow
+            docker exec $Container psql -U postgres -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='slotfit' AND pid <> pg_backend_pid();" | Out-Null
+            docker exec $Container psql -U postgres -d postgres -c 'DROP DATABASE IF EXISTS slotfit;' | Out-Null
+            Assert-Native 'DROP DATABASE slotfit'
+            docker exec $Container psql -U postgres -d postgres -c 'CREATE DATABASE slotfit;' | Out-Null
+            Assert-Native 'CREATE DATABASE slotfit'
         }
+        docker exec $Container pg_restore -U postgres -d slotfit --no-owner /tmp/slotfit-restore.dump
         # pg_restore exits non-zero on warnings too; the row-count check below is the real verdict.
         if ($LASTEXITCODE -ne 0) {
             Write-Warn "pg_restore exited $LASTEXITCODE - see messages above; verifying row counts"
